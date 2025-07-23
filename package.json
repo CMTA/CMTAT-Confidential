@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "@fhevm/core-contracts": "^0.7.0-6",
+    "@fhevm/solidity": "^0.7.0",
+    "@openzeppelin/contracts-upgradeable": "^5.4.0",
+    "hardhat-contract-sizer": "^2.10.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "hardhat": "^2.26.1"
+  }
+}
