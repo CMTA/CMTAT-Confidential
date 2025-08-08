@@ -103,4 +103,16 @@ contract CMTATFHE is ConfidentialFungibleToken, CMTATBaseGeneric {
        return ConfidentialFungibleToken.confidentialTransferFromAndCall(from, to, amount, data);
     }
 
+    function mint(address to, euint64 amount) public returns (euint64 transferred) {
+         return ConfidentialFungibleToken._mint(to, amount);
+    }
+
+    function burn(address from, euint64 amount) public returns (euint64 transferred) {
+         return ConfidentialFungibleToken._burn(from, amount);
+    }
+
+    function forcedTransfer(address from,address to, euint64 amount) internal returns (euint64 transferred) {
+         ConfidentialFungibleToken._transfer(from, to, amount);
+    }
+
 }
