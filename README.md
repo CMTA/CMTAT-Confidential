@@ -18,7 +18,7 @@ Then it uses the FHE version to handle everything related to transfers
 
 ## OpenZeppelin
 
-CMTAT FHE is mainly based on the [Confidential Fungible Token](https://docs.openzeppelin.com/confidential-contracts/0.1.0/token) produced by OpenZeppelin
+CMTAT FHE is mainly based on the [Confidential Fungible Token](https://docs.openzeppelin.com/confidential-contracts/0.1.0/token) produced by OpenZeppelin.
 
 ### Transfer
 
@@ -32,7 +32,7 @@ Select the appropriate transfer function and generate a cypher-text using [fhevm
 
 
 
-### Operator
+### Operator - TransferFrom
 
 An operator is an address that has the ability to move tokens on behalf of another address by calling `transferFrom`. 
 
@@ -55,7 +55,7 @@ Note:
 
 
 
-### Callback
+### ERC1363 style Callback
 
 The token standard exposes transfer functions with and without callbacks. It is up to the caller to decide if a callback is necessary for the transfer. For smart contracts that support it, callbacks allow the operator approval step to be skipped and directly invoke the receiver contract via a callback.
 
