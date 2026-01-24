@@ -164,7 +164,7 @@ contract CMTATFHE is
         address to,
         externalEuint64 encryptedAmount,
         bytes calldata inputProof
-    ) public virtual override(ERC7984, ERC7984MintModule, ERC7984BurnModule, ERC7984EnforcementModule) returns (euint64) {
+    ) public virtual override returns (euint64) {
         address from = _msgSender();
         if (!_canTransferGenericByModule(address(0), from, to)) {
             revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
@@ -176,7 +176,7 @@ contract CMTATFHE is
     function confidentialTransfer(
         address to,
         euint64 amount
-    ) public virtual override(ERC7984, ERC7984MintModule, ERC7984BurnModule, ERC7984EnforcementModule) returns (euint64) {
+    ) public virtual override returns (euint64) {
         address from = _msgSender();
         if (!_canTransferGenericByModule(address(0), from, to)) {
             revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
@@ -190,7 +190,7 @@ contract CMTATFHE is
         address to,
         externalEuint64 encryptedAmount,
         bytes calldata inputProof
-    ) public virtual override(ERC7984, ERC7984MintModule, ERC7984BurnModule, ERC7984EnforcementModule) returns (euint64 transferred) {
+    ) public virtual override returns (euint64 transferred) {
         if (!_canTransferGenericByModule(_msgSender(), from, to)) {
             revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
         }
@@ -202,7 +202,7 @@ contract CMTATFHE is
         address from,
         address to,
         euint64 amount
-    ) public virtual override(ERC7984, ERC7984MintModule, ERC7984BurnModule, ERC7984EnforcementModule) returns (euint64 transferred) {
+    ) public virtual override returns (euint64 transferred) {
         if (!_canTransferGenericByModule(_msgSender(), from, to)) {
             revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
         }
@@ -215,7 +215,7 @@ contract CMTATFHE is
         externalEuint64 encryptedAmount,
         bytes calldata inputProof,
         bytes calldata data
-    ) public virtual override(ERC7984, ERC7984MintModule, ERC7984BurnModule, ERC7984EnforcementModule) returns (euint64 transferred) {
+    ) public virtual override returns (euint64 transferred) {
         address from = _msgSender();
         if (!_canTransferGenericByModule(address(0), from, to)) {
             revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
@@ -228,7 +228,7 @@ contract CMTATFHE is
         address to,
         euint64 amount,
         bytes calldata data
-    ) public virtual override(ERC7984, ERC7984MintModule, ERC7984BurnModule, ERC7984EnforcementModule) returns (euint64 transferred) {
+    ) public virtual override returns (euint64 transferred) {
         address from = _msgSender();
         if (!_canTransferGenericByModule(address(0), from, to)) {
             revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
@@ -243,7 +243,7 @@ contract CMTATFHE is
         externalEuint64 encryptedAmount,
         bytes calldata inputProof,
         bytes calldata data
-    ) public virtual override(ERC7984, ERC7984MintModule, ERC7984BurnModule, ERC7984EnforcementModule) returns (euint64 transferred) {
+    ) public virtual override returns (euint64 transferred) {
         if (!_canTransferGenericByModule(_msgSender(), from, to)) {
             revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
         }
@@ -256,7 +256,7 @@ contract CMTATFHE is
         address to,
         euint64 amount,
         bytes calldata data
-    ) public virtual override(ERC7984, ERC7984MintModule, ERC7984BurnModule, ERC7984EnforcementModule) returns (euint64 transferred) {
+    ) public virtual override returns (euint64 transferred) {
         if (!_canTransferGenericByModule(_msgSender(), from, to)) {
             revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
         }
