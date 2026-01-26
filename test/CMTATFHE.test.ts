@@ -305,6 +305,85 @@ describe('CMTATFHE', function () {
           )
       ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
     });
+
+    it('mint is allowed when paused', async function () {
+      await this.token.connect(this.pauser).pause();
+
+      const encryptedInput = await fhevm
+        .createEncryptedInput(this.token.target, this.minter.address)
+        .add64(500)
+        .encrypt();
+
+      // Mint should still work while paused
+      await this.token
+        .connect(this.minter)
+        ['mint(address,bytes32,bytes)'](
+          this.recipient.address,
+          encryptedInput.handles[0],
+          encryptedInput.inputProof
+        );
+
+      const balanceHandle = await this.token.confidentialBalanceOf(this.recipient.address);
+      const balance = await fhevm.userDecryptEuint(
+        FhevmType.euint64,
+        balanceHandle,
+        this.token.target,
+        this.recipient
+      );
+      expect(balance).to.equal(500);
+    });
+
+    it('burn is allowed when paused', async function () {
+      await this.token.connect(this.pauser).pause();
+
+      const encryptedInput = await fhevm
+        .createEncryptedInput(this.token.target, this.burner.address)
+        .add64(500)
+        .encrypt();
+
+      // Burn should still work while paused
+      await this.token
+        .connect(this.burner)
+        ['burn(address,bytes32,bytes)'](
+          this.holder.address,
+          encryptedInput.handles[0],
+          encryptedInput.inputProof
+        );
+
+      const balanceHandle = await this.token.confidentialBalanceOf(this.holder.address);
+      const balance = await fhevm.userDecryptEuint(
+        FhevmType.euint64,
+        balanceHandle,
+        this.token.target,
+        this.holder
+      );
+      expect(balance).to.equal(500);
+    });
+
+    it('operator transfers are blocked when paused', async function () {
+      // Set up operator first
+      const expirationTimestamp = Math.floor(Date.now() / 1000) + 86400;
+      await this.token.connect(this.holder).setOperator(this.accounts[0].address, expirationTimestamp);
+
+      // Then pause
+      await this.token.connect(this.pauser).pause();
+
+      const encryptedInput = await fhevm
+        .createEncryptedInput(this.token.target, this.accounts[0].address)
+        .add64(100)
+        .encrypt();
+
+      await expect(
+        this.token
+          .connect(this.accounts[0])
+          ['confidentialTransferFrom(address,address,bytes32,bytes)'](
+            this.holder.address,
+            this.recipient.address,
+            encryptedInput.handles[0],
+            encryptedInput.inputProof
+          )
+      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+    });
   });
 
   describe('freeze', function () {
@@ -397,7 +476,10 @@ describe('CMTATFHE', function () {
         );
     });
 
-    it('enforcer can force transfer', async function () {
+    it('enforcer can force transfer from frozen address', async function () {
+      // Freeze the holder first (required for forcedTransfer)
+      await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
+
       const encryptedInput = await fhevm
         .createEncryptedInput(this.token.target, this.enforcer.address)
         .add64(500)
@@ -422,7 +504,29 @@ describe('CMTATFHE', function () {
       expect(recipientBalance).to.equal(500);
     });
 
+    it('cannot force transfer from non-frozen address', async function () {
+      // Holder is NOT frozen
+      const encryptedInput = await fhevm
+        .createEncryptedInput(this.token.target, this.enforcer.address)
+        .add64(500)
+        .encrypt();
+
+      await expect(
+        this.token
+          .connect(this.enforcer)
+          ['forcedTransfer(address,address,bytes32,bytes)'](
+            this.holder.address,
+            this.recipient.address,
+            encryptedInput.handles[0],
+            encryptedInput.inputProof
+          )
+      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+    });
+
     it('non-enforcer cannot force transfer', async function () {
+      // Freeze the holder first
+      await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
+
       const encryptedInput = await fhevm
         .createEncryptedInput(this.token.target, this.holder.address)
         .add64(500)
@@ -440,16 +544,20 @@ describe('CMTATFHE', function () {
       ).to.be.reverted;
     });
 
-    it('enforcer can force transfer from frozen address', async function () {
-      // Freeze the holder
+    it('enforcer can force transfer even when contract is deactivated', async function () {
+      // Freeze the holder first
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
+
+      // Pause and deactivate the contract
+      await this.token.connect(this.pauser).pause();
+      await this.token.connect(this.admin).deactivateContract();
 
       const encryptedInput = await fhevm
         .createEncryptedInput(this.token.target, this.enforcer.address)
         .add64(500)
         .encrypt();
 
-      // Forced transfer should still work even with frozen address
+      // Forced transfer should still work even when deactivated
       await this.token
         .connect(this.enforcer)
         ['forcedTransfer(address,address,bytes32,bytes)'](

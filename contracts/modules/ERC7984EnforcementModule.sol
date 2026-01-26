@@ -12,11 +12,14 @@ import {FHE, externalEuint64, euint64} from "@fhevm/solidity/lib/FHE.sol";
  * - Forced transfer functions for regulatory compliance
  * - Flexible access control via virtual authorization function
  *
- * Forced transfers bypass freeze checks but respect contract deactivation.
+ * Forced transfers are designed to transfer tokens FROM frozen addresses.
+ * They can be performed even when the contract is deactivated.
  * Use cases include: court orders, sanctions compliance, error correction.
  *
  * The authorization function `_authorizeForcedTransfer()` must be overridden
  * in the inheriting contract to implement the desired access control.
+ * The validation function `_validateForcedTransfer()` should be overridden
+ * to enforce that the source address is frozen.
  */
 abstract contract ERC7984EnforcementModule is ERC7984 {
     /* ============ Events ============ */

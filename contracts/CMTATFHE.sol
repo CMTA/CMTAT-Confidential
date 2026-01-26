@@ -53,6 +53,9 @@ contract CMTATFHE is
     ERC7984EnforcementModule
 {
     /* ============ Errors ============ */
+    /**
+    * Since the amount is encrypted, we use a string reason instead of amount
+    */
     error CMTAT_InvalidTransfer(address from, address to, string reason);
 
     /* ============ Constructor ============ */
@@ -147,15 +150,18 @@ contract CMTATFHE is
     }
 
     /**
-     * @dev Validates forced transfer against deactivation status.
-     * Forced transfers bypass freeze checks but respect deactivation.
-     * @param from Source address
+     * @dev Validates forced transfer.
+     * Forced transfers can be performed even when the contract is deactivated (same as CMTAT).
+     * The source address must be frozen to perform a forced transfer.
+     * @param from Source address (must be frozen)
      * @param to Destination address
      */
     function _validateForcedTransfer(address from, address to) internal virtual override {
-        if (PauseModule.deactivated()) {
-            revert CMTAT_InvalidTransfer(from, to, "Contract deactivated");
+        // ForcedTransfer requires the from address to be frozen (same as CMTAT)
+        if (!isFrozen(from)) {
+            revert CMTAT_InvalidTransfer(from, to, "Address not frozen");
         }
+        // Note: forcedTransfer can be performed even if the contract is deactivated
     }
 
     /* ============ Transfer Overrides ============ */
