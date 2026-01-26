@@ -28,7 +28,7 @@ Fully Homomorphic Encryption (FHE) enables computing directly on encrypted data 
 ## Architecture
 
 ```
-CMTATFHE
+CMTAT-FHE
 ├── ERC7984 (OpenZeppelin Confidential Contracts)
 │   ├── Encrypted balances (euint64)
 │   ├── Confidential transfers
@@ -57,7 +57,7 @@ CMTATFHE
 
 ## Summary
 
-This section maps the CMTAT framework features to the CMTATFHE implementation, showing how standard functionalities are adapted for Fully Homomorphic Encryption.
+This section maps the CMTAT framework features to the CMTAT FHE implementation, showing how standard functionalities are adapted for Fully Homomorphic Encryption.
 
 ### CMTAT Framework Mapping
 
@@ -80,7 +80,7 @@ This section maps the CMTAT framework features to the CMTATFHE implementation, s
 
 ### Extended Features
 
-| **Functionalities** | **CMTATFHE Features** | **Available** |
+| **Functionalities** | **CMTAT FHE Features** | **Available** |
 | ------------------- | --------------------- | ------------- |
 | Forced Transfer | `forcedTransfer()` with encrypted amount | ✓ |
 | Operator System | `setOperator()` / `confidentialTransferFrom()` | ✓ |
@@ -93,7 +93,7 @@ This section maps the CMTAT framework features to the CMTATFHE implementation, s
 
 ### Implementation Details
 
-| **Functionalities** | **CMTATFHE** | **Note** |
+| **Functionalities** | **CMTAT FHE** | **Note** |
 | ------------------- | ------------ | -------- |
 | Mint while paused | ✓ | Minting is allowed when contract is paused (same as CMTAT) |
 | Burn while paused | ✓ | Burning is allowed when contract is paused (same as CMTAT) |
@@ -104,7 +104,7 @@ This section maps the CMTAT framework features to the CMTATFHE implementation, s
 
 ### Key Differences from Standard CMTAT
 
-| **Aspect** | **CMTAT (Standard)** | **CMTATFHE (Confidential)** |
+| **Aspect** | **CMTAT (Standard)** | **CMTAT FHE (Confidential)** |
 | ---------- | -------------------- | --------------------------- |
 | Balance type | `uint256` (public) | `euint64` (encrypted) |
 | Transfer amount | `uint256` (public) | `externalEuint64` + ZKPoK |
@@ -126,8 +126,8 @@ To decrypt encrypted values (balances, amounts, total supply), the requesting pa
 
 ```bash
 # Clone the repository
-git clone --recursive https://github.com/your-repo/CMTATFHE.git
-cd CMTATFHE
+git clone --recursive https://github.com/your-repo/CMTAT-FHE.git
+cd CMTAT-FHE
 
 # Install dependencies
 npm install
@@ -345,7 +345,7 @@ await token.grantRole(ENFORCER_ROLE, enforcerAddress);
 ## Project Structure
 
 ```
-CMTATFHE/
+CMTAT-FHE/
 ├── contracts/
 │   └── CMTATFHE.sol          # Main contract
 ├── CMTAT/                     # CMTAT submodule (compliance modules)
