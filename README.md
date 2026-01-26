@@ -6,6 +6,8 @@ A confidential security token implementation combining [CMTAT](https://github.co
 
 CMTAT FHE implements the [ERC-7984](https://docs.openzeppelin.com/confidential-contracts/erc7984) standard (Confidential Fungible Token) with CMTAT regulatory compliance modules. All token balances and transfer amounts are encrypted using Fully Homomorphic Encryption (FHE), ensuring transfer amount and balance privacy while maintaining regulatory compliance capabilities.
 
+CMTAT is a security token framework by [Capital Markets and Technology Association](https://www.cmta.ch/) that includes various compliance features such as conditional transfer, account freeze, and token pause. The specification are blockchain agnostic with implementation available for several different blockchain ecosystem such as [Ethereum](https://github.com/CMTA/CMTAT), [Solana](https://github.com/CMTA/CMTAT-Solana/) and [Tezos](https://github.com/CMTA/CMTAT-Tezos-FA2). CMTAT FHE is built on the Ethereum version written in Solidity.
+
 ### What is FHE?
 
 Fully Homomorphic Encryption (FHE) enables computing directly on encrypted data without ever decrypting it. The Zama Protocol uses FHE combined with Multi-Party Computation (MPC) for threshold decryption and Zero-Knowledge Proofs (ZKPoKs) for input validation, providing:
@@ -26,7 +28,7 @@ Fully Homomorphic Encryption (FHE) enables computing directly on encrypted data 
 ## Architecture
 
 ```
-CMTATFHE
+CMTAT-FHE
 ├── ERC7984 (OpenZeppelin Confidential Contracts)
 │   ├── Encrypted balances (euint64)
 │   ├── Confidential transfers
@@ -55,7 +57,7 @@ CMTATFHE
 
 ## Summary
 
-This section maps the CMTAT framework features to the CMTATFHE implementation, showing how standard functionalities are adapted for Fully Homomorphic Encryption.
+This section maps the CMTAT framework features to the CMTAT FHE implementation, showing how standard functionalities are adapted for Fully Homomorphic Encryption.
 
 ### CMTAT Framework Mapping
 
@@ -78,7 +80,7 @@ This section maps the CMTAT framework features to the CMTATFHE implementation, s
 
 ### Extended Features
 
-| **Functionalities** | **CMTATFHE Features** | **Available** |
+| **Functionalities** | **CMTAT FHE Features** | **Available** |
 | ------------------- | --------------------- | ------------- |
 | Forced Transfer | `forcedTransfer()` with encrypted amount | ✓ |
 | Operator System | `setOperator()` / `confidentialTransferFrom()` | ✓ |
@@ -91,7 +93,7 @@ This section maps the CMTAT framework features to the CMTATFHE implementation, s
 
 ### Implementation Details
 
-| **Functionalities** | **CMTATFHE** | **Note** |
+| **Functionalities** | **CMTAT FHE** | **Note** |
 | ------------------- | ------------ | -------- |
 | Mint while paused | ✓ | Minting is allowed when contract is paused (same as CMTAT) |
 | Burn while paused | ✓ | Burning is allowed when contract is paused (same as CMTAT) |
@@ -102,7 +104,7 @@ This section maps the CMTAT framework features to the CMTATFHE implementation, s
 
 ### Key Differences from Standard CMTAT
 
-| **Aspect** | **CMTAT (Standard)** | **CMTATFHE (Confidential)** |
+| **Aspect** | **CMTAT (Standard)** | **CMTAT FHE (Confidential)** |
 | ---------- | -------------------- | --------------------------- |
 | Balance type | `uint256` (public) | `euint64` (encrypted) |
 | Transfer amount | `uint256` (public) | `externalEuint64` + ZKPoK |
@@ -124,8 +126,8 @@ To decrypt encrypted values (balances, amounts, total supply), the requesting pa
 
 ```bash
 # Clone the repository
-git clone --recursive https://github.com/your-repo/CMTATFHE.git
-cd CMTATFHE
+git clone --recursive https://github.com/your-repo/CMTAT-FHE.git
+cd CMTAT-FHE
 
 # Install dependencies
 npm install
@@ -343,7 +345,7 @@ await token.grantRole(ENFORCER_ROLE, enforcerAddress);
 ## Project Structure
 
 ```
-CMTATFHE/
+CMTAT-FHE/
 ├── contracts/
 │   └── CMTATFHE.sol          # Main contract
 ├── CMTAT/                     # CMTAT submodule (compliance modules)
@@ -356,20 +358,6 @@ CMTATFHE/
 │   └── helpers/
 └── hardhat.config.js
 ```
-
-## References
-
-- [CMTAT - Capital Markets Token Standard](https://github.com/CMTA/CMTAT)
-- [OpenZeppelin Confidential Contracts](https://docs.openzeppelin.com/confidential-contracts)
-- [ERC-7984 Specification](https://docs.openzeppelin.com/confidential-contracts/erc7984)
-- [Zama Protocol Litepaper](https://docs.zama.org/protocol/zama-protocol-litepaper)
-- [Zama FHEVM Documentation](https://docs.zama.org/protocol/solidity-guides/getting-started/overview)
-- [Zama FHE Types](https://docs.zama.org/protocol/solidity-guides/smart-contract/types)
-- [Encrypted Inputs](https://docs.zama.org/protocol/solidity-guides/smart-contract/inputs)
-- [Access Control List (ACL)](https://docs.zama.org/protocol/solidity-guides/smart-contract/acl)
-- [Decryption](https://docs.zama.org/protocol/solidity-guides/smart-contract/oracle)
-
----
 
 ## FAQ
 
@@ -617,13 +605,25 @@ To access encrypted values, accounts need proper ACL permissions:
 
 **Note:** If you need public total supply, implement a function that goes through the full decryption process and emits the result as an event. Consider the privacy implications carefully.
 
+
+
 ---
 
-## Community Resources
+## References
 
-- [Zama Protocol Documentation](https://docs.zama.org/protocol)
-- [Zama Protocol Litepaper](https://docs.zama.org/protocol/zama-protocol-litepaper)
-- [Zama Community Forum](https://community.zama.org/)
+- [CMTAT - Capital Markets and Technology Association Token Standard](https://github.com/CMTA/CMTAT)
+- Openzeppelin
+  - [OpenZeppelin Confidential Contracts](https://docs.openzeppelin.com/confidential-contracts)
+  - [ERC-7984 Specification](https://docs.openzeppelin.com/confidential-contracts/erc7984)
+
+- Zama
+  - [Zama Protocol Litepaper](https://docs.zama.org/protocol/zama-protocol-litepaper)
+  - [Zama FHEVM Documentation](https://docs.zama.org/protocol/solidity-guides/getting-started/overview)
+  - [Zama FHE Types](https://docs.zama.org/protocol/solidity-guides/smart-contract/types)
+  - [Encrypted Inputs](https://docs.zama.org/protocol/solidity-guides/smart-contract/inputs)
+  - [Access Control List (ACL)](https://docs.zama.org/protocol/solidity-guides/smart-contract/acl)
+  - [Decryption](https://docs.zama.org/protocol/solidity-guides/smart-contract/oracle)
+
 
 ## License
 
