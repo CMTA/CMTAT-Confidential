@@ -339,8 +339,10 @@ await token.grantRole(ENFORCER_ROLE, enforcerAddress);
 |---------|---------|
 | `@fhevm/solidity` | 0.9.1 |
 | `@fhevm/hardhat-plugin` | 0.3.0-1 |
-| `@openzeppelin/contracts` | ^5.4.0 |
-| `@openzeppelin/contracts-upgradeable` | ^5.4.0 |
+| `@openzeppelin/contracts` | 5.5.0 |
+| `@openzeppelin/contracts-upgradeable` | 5.5.0 |
+| **Submodule** |  |
+| [OpenZeppelin Confidential Contracts](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts) | v0.3.1 |
 
 ## Project Structure
 
@@ -486,12 +488,6 @@ Ethereum mainnet does not natively support FHE operations. The Zama Protocol use
 
 3. **Users need compatible tools**: Client applications must use the Relayer SDK to create encrypted inputs and request decryptions
 
-#### Roadmap
-
-- **Ethereum Mainnet**: Live
-- **Other EVM chains**: H1 2026
-- **Solana support**: H2 2026
-
 ---
 
 ### 4. Is it possible to also provide privacy for addresses?
@@ -624,7 +620,8 @@ To access encrypted values, accounts need proper ACL permissions:
   - [Access Control List (ACL)](https://docs.zama.org/protocol/solidity-guides/smart-contract/acl)
   - [Decryption](https://docs.zama.org/protocol/solidity-guides/smart-contract/oracle)
 
+- Part of this project was carried out with the help of [Claude Code](https://claude.com/product/claude-code)
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MPL-2.0 License.
