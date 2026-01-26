@@ -6,6 +6,8 @@ A confidential security token implementation combining [CMTAT](https://github.co
 
 CMTAT FHE implements the [ERC-7984](https://docs.openzeppelin.com/confidential-contracts/erc7984) standard (Confidential Fungible Token) with CMTAT regulatory compliance modules. All token balances and transfer amounts are encrypted using Fully Homomorphic Encryption (FHE), ensuring transfer amount and balance privacy while maintaining regulatory compliance capabilities.
 
+CMTAT is a security token framework by [Capital Markets and Technology Association](https://www.cmta.ch/) that includes various compliance features such as conditional transfer, account freeze, and token pause. The specification are blockchain agnostic with implementation available for several different blockchain ecosystem such as [Ethereum](https://github.com/CMTA/CMTAT), [Solana](https://github.com/CMTA/CMTAT-Solana/) and [Tezos](https://github.com/CMTA/CMTAT-Tezos-FA2). CMTAT FHE is built on the Ethereum version written in Solidity.
+
 ### What is FHE?
 
 Fully Homomorphic Encryption (FHE) enables computing directly on encrypted data without ever decrypting it. The Zama Protocol uses FHE combined with Multi-Party Computation (MPC) for threshold decryption and Zero-Knowledge Proofs (ZKPoKs) for input validation, providing:
@@ -357,20 +359,6 @@ CMTATFHE/
 └── hardhat.config.js
 ```
 
-## References
-
-- [CMTAT - Capital Markets Token Standard](https://github.com/CMTA/CMTAT)
-- [OpenZeppelin Confidential Contracts](https://docs.openzeppelin.com/confidential-contracts)
-- [ERC-7984 Specification](https://docs.openzeppelin.com/confidential-contracts/erc7984)
-- [Zama Protocol Litepaper](https://docs.zama.org/protocol/zama-protocol-litepaper)
-- [Zama FHEVM Documentation](https://docs.zama.org/protocol/solidity-guides/getting-started/overview)
-- [Zama FHE Types](https://docs.zama.org/protocol/solidity-guides/smart-contract/types)
-- [Encrypted Inputs](https://docs.zama.org/protocol/solidity-guides/smart-contract/inputs)
-- [Access Control List (ACL)](https://docs.zama.org/protocol/solidity-guides/smart-contract/acl)
-- [Decryption](https://docs.zama.org/protocol/solidity-guides/smart-contract/oracle)
-
----
-
 ## FAQ
 
 ### 1. As an issuer, can I burn tokens from a token holder without their consent?
@@ -617,13 +605,25 @@ To access encrypted values, accounts need proper ACL permissions:
 
 **Note:** If you need public total supply, implement a function that goes through the full decryption process and emits the result as an event. Consider the privacy implications carefully.
 
+
+
 ---
 
-## Community Resources
+## References
 
-- [Zama Protocol Documentation](https://docs.zama.org/protocol)
-- [Zama Protocol Litepaper](https://docs.zama.org/protocol/zama-protocol-litepaper)
-- [Zama Community Forum](https://community.zama.org/)
+- [CMTAT - Capital Markets and Technology Association Token Standard](https://github.com/CMTA/CMTAT)
+- Openzeppelin
+  - [OpenZeppelin Confidential Contracts](https://docs.openzeppelin.com/confidential-contracts)
+  - [ERC-7984 Specification](https://docs.openzeppelin.com/confidential-contracts/erc7984)
+
+- Zama
+  - [Zama Protocol Litepaper](https://docs.zama.org/protocol/zama-protocol-litepaper)
+  - [Zama FHEVM Documentation](https://docs.zama.org/protocol/solidity-guides/getting-started/overview)
+  - [Zama FHE Types](https://docs.zama.org/protocol/solidity-guides/smart-contract/types)
+  - [Encrypted Inputs](https://docs.zama.org/protocol/solidity-guides/smart-contract/inputs)
+  - [Access Control List (ACL)](https://docs.zama.org/protocol/solidity-guides/smart-contract/acl)
+  - [Decryption](https://docs.zama.org/protocol/solidity-guides/smart-contract/oracle)
+
 
 ## License
 
