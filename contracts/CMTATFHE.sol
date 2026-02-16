@@ -28,14 +28,14 @@ import {ERC7984EnforcementModule} from "./modules/ERC7984EnforcementModule.sol";
  * - CMTATBaseGeneric: CMTAT modules for pause, freeze, access control, document engine, etc.
  * - ERC7984MintModule: Modular mint functionality with flexible access control
  * - ERC7984BurnModule: Modular burn functionality with flexible access control
- * - ERC7984EnforcementModule: Modular forced transfer functionality
+ * - ERC7984EnforcementModule: Modular forced transfer and forced burn functionality
  *
  * Features:
  * - Confidential balances using FHE encryption
  * - Pause/unpause token transfers
  * - Freeze/unfreeze specific addresses
  * - Role-based access control for mint, burn, pause, freeze operations
- * - Forced transfer capability for enforcement
+ * - Forced transfer and forced burn capability for enforcement
  * - Document engine integration
  * - Extra information attributes (tokenId, terms, information)
  *
@@ -106,9 +106,15 @@ contract CMTATFHE is
 
     /**
      * @dev Authorize forced transfer operations - requires ENFORCER_ROLE.
-     * Called by the onlyEnforcer modifier in ERC7984EnforcementModule.
+     * Called by the onlyForcedTransferAuthorized modifier in ERC7984EnforcementModule.
      */
     function _authorizeForcedTransfer() internal virtual override onlyRole(ENFORCER_ROLE) {}
+
+    /**
+     * @dev Authorize forced burn operations - requires ENFORCER_ROLE.
+     * Called by the onlyForcedBurnAuthorized modifier in ERC7984EnforcementModule.
+     */
+    function _authorizeForcedBurn() internal virtual override onlyRole(ENFORCER_ROLE) {}
 
     /**
      * @dev Authorize pause/unpause operations - requires PAUSER_ROLE.
@@ -153,15 +159,33 @@ contract CMTATFHE is
      * @dev Validates forced transfer.
      * Forced transfers can be performed even when the contract is deactivated (same as CMTAT).
      * The source address must be frozen to perform a forced transfer.
+     * Note: This is stricter than standard CMTAT, which allows forcedTransfer on any address.
+     * Here we require the address to be frozen first, creating an explicit audit trail
+     * (freeze event followed by forced transfer).
      * @param from Source address (must be frozen)
      * @param to Destination address
      */
     function _validateForcedTransfer(address from, address to) internal virtual override {
-        // ForcedTransfer requires the from address to be frozen (same as CMTAT)
+        // ForcedTransfer requires the from address to be frozen (stricter than standard CMTAT)
         if (!isFrozen(from)) {
             revert CMTAT_InvalidTransfer(from, to, "Address not frozen");
         }
         // Note: forcedTransfer can be performed even if the contract is deactivated
+    }
+
+    /**
+     * @dev Validates forced burn.
+     * Forced burns can be performed even when the contract is deactivated.
+     * The source address must be frozen to perform a forced burn.
+     * Same freeze requirement as forcedTransfer for consistency.
+     * @param from Address to burn from (must be frozen)
+     */
+    function _validateForcedBurn(address from) internal virtual override {
+        // ForcedBurn requires the from address to be frozen
+        if (!isFrozen(from)) {
+            revert CMTAT_InvalidTransfer(from, address(0), "Address not frozen");
+        }
+        // Note: forcedBurn can be performed even if the contract is deactivated
     }
 
     /* ============ Transfer Overrides ============ */
