@@ -544,6 +544,27 @@ describe('CMTATFHE', function () {
       ).to.be.reverted;
     });
 
+    it('cannot force transfer to address(0)', async function () {
+      // Freeze the holder first
+      await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
+
+      const encryptedInput = await fhevm
+        .createEncryptedInput(this.token.target, this.enforcer.address)
+        .add64(500)
+        .encrypt();
+
+      await expect(
+        this.token
+          .connect(this.enforcer)
+          ['forcedTransfer(address,address,bytes32,bytes)'](
+            this.holder.address,
+            ethers.ZeroAddress,
+            encryptedInput.handles[0],
+            encryptedInput.inputProof
+          )
+      ).to.be.revertedWithCustomError(this.token, 'CMTAT_AddressZeroNotAllowed');
+    });
+
     it('enforcer can force transfer even when contract is deactivated', async function () {
       // Freeze the holder first
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
@@ -575,6 +596,182 @@ describe('CMTATFHE', function () {
         this.recipient
       );
       expect(recipientBalance).to.equal(500);
+    });
+  });
+
+  describe('forcedBurn', function () {
+    beforeEach(async function () {
+      // Mint some tokens to holder
+      const encryptedInput = await fhevm
+        .createEncryptedInput(this.token.target, this.minter.address)
+        .add64(1000)
+        .encrypt();
+
+      await this.token
+        .connect(this.minter)
+        ['mint(address,bytes32,bytes)'](
+          this.holder.address,
+          encryptedInput.handles[0],
+          encryptedInput.inputProof
+        );
+    });
+
+    it('enforcer can force burn from frozen address', async function () {
+      // Freeze the holder first (required for forcedBurn)
+      await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
+
+      const encryptedInput = await fhevm
+        .createEncryptedInput(this.token.target, this.enforcer.address)
+        .add64(500)
+        .encrypt();
+
+      await this.token
+        .connect(this.enforcer)
+        ['forcedBurn(address,bytes32,bytes)'](
+          this.holder.address,
+          encryptedInput.handles[0],
+          encryptedInput.inputProof
+        );
+
+      // Unfreeze to check balance
+      await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, false);
+
+      const holderBalanceHandle = await this.token.confidentialBalanceOf(this.holder.address);
+      const holderBalance = await fhevm.userDecryptEuint(
+        FhevmType.euint64,
+        holderBalanceHandle,
+        this.token.target,
+        this.holder
+      );
+      expect(holderBalance).to.equal(500);
+    });
+
+    it('enforcer can force burn all tokens from frozen address', async function () {
+      await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
+
+      const encryptedInput = await fhevm
+        .createEncryptedInput(this.token.target, this.enforcer.address)
+        .add64(1000)
+        .encrypt();
+
+      await this.token
+        .connect(this.enforcer)
+        ['forcedBurn(address,bytes32,bytes)'](
+          this.holder.address,
+          encryptedInput.handles[0],
+          encryptedInput.inputProof
+        );
+
+      await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, false);
+
+      const holderBalanceHandle = await this.token.confidentialBalanceOf(this.holder.address);
+      const holderBalance = await fhevm.userDecryptEuint(
+        FhevmType.euint64,
+        holderBalanceHandle,
+        this.token.target,
+        this.holder
+      );
+      expect(holderBalance).to.equal(0);
+    });
+
+    it('cannot force burn from non-frozen address', async function () {
+      // Holder is NOT frozen
+      const encryptedInput = await fhevm
+        .createEncryptedInput(this.token.target, this.enforcer.address)
+        .add64(500)
+        .encrypt();
+
+      await expect(
+        this.token
+          .connect(this.enforcer)
+          ['forcedBurn(address,bytes32,bytes)'](
+            this.holder.address,
+            encryptedInput.handles[0],
+            encryptedInput.inputProof
+          )
+      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+    });
+
+    it('non-enforcer cannot force burn', async function () {
+      await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
+
+      const encryptedInput = await fhevm
+        .createEncryptedInput(this.token.target, this.holder.address)
+        .add64(500)
+        .encrypt();
+
+      await expect(
+        this.token
+          .connect(this.holder)
+          ['forcedBurn(address,bytes32,bytes)'](
+            this.holder.address,
+            encryptedInput.handles[0],
+            encryptedInput.inputProof
+          )
+      ).to.be.reverted;
+    });
+
+    it('enforcer can force burn even when contract is deactivated', async function () {
+      // Freeze the holder first
+      await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
+
+      // Pause and deactivate the contract
+      await this.token.connect(this.pauser).pause();
+      await this.token.connect(this.admin).deactivateContract();
+
+      const encryptedInput = await fhevm
+        .createEncryptedInput(this.token.target, this.enforcer.address)
+        .add64(500)
+        .encrypt();
+
+      // Forced burn should still work even when deactivated
+      await this.token
+        .connect(this.enforcer)
+        ['forcedBurn(address,bytes32,bytes)'](
+          this.holder.address,
+          encryptedInput.handles[0],
+          encryptedInput.inputProof
+        );
+
+      await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, false);
+
+      const holderBalanceHandle = await this.token.confidentialBalanceOf(this.holder.address);
+      const holderBalance = await fhevm.userDecryptEuint(
+        FhevmType.euint64,
+        holderBalanceHandle,
+        this.token.target,
+        this.holder
+      );
+      expect(holderBalance).to.equal(500);
+    });
+
+    it('force burn with amount exceeding balance burns 0', async function () {
+      await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
+
+      const encryptedInput = await fhevm
+        .createEncryptedInput(this.token.target, this.enforcer.address)
+        .add64(2000) // More than balance
+        .encrypt();
+
+      await this.token
+        .connect(this.enforcer)
+        ['forcedBurn(address,bytes32,bytes)'](
+          this.holder.address,
+          encryptedInput.handles[0],
+          encryptedInput.inputProof
+        );
+
+      await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, false);
+
+      // Balance should remain unchanged (FHE burns 0 silently on insufficient balance)
+      const holderBalanceHandle = await this.token.confidentialBalanceOf(this.holder.address);
+      const holderBalance = await fhevm.userDecryptEuint(
+        FhevmType.euint64,
+        holderBalanceHandle,
+        this.token.target,
+        this.holder
+      );
+      expect(holderBalance).to.equal(1000);
     });
   });
 

@@ -57,6 +57,7 @@ contract CMTATFHE is
     * Since the amount is encrypted, we use a string reason instead of amount
     */
     error CMTAT_InvalidTransfer(address from, address to, string reason);
+    error CMTAT_AddressZeroNotAllowed();
 
     /* ============ Constructor ============ */
     /**
@@ -159,13 +160,18 @@ contract CMTATFHE is
      * @dev Validates forced transfer.
      * Forced transfers can be performed even when the contract is deactivated (same as CMTAT).
      * The source address must be frozen to perform a forced transfer.
+     * Reverts if `to` is address(0) -- use forcedBurn() for burning tokens.
      * Note: This is stricter than standard CMTAT, which allows forcedTransfer on any address.
      * Here we require the address to be frozen first, creating an explicit audit trail
      * (freeze event followed by forced transfer).
      * @param from Source address (must be frozen)
-     * @param to Destination address
+     * @param to Destination address (must not be address(0))
      */
     function _validateForcedTransfer(address from, address to) internal virtual override {
+        // Use forcedBurn() instead of forcedTransfer to address(0)
+        if (to == address(0)) {
+            revert CMTAT_AddressZeroNotAllowed();
+        }
         // ForcedTransfer requires the from address to be frozen (stricter than standard CMTAT)
         if (!isFrozen(from)) {
             revert CMTAT_InvalidTransfer(from, to, "Address not frozen");
