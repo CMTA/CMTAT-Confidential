@@ -83,6 +83,7 @@ This section maps the CMTAT framework features to the CMTAT FHE implementation, 
 | **Functionalities** | **CMTAT FHE Features** | **Available** |
 | ------------------- | --------------------- | ------------- |
 | Forced Transfer | `forcedTransfer()` with encrypted amount | ✓ |
+| Forced Burn | `forcedBurn()` with encrypted amount | ✓ |
 | Operator System | `setOperator()` / `confidentialTransferFrom()` | ✓ |
 | Public Disclosure | `requestDiscloseEncryptedAmount()` / `discloseEncryptedAmount()` | ✓ |
 | On-chain snapshot | Not implemented | ✗ |
@@ -98,29 +99,33 @@ This section maps the CMTAT framework features to the CMTAT FHE implementation, 
 | Mint while paused | ✓ | Minting is allowed when contract is paused (same as CMTAT) |
 | Burn while paused | ✓ | Burning is allowed when contract is paused (same as CMTAT) |
 | Self burn | ✗ | Only `BURNER_ROLE` can burn tokens |
-| Standard burn on frozen address | ✗ | Use `forcedTransfer()` instead |
-| Burn via `forcedTransfer` | ✓ | Transfer to burn address with `ENFORCER_ROLE` |
-| Balance overflow protection | ✓ | FHE arithmetic wraps on overflow silently |
+| Standard burn on frozen address | ✗ | Use `forcedBurn()` or `forcedTransfer()` instead |
+| Forced burn from frozen address | ✓ | `forcedBurn()` with `ENFORCER_ROLE` |
+| Burn via `forcedTransfer` | ✗ | `forcedTransfer` reverts if `to` is `address(0)` -- use `forcedBurn()` |
+| Balance overflow protection | ✓ | Uses FHESafeMath: transfers 0 on overflow/underflow (privacy-preserving) |
 
 ### Key Differences from Standard CMTAT
 
 | **Aspect** | **CMTAT (Standard)** | **CMTAT FHE (Confidential)** |
 | ---------- | -------------------- | --------------------------- |
 | Balance type | `uint256` (public) | `euint64` (encrypted) |
+| Value range | Up to ~1.15 × 10⁷⁷ (`uint256`) | Up to ~1.84 × 10¹⁹ (`uint64` max = 18,446,744,073,709,551,615) |
 | Transfer amount | `uint256` (public) | `externalEuint64` + ZKPoK |
 | Total supply | `uint256` (public) | `euint64` (encrypted) |
 | Balance visibility | Anyone can read | Only ACL-authorized parties can decrypt |
 | Transfer validation | Reverts on insufficient balance | Transfers 0 silently (privacy-preserving) |
 | Allowance system | ERC20 `approve`/`allowance` | Operator system with time-limited access |
 
+> **Important:** The `euint64` type has a significantly smaller range than `uint256`. For tokens with 18 decimals, `euint64` supports a maximum of ~18.44 tokens. Consider using fewer decimals (e.g., 6 or 8) to accommodate larger supplies.
+
 ### Decryption Requirements
 
 To decrypt encrypted values (balances, amounts, total supply), the requesting party must:
 
-1. Have ACL permission granted via `FHE.allow()` or `FHE.allowTransient()`
+1. Have ACL permission granted via `FHE.allow()` or `FHE.allowTransient()` (verifiable with `FHE.isAllowed()` or `FHE.isSenderAllowed()`)
 2. Or the value must be marked publicly decryptable via `FHE.makePubliclyDecryptable()`
-3. Request decryption through the Zama Relayer SDK
-4. Submit the decryption proof on-chain via `FHE.checkSignatures()`
+3. Request decryption through the Zama Relayer SDK (`@zama-fhe/relayer-sdk`)
+4. Submit the decryption proof on-chain via `FHE.checkSignatures()` (reverts if the proof is invalid)
 
 ## Installation
 
@@ -216,12 +221,12 @@ await token.connect(sender)['confidentialTransfer(address,bytes32,bytes)'](
 
 ### Forced Transfer
 
-Enforcers can move tokens from frozen addresses for regulatory compliance. The source address must be frozen. Forced transfers can be performed even when the contract is deactivated.
+Enforcers can move tokens from frozen addresses for regulatory compliance. Forced transfers can be performed even when the contract is deactivated.
 
 ```solidity
 function forcedTransfer(
     address from,        // Must be frozen
-    address to,
+    address to,          // Must not be address(0)
     externalEuint64 encryptedAmount,
     bytes calldata inputProof
 ) public onlyRole(ENFORCER_ROLE) returns (euint64 transferred);
@@ -229,7 +234,28 @@ function forcedTransfer(
 
 **Requirements:**
 - The `from` address must be frozen
+- The `to` address must not be `address(0)` -- use `forcedBurn()` for burning
 - Can be performed even when the contract is deactivated
+
+> **Note:** This is intentionally stricter than standard CMTAT, which allows `forcedTransfer` on any address (frozen or not). CMTAT FHE requires the address to be frozen first, creating an explicit audit trail (freeze event followed by forced transfer).
+
+### Forced Burn
+
+Enforcers can burn tokens directly from frozen addresses without the holder's consent. This is the dedicated burn equivalent of `forcedTransfer`. Forced burns can be performed even when the contract is deactivated.
+
+```solidity
+function forcedBurn(
+    address from,        // Must be frozen
+    externalEuint64 encryptedAmount,
+    bytes calldata inputProof
+) public onlyRole(ENFORCER_ROLE) returns (euint64 burned);
+```
+
+**Requirements:**
+- The `from` address must be frozen
+- Can be performed even when the contract is deactivated
+
+> **Note:** Same freeze requirement as `forcedTransfer` for consistency. The enforcer creates the encrypted input specifying how many tokens to burn.
 
 ### Pause / Unpause
 
@@ -365,14 +391,14 @@ CMTAT-FHE/
 
 ### 1. As an issuer, can I burn tokens from a token holder without their consent?
 
-**Answer:** Yes, as an issuer with the `ENFORCER_ROLE`, you can burn tokens from any holder without their consent using the forced transfer mechanism.
+**Answer:** Yes, as an issuer with the `ENFORCER_ROLE`, you can burn tokens from any holder without their consent using the `forcedBurn()` function.
 
 **How it works:**
 
 1. First freeze the holder's address using `setAddressFrozen(holderAddress, true)`
-2. Use the `forcedTransfer()` function to move tokens from the frozen address to a burn address or another designated address
+2. Use the `forcedBurn()` function to burn tokens directly from the frozen address
 3. This function can be performed even when the contract is deactivated
-4. Only accounts with `ENFORCER_ROLE` can execute forced transfers
+4. Only accounts with `ENFORCER_ROLE` can execute forced burns
 
 **Use cases for regulatory compliance:**
 - Court orders requiring asset seizure
@@ -380,20 +406,27 @@ CMTAT-FHE/
 - Error correction (e.g., tokens sent to wrong address)
 
 **Code example:**
-```solidity
+```javascript
 // Step 1: Freeze the holder's address
 await token.connect(enforcer).setAddressFrozen(holderAddress, true);
 
-// Step 2: Force transfer tokens from the frozen address
-await token.connect(enforcer).forcedTransfer(
-    holderAddress,      // from (must be frozen)
-    burnAddress,        // to (or address(0) for burn)
-    encryptedAmount,
-    inputProof
+// Step 2: Create encrypted input for the amount to burn
+const encryptedInput = await fhevm
+    .createEncryptedInput(tokenAddress, enforcerAddress)
+    .add64(amountToBurn)
+    .encrypt();
+
+// Step 3: Force burn tokens from the frozen address
+await token.connect(enforcer)['forcedBurn(address,bytes32,bytes)'](
+    holderAddress,                  // from (must be frozen)
+    encryptedInput.handles[0],      // encrypted amount
+    encryptedInput.inputProof       // ZKPoK proof
 );
 ```
 
-**Note:** The regular `burn()` function requires `BURNER_ROLE` and will fail if the target address is frozen. For frozen addresses, use `forcedTransfer()` instead. The `from` address must be frozen before calling `forcedTransfer()`.
+**Note:** The regular `burn()` function requires `BURNER_ROLE` and will fail if the target address is frozen. For frozen addresses, use `forcedBurn()` instead. The `from` address must be frozen before calling `forcedBurn()`. Note that `forcedTransfer()` reverts if `to` is `address(0)` -- use `forcedBurn()` for burning.
+
+> **Design choice:** Standard CMTAT allows `forcedTransfer` and `forcedBurn` on any address (frozen or not). CMTAT FHE intentionally requires the address to be frozen first, creating an explicit audit trail (freeze event followed by forced burn/transfer).
 
 ### 2. As a token holder, how do I transfer my tokens to another address?
 
@@ -562,10 +595,10 @@ FHE.makePubliclyDecryptable(confidentialTotalSupply());
 
 **Step 2: Off-chain - Request decryption from KMS**
 
-Any off-chain client can submit the ciphertext handle to the Zama Relayer's Key Management System (KMS) using the Relayer SDK.
+Any off-chain client can submit the ciphertext handle to the Zama Relayer's Key Management System (KMS) using the Relayer SDK (`@zama-fhe/relayer-sdk`).
 
 ```javascript
-const result = await relayerInstance.publicDecrypt([totalSupplyHandle]);
+const result = await fhevmInstance.publicDecrypt([totalSupplyHandle]);
 // Returns:
 // - clearValues: mapping of handles to decrypted values
 // - abiEncodedClearValues: ABI-encoded byte string of all cleartext values
@@ -590,8 +623,11 @@ To access encrypted values, accounts need proper ACL permissions:
 | Function | Purpose |
 |----------|---------|
 | `FHE.allow(handle, address)` | Permanent access for specific address |
+| `FHE.allowThis(handle)` | Shorthand for `FHE.allow(handle, address(this))` - allow current contract |
 | `FHE.allowTransient(handle, address)` | Temporary access (current transaction only) |
 | `FHE.makePubliclyDecryptable(handle)` | Allow anyone to decrypt off-chain |
+| `FHE.isAllowed(handle, address)` | Check if an address has access to a ciphertext |
+| `FHE.isSenderAllowed(handle)` | Check if `msg.sender` has access to a ciphertext |
 
 #### Why keep total supply private?
 
@@ -601,7 +637,107 @@ To access encrypted values, accounts need proper ACL permissions:
 
 **Note:** If you need public total supply, implement a function that goes through the full decryption process and emits the result as an event. Consider the privacy implications carefully.
 
+---
 
+### 6. As an issuer, can I get the non-encrypted balance of a token holder?
+
+**Answer:** Yes, but only through the asynchronous decryption process -- there is no direct way to "read" a plaintext balance.
+
+#### How to decrypt a holder's balance
+
+The issuer must have ACL permission on the holder's balance ciphertext. By default, only the balance holder and the contract itself have access. To allow the issuer to decrypt:
+
+**Option 1: Grant the issuer ACL access (on-chain)**
+
+The contract can grant ACL permission to the issuer's address on the holder's balance handle. This would need to be built into the contract logic (e.g., a function that grants the issuer access to a specific balance):
+
+```solidity
+// Inside the contract, an admin function could grant access
+function grantBalanceAccess(address holder, address viewer) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    FHE.allow(confidentialBalanceOf(holder), viewer);
+}
+```
+
+Once the issuer has ACL access, they can decrypt the balance off-chain:
+
+```javascript
+const balanceHandle = await token.confidentialBalanceOf(holderAddress);
+const balance = await fhevm.userDecryptEuint(
+    FhevmType.euint64,
+    balanceHandle,
+    tokenAddress,
+    issuer // Signer with ACL access
+);
+```
+
+**Option 2: Public decryption**
+
+The holder (or a contract function) can mark their balance as publicly decryptable, then anyone can request decryption through the three-step process (see FAQ #5).
+
+#### Do I need a viewing key?
+
+Zama's FHEVM does **not** use a "viewing key" model like some other privacy systems (e.g., Zcash). Instead, access is controlled through the **ACL (Access Control List)**:
+
+| Concept | Zama FHE Approach |
+|---------|-------------------|
+| Viewing key | Not applicable -- uses ACL permissions instead |
+| Grant read access | `FHE.allow(handle, address)` grants permanent access to a specific ciphertext |
+| Temporary access | `FHE.allowTransient(handle, address)` grants access for the current transaction only |
+| Public access | `FHE.makePubliclyDecryptable(handle)` allows anyone to decrypt |
+
+The ACL model is more flexible than viewing keys: you can grant access per-ciphertext, per-address, and with different durations (permanent, transient, or public).
+
+#### Can third-parties read balances?
+
+Yes, if they are granted ACL permission. The contract logic decides who gets access. Common patterns:
+
+- **Regulatory observers**: Use the `ERC7984ObserverAccess` extension (from OpenZeppelin Confidential Contracts) to allow designated observers to view balances and transfers
+- **Auditors**: Grant temporary ACL access during audit periods
+- **The holder themselves**: Automatically have access to their own balance handle (granted by the contract during transfers/mints)
+
+---
+
+### 7. Can the issuer compute the inputProof for operations if the issuer is not the token holder?
+
+**Answer:** Yes. The `inputProof` (Zero-Knowledge Proof of Knowledge) is generated by whoever **creates the encrypted input**, not by the token holder.
+
+#### How encrypted inputs work
+
+When any party calls a function that requires an encrypted amount (mint, burn, forcedBurn, forcedTransfer), they:
+
+1. **Choose the plaintext amount** they want to encrypt
+2. **Generate the encrypted input** using the FHEVM client library
+3. **The library produces** a ciphertext handle + a ZKPoK proof
+
+The ZKPoK proves that the caller **knows** the plaintext value inside the ciphertext, without revealing it. It does not prove anything about token ownership or balances.
+
+#### Example: Issuer burns tokens from a holder
+
+```javascript
+// The enforcer (issuer) creates the encrypted input themselves
+const encryptedInput = await fhevm
+    .createEncryptedInput(tokenAddress, enforcerAddress) // enforcer's address, NOT holder's
+    .add64(amountToBurn)
+    .encrypt();
+
+// The enforcer calls forcedBurn with their own proof
+await token.connect(enforcer)['forcedBurn(address,bytes32,bytes)'](
+    holderAddress,                  // target to burn from
+    encryptedInput.handles[0],      // enforcer's encrypted amount
+    encryptedInput.inputProof       // enforcer's proof
+);
+```
+
+#### Key points
+
+| Question | Answer |
+|----------|--------|
+| Who generates the inputProof? | The caller of the function (e.g., the enforcer/issuer) |
+| Does the holder need to participate? | No -- forced operations don't require holder involvement |
+| Is the proof tied to the holder's balance? | No -- it proves knowledge of the encrypted input value, not the balance |
+| Can the issuer specify any amount? | Yes, but if the amount exceeds the holder's balance, FHE transfers/burns 0 silently |
+
+The `inputProof` is tied to the **caller's address** and the **contract address** (passed to `createEncryptedInput`), not to the token holder. This is what enables administrative operations like `forcedBurn` and `forcedTransfer` without the holder's participation.
 
 ---
 
