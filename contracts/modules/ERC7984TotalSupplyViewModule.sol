@@ -6,32 +6,21 @@ import {FHE, euint64} from "@fhevm/solidity/lib/FHE.sol";
 
 /**
  * @title ERC7984TotalSupplyViewModule
- * @dev Module that provides controlled visibility of the encrypted total supply.
+ * @dev Module that grants registered observers automatic ACL access to the
+ * encrypted total supply handle after every mint or burn.
  *
- * Two mechanisms are provided:
+ * Since every FHE arithmetic operation (mint/burn) produces a new `euint64`
+ * handle for `_totalSupply`, any previously granted ACL becomes stale. This
+ * module re-grants `FHE.allow()` on the new handle to every registered observer
+ * inside `_update`, keeping their view current without manual intervention.
  *
- * 1. **Total supply observers** (authorized addresses):
- *    Addresses registered via `addTotalSupplyObserver` automatically receive
- *    ACL access to the current total supply handle after every mint or burn,
- *    keeping their view current without manual intervention.
- *    Since every mint/burn produces a new `euint64` handle, ACL must be
- *    re-granted after each update — this module handles that automatically.
- *
- * 2. **Public disclosure** (`publishTotalSupply`):
- *    Marks the current total supply handle as publicly decryptable via
- *    `FHE.makePubliclyDecryptable()`. Any off-chain party can then request
- *    decryption through the Zama Relayer SDK without ACL access.
- *    Warning: This action is irrevocable for the current handle.
- *    After the next mint or burn the new handle will not be publicly
- *    decryptable — call this function again if needed.
+ * For one-off public disclosure (anyone can decrypt), combine with
+ * ERC7984PublishTotalSupplyModule — already included in CMTATFHEBase.
  *
  * The authorization function `_authorizeTotalSupplyObserverManagement()` must be
  * overridden in the inheriting contract to implement the desired access control.
  */
 abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
-    /* ============ Constants ============ */
-    bytes32 public constant SUPPLY_OBSERVER_ROLE = keccak256("SUPPLY_OBSERVER_ROLE");
-
     /* ============ State Variables ============ */
     address[] private _supplyObservers;
 
@@ -41,7 +30,6 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
     /* ============ Events ============ */
     event TotalSupplyObserverAdded(address indexed observer, address indexed addedBy);
     event TotalSupplyObserverRemoved(address indexed observer, address indexed removedBy);
-    event TotalSupplyPublished(address indexed publishedBy);
 
     /* ============ Errors ============ */
     error ERC7984TotalSupplyViewModule_AlreadyObserver(address observer);
@@ -102,18 +90,6 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
     }
 
     /**
-     * @dev Marks the current total supply handle as publicly decryptable.
-     * Any off-chain party can then request decryption via the Zama Relayer SDK
-     * without ACL access. This action is irrevocable for the current handle.
-     * After the next mint or burn the new handle will not be publicly decryptable
-     * — call this function again if needed.
-     */
-    function publishTotalSupply() public virtual onlySupplyObserverManager {
-        FHE.makePubliclyDecryptable(confidentialTotalSupply());
-        emit TotalSupplyPublished(msg.sender);
-    }
-
-    /**
      * @dev Returns the list of registered total supply observers.
      */
     function totalSupplyObservers() public view virtual returns (address[] memory) {
@@ -146,8 +122,8 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
     /* ============ Access Control ============ */
 
     /**
-     * @dev Authorization function for total supply observer management and
-     * public disclosure. Must be overridden to implement access control.
+     * @dev Authorization function for total supply observer management.
+     * Must be overridden to implement access control.
      */
     function _authorizeTotalSupplyObserverManagement() internal virtual;
 }

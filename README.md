@@ -47,7 +47,8 @@ CMTAT-FHE
 │   ├── ERC7984BurnModule - Modular burn with authorization hook
 │   ├── ERC7984EnforcementModule - Forced transfer and forced burn
 │   ├── ERC7984BalanceViewModule - Per-account balance observers (holder + role slots)
-│   └── ERC7984TotalSupplyViewModule - Total supply observers + public disclosure
+│   ├── ERC7984PublishTotalSupplyModule - Public total supply disclosure (in CMTATFHEBase)
+│   └── ERC7984TotalSupplyViewModule - Total supply observer list with auto ACL re-grant (CMTATFHE only)
 │
 └── Zama Protocol Infrastructure (configured via ZamaEthereumConfig)
     ├── ACL - Access Control List for encrypted data permissions
@@ -134,6 +135,23 @@ To decrypt encrypted values (balances, amounts, total supply), the requesting pa
 2. Or the value must be marked publicly decryptable via `FHE.makePubliclyDecryptable()`
 3. Request decryption through the Zama Relayer SDK (`@zama-fhe/relayer-sdk`)
 4. Submit the decryption proof on-chain via `FHE.checkSignatures()` (reverts if the proof is invalid)
+
+## Deployment Variants
+
+Two deployment-ready contracts are provided. Both share the same abstract base (`CMTATFHEBase`) and are functionally identical except for total supply visibility.
+
+| | `CMTATFHE` | `CMTATFHELite` |
+|---|---|---|
+| Confidential balances & transfers | ✓ | ✓ |
+| Mint / Burn / Forced ops | ✓ | ✓ |
+| Pause / Freeze | ✓ | ✓ |
+| Per-account balance observers | ✓ | ✓ |
+| `publishTotalSupply` (public disclosure) | ✓ | ✓ |
+| Total supply observer list (auto ACL) | ✓ | ✗ |
+| `SUPPLY_OBSERVER_ROLE` | ✓ | ✓ |
+| Contract size | ~20.5 KB | ~19.2 KB |
+
+Choose `CMTATFHELite` when automatic per-observer ACL re-grant on every mint/burn is not required and you want to minimize deployment cost. `publishTotalSupply` (one-shot public disclosure) is available in both variants.
 
 ## Installation
 
@@ -271,7 +289,7 @@ function forcedBurn(
 
 By default the total supply is encrypted and inaccessible to third parties. Two mechanisms are available to open read access, both gated by `SUPPLY_OBSERVER_ROLE`.
 
-#### Option 1 — Authorized observers (automatic, stays current)
+#### Option 1 — Authorized observers (automatic, stays current) — `CMTATFHE` only
 
 Register addresses that will automatically receive ACL access to the total supply handle after every mint or burn:
 
@@ -296,7 +314,7 @@ const handle = await token.confidentialTotalSupply();
 const supply = await fhevm.userDecryptEuint(FhevmType.euint64, handle, tokenAddress, observer);
 ```
 
-#### Option 2 — Public disclosure (anyone, irrevocable per handle)
+#### Option 2 — Public disclosure (anyone, irrevocable per handle) — `CMTATFHE` and `CMTATFHELite`
 
 Mark the current total supply handle as publicly decryptable. Any off-chain party can then request decryption via the Zama Relayer SDK without ACL access. After the next mint or burn, the new handle will not be publicly decryptable — call again if needed.
 
@@ -304,10 +322,10 @@ Mark the current total supply handle as publicly decryptable. Any off-chain part
 await token.connect(complianceManager).publishTotalSupply();
 ```
 
-| Mechanism | Access scope | Stays current after mint/burn |
-|-----------|-------------|-------------------------------|
-| `addTotalSupplyObserver` | Specific registered addresses | Yes — re-granted automatically in `_update` |
-| `publishTotalSupply` | Anyone (no ACL needed) | No — must be called again after each mint/burn |
+| Mechanism | Availability | Access scope | Stays current after mint/burn |
+|-----------|-------------|-------------|-------------------------------|
+| `addTotalSupplyObserver` | `CMTATFHE` only | Specific registered addresses | Yes — re-granted automatically in `_update` |
+| `publishTotalSupply` | `CMTATFHE` and `CMTATFHELite` | Anyone (no ACL needed) | No — must be called again after each mint/burn |
 
 ### Pause / Unpause
 
@@ -427,21 +445,31 @@ await token.grantRole(ENFORCER_ROLE, enforcerAddress);
 ```
 CMTAT-FHE/
 ├── contracts/
-│   ├── CMTATFHE.sol                          # Main contract
+│   ├── CMTATFHEBase.sol                      # Abstract base (all shared logic)
+│   ├── CMTATFHE.sol                          # Full variant (+ total supply visibility)
+│   ├── CMTATFHELite.sol                      # Lite variant (smaller, no total supply module)
 │   └── modules/
-│       ├── ERC7984MintModule.sol             # Mint with authorization hook
-│       ├── ERC7984BurnModule.sol             # Burn with authorization hook
-│       ├── ERC7984EnforcementModule.sol      # Forced transfer and forced burn
-│       ├── ERC7984BalanceViewModule.sol      # Per-account balance observers
-│       └── ERC7984TotalSupplyViewModule.sol  # Total supply observers + public disclosure
+│       ├── ERC7984MintModule.sol                  # Mint with authorization hook
+│       ├── ERC7984BurnModule.sol                  # Burn with authorization hook
+│       ├── ERC7984EnforcementModule.sol           # Forced transfer and forced burn
+│       ├── ERC7984BalanceViewModule.sol           # Per-account balance observers
+│       ├── ERC7984PublishTotalSupplyModule.sol    # Public total supply disclosure
+│       └── ERC7984TotalSupplyViewModule.sol       # Total supply observer list (auto ACL)
 ├── CMTAT/                                    # CMTAT submodule (compliance modules)
 ├── openzeppelin-confidential-contracts/      # OZ submodule (ERC7984)
 ├── docs/
 │   ├── fhe/                                  # Zama FHE documentation
 │   └── openzeppelin-confidential/            # OZ confidential docs
 ├── test/
-│   ├── CMTATFHE.test.ts                      # Comprehensive tests
+│   ├── CMTATFHE.test.ts                           # Full variant core tests
+│   ├── CMTATFHELite.test.ts                       # Lite variant core tests (shared suite)
+│   ├── ERC7984BalanceViewModule.test.ts           # Balance observer module tests
+│   ├── ERC7984PublishTotalSupplyModule.test.ts    # Public disclosure module tests
+│   ├── ERC7984TotalSupplyViewModule.test.ts       # Total supply observer module tests
 │   └── helpers/
+│       ├── deploy.ts                         # Shared deploy helper + role constants
+│       ├── core-tests.ts                     # Shared Mocha test suite
+│       └── accounts.ts                       # Account impersonation utilities
 └── hardhat.config.js
 ```
 
@@ -641,9 +669,9 @@ function confidentialTotalSupply() public view returns (euint64);
 
 #### How to grant access to the total supply
 
-CMTAT FHE provides two built-in mechanisms via `ERC7984TotalSupplyViewModule` (both require `SUPPLY_OBSERVER_ROLE`):
+CMTAT FHE provides two built-in mechanisms (both require `SUPPLY_OBSERVER_ROLE`):
 
-**Option A — Authorized observers (stays current automatically)**
+**Option A — Authorized observers (stays current automatically) — `ERC7984TotalSupplyViewModule`, `CMTATFHE` only**
 
 Register specific addresses that automatically receive ACL access after every mint or burn:
 
@@ -654,7 +682,7 @@ token.removeTotalSupplyObserver(regulatorAddress); // stops future grants
 
 Once registered, the observer decrypts using standard user-decryption — see [Decrypting Balances](#decrypting-balances).
 
-**Option B — Public disclosure**
+**Option B — Public disclosure — `ERC7984PublishTotalSupplyModule`, available on both `CMTATFHE` and `CMTATFHELite`**
 
 Call `publishTotalSupply()` to mark the current handle as publicly decryptable. Must be called again after each mint or burn since the handle changes.
 

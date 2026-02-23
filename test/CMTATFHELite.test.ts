@@ -1,9 +1,9 @@
 import { deployToken } from './helpers/deploy';
 import { runCoreTests } from './helpers/core-tests';
 
-describe('CMTATFHE', function () {
+describe('CMTATFHELite', function () {
   beforeEach(async function () {
-    const ctx = await deployToken('CMTATFHE');
+    const ctx = await deployToken('CMTATFHELite');
     Object.assign(this, ctx);
   });
 

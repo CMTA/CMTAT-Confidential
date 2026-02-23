@@ -1,31 +1,7 @@
 import { FhevmType } from '@fhevm/hardhat-plugin';
 import { expect } from 'chai';
 import { ethers, fhevm } from 'hardhat';
-
-const name = 'CMTATFHE Token';
-const symbol = 'CMTATFHE';
-const contractURI = 'https://example.com/metadata';
-const tokenId = 'TOKEN-001';
-const terms = {
-  name: 'Terms Document',
-  uri: 'https://example.com/terms',
-  documentHash: ethers.ZeroHash,
-};
-const information = 'Test token information';
-
-const MINTER_ROLE = ethers.keccak256(ethers.toUtf8Bytes('MINTER_ROLE'));
-const OBSERVER_ROLE = ethers.keccak256(ethers.toUtf8Bytes('OBSERVER_ROLE'));
-
-// Mint tokens to a target address
-async function mint(token: any, minter: any, to: any, amount: number) {
-  const encryptedInput = await fhevm
-    .createEncryptedInput(token.target, minter.address)
-    .add64(amount)
-    .encrypt();
-  await token
-    .connect(minter)
-    ['mint(address,bytes32,bytes)'](to.address, encryptedInput.handles[0], encryptedInput.inputProof);
-}
+import { deployToken, MINTER_ROLE, OBSERVER_ROLE, mint } from './helpers/deploy';
 
 // Decrypt a handle using a given signer (verifies the signer has ACL access)
 async function decrypt(token: any, handle: bigint, signer: any): Promise<bigint> {
@@ -34,30 +10,22 @@ async function decrypt(token: any, handle: bigint, signer: any): Promise<bigint>
 
 describe('ERC7984BalanceViewModule (dual-observer)', function () {
   beforeEach(async function () {
-    const accounts = await ethers.getSigners();
-    const [admin, minter, observerManager, holder, recipient, holderObserver, roleObserver, other] = accounts;
+    // Uses signers [0..6] from deployToken, then takes additional named signers
+    const allSigners = await ethers.getSigners();
+    const [, , , , , , , observerManager, holderObserver, roleObserver, other] = allSigners;
 
-    this.admin = admin;
-    this.minter = minter;
+    const ctx = await deployToken('CMTATFHE');
+    this.token = ctx.token;
+    this.admin = ctx.admin;
+    this.minter = ctx.minter;
+    this.holder = ctx.holder;
+    this.recipient = ctx.recipient;
     this.observerManager = observerManager;
-    this.holder = holder;
-    this.recipient = recipient;
     this.holderObserver = holderObserver;
     this.roleObserver = roleObserver;
     this.other = other;
 
-    const extraInfoAttributes = { tokenId, terms, information };
-
-    this.token = await ethers.deployContract('CMTATFHE', [
-      name,
-      symbol,
-      contractURI,
-      admin.address,
-      extraInfoAttributes,
-    ]);
-
-    await this.token.connect(admin).grantRole(MINTER_ROLE, minter.address);
-    await this.token.connect(admin).grantRole(OBSERVER_ROLE, observerManager.address);
+    await this.token.connect(this.admin).grantRole(OBSERVER_ROLE, observerManager.address);
   });
 
   // ─────────────────────────────────────────────
