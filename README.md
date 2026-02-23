@@ -42,6 +42,13 @@ CMTAT-FHE
 │   ├── DocumentEngineModule - ERC-1643 document management
 │   └── ExtraInformationModule - Token metadata (tokenId, terms, info)
 │
+├── FHE Modules (custom extensions)
+│   ├── ERC7984MintModule - Modular mint with authorization hook
+│   ├── ERC7984BurnModule - Modular burn with authorization hook
+│   ├── ERC7984EnforcementModule - Forced transfer and forced burn
+│   ├── ERC7984BalanceViewModule - Per-account balance observers (holder + role slots)
+│   └── ERC7984TotalSupplyViewModule - Total supply observers + public disclosure
+│
 └── Zama Protocol Infrastructure (configured via ZamaEthereumConfig)
     ├── ACL - Access Control List for encrypted data permissions
     ├── FHEVMExecutor (Coprocessor) - Performs FHE computations
@@ -154,6 +161,8 @@ npm run test
 | `BURNER_ROLE` | Can burn tokens |
 | `PAUSER_ROLE` | Can pause/unpause all transfers |
 | `ENFORCER_ROLE` | Can freeze addresses and execute forced transfers |
+| `OBSERVER_ROLE` | Can assign per-account balance observers via `setRoleObserver` |
+| `SUPPLY_OBSERVER_ROLE` | Can manage total supply observers and call `publishTotalSupply` |
 
 ## Contract Functions
 
@@ -257,6 +266,48 @@ function forcedBurn(
 - Can be performed even when the contract is deactivated
 
 > **Note:** Same freeze requirement as `forcedTransfer` for consistency. The enforcer creates the encrypted input specifying how many tokens to burn.
+
+### Total Supply Visibility
+
+By default the total supply is encrypted and inaccessible to third parties. Two mechanisms are available to open read access, both gated by `SUPPLY_OBSERVER_ROLE`.
+
+#### Option 1 — Authorized observers (automatic, stays current)
+
+Register addresses that will automatically receive ACL access to the total supply handle after every mint or burn:
+
+```solidity
+// Grant SUPPLY_OBSERVER_ROLE to the compliance manager
+await token.grantRole(SUPPLY_OBSERVER_ROLE, complianceManager.address);
+
+// Register a regulator as a total supply observer
+await token.connect(complianceManager).addTotalSupplyObserver(regulatorAddress);
+
+// Remove an observer (stops future grants; past ACL grants are irrevocable)
+await token.connect(complianceManager).removeTotalSupplyObserver(regulatorAddress);
+
+// Inspect the current observer list
+const observers = await token.totalSupplyObservers();
+```
+
+Once registered, the observer can decrypt off-chain using the standard user-decryption flow:
+
+```typescript
+const handle = await token.confidentialTotalSupply();
+const supply = await fhevm.userDecryptEuint(FhevmType.euint64, handle, tokenAddress, observer);
+```
+
+#### Option 2 — Public disclosure (anyone, irrevocable per handle)
+
+Mark the current total supply handle as publicly decryptable. Any off-chain party can then request decryption via the Zama Relayer SDK without ACL access. After the next mint or burn, the new handle will not be publicly decryptable — call again if needed.
+
+```solidity
+await token.connect(complianceManager).publishTotalSupply();
+```
+
+| Mechanism | Access scope | Stays current after mint/burn |
+|-----------|-------------|-------------------------------|
+| `addTotalSupplyObserver` | Specific registered addresses | Yes — re-granted automatically in `_update` |
+| `publishTotalSupply` | Anyone (no ACL needed) | No — must be called again after each mint/burn |
 
 ### Pause / Unpause
 
@@ -376,14 +427,20 @@ await token.grantRole(ENFORCER_ROLE, enforcerAddress);
 ```
 CMTAT-FHE/
 ├── contracts/
-│   └── CMTATFHE.sol          # Main contract
-├── CMTAT/                     # CMTAT submodule (compliance modules)
-├── openzeppelin-confidential-contracts/  # OZ submodule (ERC7984)
+│   ├── CMTATFHE.sol                          # Main contract
+│   └── modules/
+│       ├── ERC7984MintModule.sol             # Mint with authorization hook
+│       ├── ERC7984BurnModule.sol             # Burn with authorization hook
+│       ├── ERC7984EnforcementModule.sol      # Forced transfer and forced burn
+│       ├── ERC7984BalanceViewModule.sol      # Per-account balance observers
+│       └── ERC7984TotalSupplyViewModule.sol  # Total supply observers + public disclosure
+├── CMTAT/                                    # CMTAT submodule (compliance modules)
+├── openzeppelin-confidential-contracts/      # OZ submodule (ERC7984)
 ├── docs/
-│   ├── fhe/                   # Zama FHE documentation
-│   └── openzeppelin-confidential/  # OZ confidential docs
+│   ├── fhe/                                  # Zama FHE documentation
+│   └── openzeppelin-confidential/            # OZ confidential docs
 ├── test/
-│   ├── CMTATFHE.test.ts       # Comprehensive tests
+│   ├── CMTATFHE.test.ts                      # Comprehensive tests
 │   └── helpers/
 └── hardhat.config.js
 ```
@@ -582,9 +639,34 @@ Hiding participant identities may conflict with AML/KYC requirements in some jur
 function confidentialTotalSupply() public view returns (euint64);
 ```
 
-#### How to decrypt the total supply
+#### How to grant access to the total supply
 
-Public decryption is an **asynchronous three-step process** that splits work between on-chain and off-chain:
+CMTAT FHE provides two built-in mechanisms via `ERC7984TotalSupplyViewModule` (both require `SUPPLY_OBSERVER_ROLE`):
+
+**Option A — Authorized observers (stays current automatically)**
+
+Register specific addresses that automatically receive ACL access after every mint or burn:
+
+```solidity
+token.addTotalSupplyObserver(regulatorAddress);  // re-granted on every mint/burn
+token.removeTotalSupplyObserver(regulatorAddress); // stops future grants
+```
+
+Once registered, the observer decrypts using standard user-decryption — see [Decrypting Balances](#decrypting-balances).
+
+**Option B — Public disclosure**
+
+Call `publishTotalSupply()` to mark the current handle as publicly decryptable. Must be called again after each mint or burn since the handle changes.
+
+```solidity
+token.publishTotalSupply();
+```
+
+Internally this calls `FHE.makePubliclyDecryptable()`, which triggers the following **asynchronous three-step process**:
+
+#### Public decryption — step by step
+
+Public decryption splits work between on-chain and off-chain:
 
 **Step 1: On-chain - Mark as publicly decryptable**
 

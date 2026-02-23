@@ -19,6 +19,7 @@ import {ERC7984MintModule} from "./modules/ERC7984MintModule.sol";
 import {ERC7984BurnModule} from "./modules/ERC7984BurnModule.sol";
 import {ERC7984EnforcementModule} from "./modules/ERC7984EnforcementModule.sol";
 import {ERC7984BalanceViewModule} from "./modules/ERC7984BalanceViewModule.sol";
+import {ERC7984TotalSupplyViewModule} from "./modules/ERC7984TotalSupplyViewModule.sol";
 
 /**
  * @title CMTATFHE
@@ -52,7 +53,8 @@ contract CMTATFHE is
     ERC7984MintModule,
     ERC7984BurnModule,
     ERC7984EnforcementModule,
-    ERC7984BalanceViewModule
+    ERC7984BalanceViewModule,
+    ERC7984TotalSupplyViewModule
 {
     /* ============ Errors ============ */
     /**
@@ -143,12 +145,18 @@ contract CMTATFHE is
     function _authorizeObserverManagement() internal virtual override onlyRole(OBSERVER_ROLE) {}
 
     /**
+     * @dev Authorize total supply observer management and public disclosure - requires SUPPLY_OBSERVER_ROLE.
+     * Called by the onlySupplyObserverManager modifier in ERC7984TotalSupplyViewModule.
+     */
+    function _authorizeTotalSupplyObserverManagement() internal virtual override onlyRole(SUPPLY_OBSERVER_ROLE) {}
+
+    /**
      * @dev Explicit override required because CMTATFHE inherits `_update` from both
      * ERC7984 (directly) and ERC7984BalanceViewModule. Delegates to the module chain,
      * which applies holder observer (ERC7984ObserverAccess) then role observer ACL grants.
      */
     function _update(address from, address to, euint64 amount)
-        internal virtual override(ERC7984, ERC7984BalanceViewModule)
+        internal virtual override(ERC7984, ERC7984BalanceViewModule, ERC7984TotalSupplyViewModule)
         returns (euint64 transferred)
     {
         return super._update(from, to, amount);
