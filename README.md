@@ -99,7 +99,7 @@ This section maps the CMTAT framework features to the CMTAT FHE implementation, 
 | Mint while paused | ✓ | Minting is allowed when contract is paused (same as CMTAT) |
 | Burn while paused | ✓ | Burning is allowed when contract is paused (same as CMTAT) |
 | Self burn | ✗ | Only `BURNER_ROLE` can burn tokens |
-| Standard burn on frozen address | ✗ | Use `forcedBurn()` or `forcedTransfer()` instead |
+| Standard burn on frozen address | ✗ | Use `forcedBurn()` |
 | Forced burn from frozen address | ✓ | `forcedBurn()` with `ENFORCER_ROLE` |
 | Burn via `forcedTransfer` | ✗ | `forcedTransfer` reverts if `to` is `address(0)` -- use `forcedBurn()` |
 | Balance overflow protection | ✓ | Uses FHESafeMath: transfers 0 on overflow/underflow (privacy-preserving) |
@@ -115,6 +115,7 @@ This section maps the CMTAT framework features to the CMTAT FHE implementation, 
 | Balance visibility | Anyone can read | Only ACL-authorized parties can decrypt |
 | Transfer validation | Reverts on insufficient balance | Transfers 0 silently (privacy-preserving) |
 | Allowance system | ERC20 `approve`/`allowance` | Operator system with time-limited access |
+| Forced Burn | Through `forcedTransfer`or `forcedBurn` if implemented | Through `forcedBurn` since the function is implemented |
 
 > **Important:** The `euint64` type has a significantly smaller range than `uint256`. For tokens with 18 decimals, `euint64` supports a maximum of ~18.44 tokens. Consider using fewer decimals (e.g., 6 or 8) to accommodate larger supplies.
 
@@ -689,11 +690,54 @@ The ACL model is more flexible than viewing keys: you can grant access per-ciphe
 
 #### Can third-parties read balances?
 
-Yes, if they are granted ACL permission. The contract logic decides who gets access. Common patterns:
+Yes, if they are granted ACL permission. The contract logic decides who gets access.
 
-- **Regulatory observers**: Use the `ERC7984ObserverAccess` extension (from OpenZeppelin Confidential Contracts) to allow designated observers to view balances and transfers
-- **Auditors**: Grant temporary ACL access during audit periods
-- **The holder themselves**: Automatically have access to their own balance handle (granted by the contract during transfers/mints)
+**The handle staleness problem**
+
+Every FHE arithmetic operation (mint, transfer, burn) produces a *new* ciphertext handle for the affected balance. A third party who was granted ACL access to an old handle loses the ability to read the balance the moment that handle is replaced. Access must therefore be re-granted after every update — it cannot be set once and forgotten.
+
+CMTAT FHE solves this with the `ERC7984ObserverAccess` extension. After every `_update`, the contract automatically calls `FHE.allow()` on the new balance handle for each registered observer, keeping their ACL access current without any manual intervention.
+
+**Two observer slots per holder**
+
+`ERC7984BalanceViewModule` (built on `ERC7984ObserverAccess`) provides two independent observer slots per address:
+
+| Slot | Set by | Typical use |
+|------|--------|-------------|
+| **Holder observer** (`setObserver`) | The holder themselves | Personal wallet app, portfolio dashboard |
+| **Role observer** (`setRoleObserver`, requires `OBSERVER_ROLE`) | The issuer / compliance team | Regulator, auditor, compliance tool |
+
+Both slots receive `FHE.allow()` on every balance update automatically.
+
+**Decrypting as an observer**
+
+Once access is granted the observer can decrypt off-chain through the standard user-decryption flow:
+
+```typescript
+// Read the current handle
+const handle = await token.confidentialBalanceOf(holderAddress);
+
+// Decrypt — observer must have ACL access on that handle
+const balance = await fhevm.userDecryptEuint(
+    FhevmType.euint64,
+    handle,
+    tokenAddress,
+    observer // signer with ACL access
+);
+```
+
+**ACL access is permanent and cannot be revoked**
+
+`FHE.allow()` is a one-way operation — once an observer is granted access to a handle, that access cannot be removed. Removing an observer with `setObserver` / `setRoleObserver` only stops *future* grants: the observer retains read access to all handles they were allowed on before removal.
+
+**Common patterns**
+
+| Party | How access is granted |
+|-------|-----------------------|
+| The holder themselves | Automatically by the contract on every transfer/mint |
+| Regulatory observer | Issuer calls `setRoleObserver(holder, regulatorAddress)` |
+| Personal observer | Holder calls `setObserver(holderAddress, walletAppAddress)` |
+| Auditor (temporary) | Admin calls `FHE.allowTransient()` during the audit transaction |
 
 ---
 
@@ -739,6 +783,24 @@ await token.connect(enforcer)['forcedBurn(address,bytes32,bytes)'](
 
 The `inputProof` is tied to the **caller's address** and the **contract address** (passed to `createEncryptedInput`), not to the token holder. This is what enables administrative operations like `forcedBurn` and `forcedTransfer` without the holder's participation.
 
+## Glossary
+
+| **Term** | **Definition** |
+| -------- | -------------- |
+| **FHE (Fully Homomorphic Encryption)** | Cryptographic scheme that enables arbitrary computations directly on ciphertext without ever decrypting it. The result, once decrypted, is identical to what would have been produced on the plaintext. It is the core primitive behind confidential balances and transfers in CMTAT FHE. |
+| **euint64** | Encrypted unsigned 64-bit integer — the on-chain type used to store confidential balances and transfer amounts. It is a pointer to a ciphertext managed by the Zama coprocessor network, not a raw encrypted value. Maximum representable value is ~18.4 × 10¹⁸. |
+| **externalEuint64** | The user-facing form of an encrypted 64-bit integer: a ciphertext handle produced by the client library and submitted alongside a ZKPoK. Converted to `euint64` on-chain via `FHE.fromExternal()` after the proof is verified. |
+| **ZKPoK (Zero-Knowledge Proof of Knowledge)** | A cryptographic proof that the submitter knows the plaintext inside an encrypted input, without revealing that plaintext. Required for every encrypted input to prevent malleability and replay attacks. Verified on-chain by the InputVerifier contract. |
+| **Ciphertext Handle** | A 32-byte pointer returned by every FHE operation (e.g., `euint64`). It references the actual ciphertext stored and computed by the coprocessor network, not the ciphertext itself. Arithmetic on handles triggers off-chain coprocessor computation and produces new handles. |
+| **ACL (Access Control List)** | On-chain permission registry that tracks which addresses may decrypt a given ciphertext handle. Access is granted with `FHE.allow()` (permanent) or `FHE.allowTransient()` (current transaction only). Without ACL access, a party cannot request decryption of a handle. |
+| **Coprocessor (FHEVMExecutor)** | Off-chain network of nodes that performs the actual FHE computations. When a Solidity contract calls an FHE operation, the host chain emits an event; coprocessors pick it up, compute the result, and make the new ciphertext available. |
+| **KMS (Key Management System)** | Zama's key management infrastructure that holds the FHE private key in a distributed manner using MPC. Decryption requests are sent to the KMS, which returns a decrypted value together with a cryptographic proof that can be verified on-chain. |
+| **MPC (Multi-Party Computation)** | Threshold cryptography protocol used by the KMS so that no single node ever holds the complete FHE private key. Decryption only succeeds when a quorum of KMS nodes cooperates, preventing any single point of compromise. |
+| **Symbolic Execution** | The on-chain execution model for FHE operations: the EVM does not perform the actual FHE computation — it only records an intent (emits an event with a new handle). The coprocessor network executes the computation off-chain asynchronously. |
+| **ERC-7984** | The Confidential Fungible Token standard (drafted by OpenZeppelin). It defines the interface for tokens with encrypted balances and transfer amounts, including the operator system, disclosure mechanism, and ACL-based access patterns used by CMTAT FHE. |
+| **Operator** | An address authorized by a token holder to call `confidentialTransferFrom` on their behalf. Unlike ERC-20 allowances, operators are granted time-limited *unlimited* access — they may transfer any amount until the approval timestamp expires. |
+| **Observer** | An ACL-authorized third party (e.g., a regulator or auditor) granted read access to one or more encrypted balance handles. Implemented via `ERC7984ObserverAccess`: the contract grants `FHE.allow()` on balances affected by each transfer, giving the observer a continuously updated view. |
+
 ---
 
 ## References
@@ -757,6 +819,8 @@ The `inputProof` is tied to the **caller's address** and the **contract address*
   - [Decryption](https://docs.zama.org/protocol/solidity-guides/smart-contract/oracle)
 
 - Part of this project was carried out with the help of [Claude Code](https://claude.com/product/claude-code)
+
+
 
 ## License
 

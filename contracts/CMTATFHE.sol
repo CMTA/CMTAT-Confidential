@@ -18,6 +18,7 @@ import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 import {ERC7984MintModule} from "./modules/ERC7984MintModule.sol";
 import {ERC7984BurnModule} from "./modules/ERC7984BurnModule.sol";
 import {ERC7984EnforcementModule} from "./modules/ERC7984EnforcementModule.sol";
+import {ERC7984BalanceViewModule} from "./modules/ERC7984BalanceViewModule.sol";
 
 /**
  * @title CMTATFHE
@@ -50,7 +51,8 @@ contract CMTATFHE is
     ZamaEthereumConfig,
     ERC7984MintModule,
     ERC7984BurnModule,
-    ERC7984EnforcementModule
+    ERC7984EnforcementModule,
+    ERC7984BalanceViewModule
 {
     /* ============ Errors ============ */
     /**
@@ -133,6 +135,24 @@ contract CMTATFHE is
      * Called by the onlyEnforcer modifier in EnforcementModule.
      */
     function _authorizeFreeze() internal virtual override onlyRole(ENFORCER_ROLE) {}
+
+    /**
+     * @dev Authorize role observer management - requires OBSERVER_ROLE.
+     * Called by the onlyObserverManager modifier in ERC7984BalanceViewModule.
+     */
+    function _authorizeObserverManagement() internal virtual override onlyRole(OBSERVER_ROLE) {}
+
+    /**
+     * @dev Explicit override required because CMTATFHE inherits `_update` from both
+     * ERC7984 (directly) and ERC7984BalanceViewModule. Delegates to the module chain,
+     * which applies holder observer (ERC7984ObserverAccess) then role observer ACL grants.
+     */
+    function _update(address from, address to, euint64 amount)
+        internal virtual override(ERC7984, ERC7984BalanceViewModule)
+        returns (euint64 transferred)
+    {
+        return super._update(from, to, amount);
+    }
 
     /* ============ Module Validation Overrides ============ */
 
