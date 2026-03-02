@@ -14,7 +14,9 @@ import {FHE, externalEuint64, euint64} from "@fhevm/solidity/lib/FHE.sol";
  * - Flexible access control via virtual authorization functions
  *
  * Forced transfers and burns are designed to operate on frozen addresses.
- * They can be performed even when the contract is deactivated.
+ * They can be performed even when the contract is deactivated (unless an
+ * inheriting contract adds additional checks in `_validateForcedTransfer`
+ * or `_validateForcedBurn`).
  * Use cases include: court orders, sanctions compliance, error correction.
  *
  * Role separation:

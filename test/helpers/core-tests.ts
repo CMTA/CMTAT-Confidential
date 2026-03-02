@@ -19,6 +19,23 @@ import {
  *   this.enforcer, this.holder, this.recipient, this.accounts
  */
 export function runCoreTests() {
+  function getHandleFromReceipt(factory: any, receipt: any): string {
+    for (const log of receipt.logs) {
+      try {
+        const parsed = factory.interface.parseLog(log);
+        if (parsed?.name === 'HandleCreated') {
+          return parsed.args.handle;
+        }
+      } catch {
+        // ignore non-matching logs
+      }
+    }
+    throw new Error('HandleCreated event not found');
+  }
+
+  beforeEach(async function () {
+    this.factory = await ethers.deployContract('Euint64Factory');
+  });
   // ─── constructor ─────────────────────────────────────────────────────────
 
   describe('constructor', function () {
@@ -68,6 +85,15 @@ export function runCoreTests() {
       expect(await decryptBalance(this.token.target, handle, this.holder)).to.equal(1000n);
     });
 
+    it('minter can mint with a pre-encrypted handle', async function () {
+      const tx = await this.factory.connect(this.minter).makeFor(this.token.target, 750);
+      const receipt = await tx.wait();
+      const amountHandle = getHandleFromReceipt(this.factory, receipt);
+      await this.token.connect(this.minter)['mint(address,bytes32)'](this.holder.address, amountHandle);
+      const balanceHandle = await this.token.confidentialBalanceOf(this.holder.address);
+      expect(await decryptBalance(this.token.target, balanceHandle, this.holder)).to.equal(750n);
+    });
+
     it('non-minter cannot mint tokens', async function () {
       const enc = await encryptAmount(this.token.target, this.holder.address, 1000);
       await expect(
@@ -113,6 +139,17 @@ export function runCoreTests() {
       );
       const handle = await this.token.confidentialBalanceOf(this.holder.address);
       expect(await decryptBalance(this.token.target, handle, this.holder)).to.equal(500n);
+    });
+
+    it('burner can burn with a pre-encrypted handle', async function () {
+      const tx = await this.factory.connect(this.burner).makeFor(this.token.target, 200);
+      const receipt = await tx.wait();
+      const amountHandle = getHandleFromReceipt(this.factory, receipt);
+      await this.token.connect(this.burner)['burn(address,bytes32)'](
+        this.holder.address, amountHandle
+      );
+      const balanceHandle = await this.token.confidentialBalanceOf(this.holder.address);
+      expect(await decryptBalance(this.token.target, balanceHandle, this.holder)).to.equal(800n);
     });
 
     it('non-burner cannot burn tokens', async function () {
@@ -259,6 +296,18 @@ export function runCoreTests() {
       expect(await decryptBalance(this.token.target, handle, this.recipient)).to.equal(500n);
     });
 
+    it('enforcer can force transfer with a pre-encrypted handle', async function () {
+      await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
+      const tx = await this.factory.connect(this.enforcer).makeFor(this.token.target, 300);
+      const receipt = await tx.wait();
+      const amountHandle = getHandleFromReceipt(this.factory, receipt);
+      await this.token.connect(this.enforcer)['forcedTransfer(address,address,bytes32)'](
+        this.holder.address, this.recipient.address, amountHandle
+      );
+      const balanceHandle = await this.token.confidentialBalanceOf(this.recipient.address);
+      expect(await decryptBalance(this.token.target, balanceHandle, this.recipient)).to.equal(300n);
+    });
+
     it('cannot force transfer from non-frozen address', async function () {
       const enc = await encryptAmount(this.token.target, this.enforcer.address, 500);
       await expect(
@@ -317,6 +366,19 @@ export function runCoreTests() {
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, false);
       const handle = await this.token.confidentialBalanceOf(this.holder.address);
       expect(await decryptBalance(this.token.target, handle, this.holder)).to.equal(500n);
+    });
+
+    it('enforcer can force burn with a pre-encrypted handle', async function () {
+      await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
+      const tx = await this.factory.connect(this.enforcer).makeFor(this.token.target, 250);
+      const receipt = await tx.wait();
+      const amountHandle = getHandleFromReceipt(this.factory, receipt);
+      await this.token.connect(this.enforcer)['forcedBurn(address,bytes32)'](
+        this.holder.address, amountHandle
+      );
+      await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, false);
+      const balanceHandle = await this.token.confidentialBalanceOf(this.holder.address);
+      expect(await decryptBalance(this.token.target, balanceHandle, this.holder)).to.equal(750n);
     });
 
     it('enforcer can force burn all tokens from frozen address', async function () {
@@ -392,6 +454,19 @@ export function runCoreTests() {
       expect(await decryptBalance(this.token.target, holderHandle, this.holder)).to.equal(600n);
     });
 
+    it('holder can transfer with a pre-encrypted handle', async function () {
+      const tx = await this.factory.connect(this.holder).makeFor(this.token.target, 350);
+      const receipt = await tx.wait();
+      const amountHandle = getHandleFromReceipt(this.factory, receipt);
+      await this.token.connect(this.holder)['confidentialTransfer(address,bytes32)'](
+        this.recipient.address, amountHandle
+      );
+      const recipientHandle = await this.token.confidentialBalanceOf(this.recipient.address);
+      expect(await decryptBalance(this.token.target, recipientHandle, this.recipient)).to.equal(350n);
+      const holderHandle = await this.token.confidentialBalanceOf(this.holder.address);
+      expect(await decryptBalance(this.token.target, holderHandle, this.holder)).to.equal(650n);
+    });
+
     it('transfer with insufficient balance transfers 0', async function () {
       const enc = await encryptAmount(this.token.target, this.holder.address, 2000);
       await this.token.connect(this.holder)['confidentialTransfer(address,bytes32,bytes)'](
@@ -401,6 +476,45 @@ export function runCoreTests() {
       expect(await decryptBalance(this.token.target, recipientHandle, this.recipient)).to.equal(0n);
       const holderHandle = await this.token.confidentialBalanceOf(this.holder.address);
       expect(await decryptBalance(this.token.target, holderHandle, this.holder)).to.equal(1000n);
+    });
+  });
+
+  // ─── transfer and call ────────────────────────────────────────────────
+
+  describe('transferAndCall', function () {
+    beforeEach(async function () {
+      await mint(this.token, this.minter, this.holder, 1000);
+      this.receiver = await ethers.deployContract('ConfidentialReceiverMock', [true]);
+    });
+
+    it('holder can transferAndCall to a compliant receiver', async function () {
+      const enc = await encryptAmount(this.token.target, this.holder.address, 200);
+      await this.token.connect(this.holder)['confidentialTransferAndCall(address,bytes32,bytes,bytes)'](
+        this.receiver.target, enc.handles[0], enc.inputProof, '0x'
+      );
+      const holderHandle = await this.token.confidentialBalanceOf(this.holder.address);
+      expect(await decryptBalance(this.token.target, holderHandle, this.holder)).to.equal(800n);
+    });
+
+    it('transferAndCall refunds when receiver rejects', async function () {
+      await this.receiver.setAccept(false);
+      const enc = await encryptAmount(this.token.target, this.holder.address, 200);
+      await this.token.connect(this.holder)['confidentialTransferAndCall(address,bytes32,bytes,bytes)'](
+        this.receiver.target, enc.handles[0], enc.inputProof, '0x'
+      );
+      const holderHandle = await this.token.confidentialBalanceOf(this.holder.address);
+      expect(await decryptBalance(this.token.target, holderHandle, this.holder)).to.equal(1000n);
+    });
+
+    it('operator can transferFromAndCall', async function () {
+      const exp = Math.floor(Date.now() / 1000) + 86400;
+      await this.token.connect(this.holder).setOperator(this.accounts[0].address, exp);
+      const enc = await encryptAmount(this.token.target, this.accounts[0].address, 150);
+      await this.token.connect(this.accounts[0])['confidentialTransferFromAndCall(address,address,bytes32,bytes,bytes)'](
+        this.holder.address, this.receiver.target, enc.handles[0], enc.inputProof, '0x'
+      );
+      const holderHandle = await this.token.confidentialBalanceOf(this.holder.address);
+      expect(await decryptBalance(this.token.target, holderHandle, this.holder)).to.equal(850n);
     });
   });
 

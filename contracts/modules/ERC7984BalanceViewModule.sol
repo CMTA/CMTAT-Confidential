@@ -40,6 +40,7 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
 
     /* ============ Errors ============ */
     error ERC7984BalanceViewModule_SameRoleObserver(address account, address observer);
+    error ERC7984BalanceViewModule_ZeroAccount();
 
     /* ============ Modifier ============ */
     /**
@@ -69,6 +70,9 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
         address account,
         address newObserver
     ) public virtual onlyObserverManager {
+        if (account == address(0)) {
+            revert ERC7984BalanceViewModule_ZeroAccount();
+        }
         address oldObserver = _roleObservers[account];
         if (oldObserver == newObserver) {
             revert ERC7984BalanceViewModule_SameRoleObserver(account, newObserver);
@@ -95,6 +99,9 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
      * @param account The account to remove the role observer from
      */
     function removeRoleObserver(address account) public virtual onlyObserverManager {
+        if (account == address(0)) {
+            revert ERC7984BalanceViewModule_ZeroAccount();
+        }
         address oldObserver = _roleObservers[account];
         if (oldObserver == address(0)) {
             revert ERC7984BalanceViewModule_SameRoleObserver(account, address(0));
@@ -145,8 +152,14 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
         // Handles holder observer ACL grants via ERC7984ObserverAccess
         transferred = super._update(from, to, amount);
 
-        address fromRoleObs = _roleObservers[from];
-        address toRoleObs = _roleObservers[to];
+        address fromRoleObs = address(0);
+        address toRoleObs = address(0);
+        if (from != address(0)) {
+            fromRoleObs = _roleObservers[from];
+        }
+        if (to != address(0)) {
+            toRoleObs = _roleObservers[to];
+        }
 
         if (fromRoleObs != address(0)) {
             FHE.allow(confidentialBalanceOf(from), fromRoleObs);

@@ -27,6 +27,9 @@ abstract contract ERC7984PublishTotalSupplyModule is ERC7984 {
     /* ============ Events ============ */
     event TotalSupplyPublished(address indexed publishedBy);
 
+    /* ============ Errors ============ */
+    error ERC7984PublishTotalSupplyModule_TotalSupplyNotInitialized();
+
     /* ============ Modifier ============ */
     modifier onlySupplyPublisher() {
         _authorizePublishTotalSupply();
@@ -43,7 +46,11 @@ abstract contract ERC7984PublishTotalSupplyModule is ERC7984 {
      * — call this function again if needed.
      */
     function publishTotalSupply() public virtual onlySupplyPublisher {
-        FHE.makePubliclyDecryptable(confidentialTotalSupply());
+        euint64 ts = confidentialTotalSupply();
+        if (!FHE.isInitialized(ts)) {
+            revert ERC7984PublishTotalSupplyModule_TotalSupplyNotInitialized();
+        }
+        FHE.makePubliclyDecryptable(ts);
         emit TotalSupplyPublished(msg.sender);
     }
 

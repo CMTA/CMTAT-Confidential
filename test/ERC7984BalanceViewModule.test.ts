@@ -8,6 +8,20 @@ async function decrypt(token: any, handle: bigint, signer: any): Promise<bigint>
   return fhevm.userDecryptEuint(FhevmType.euint64, handle, token.target, signer);
 }
 
+function getTransferredHandle(token: any, receipt: any): bigint {
+  for (const log of receipt.logs) {
+    try {
+      const parsed = token.interface.parseLog(log);
+      if (parsed?.name === 'ConfidentialTransfer') {
+        return parsed.args[2];
+      }
+    } catch {
+      // ignore non-matching logs
+    }
+  }
+  throw new Error('ConfidentialTransfer event not found');
+}
+
 describe('ERC7984BalanceViewModule (dual-observer)', function () {
   beforeEach(async function () {
     // Uses signers [0..6] from deployToken, then takes additional named signers
@@ -184,6 +198,15 @@ describe('ERC7984BalanceViewModule (dual-observer)', function () {
         this.token.connect(this.observerManager).removeRoleObserver(this.holder.address),
       ).to.be.revertedWithCustomError(this.token, 'ERC7984BalanceViewModule_SameRoleObserver');
     });
+
+    it('reverts on zero account', async function () {
+      await expect(
+        this.token.connect(this.observerManager).setRoleObserver(ethers.ZeroAddress, this.roleObserver.address),
+      ).to.be.revertedWithCustomError(this.token, 'ERC7984BalanceViewModule_ZeroAccount');
+      await expect(
+        this.token.connect(this.observerManager).removeRoleObserver(ethers.ZeroAddress),
+      ).to.be.revertedWithCustomError(this.token, 'ERC7984BalanceViewModule_ZeroAccount');
+    });
   });
 
   // ─────────────────────────────────────────────────────────────
@@ -260,6 +283,33 @@ describe('ERC7984BalanceViewModule (dual-observer)', function () {
 
       expect(balanceViaHolderObs).to.equal(800n); // 1000 - 200
       expect(balanceViaRoleObs).to.equal(800n);
+    });
+
+    it('observers get ACL on transferred amount handle', async function () {
+      await this.token.connect(this.holder).setObserver(this.holder.address, this.holderObserver.address);
+      await this.token
+        .connect(this.observerManager)
+        .setRoleObserver(this.holder.address, this.roleObserver.address);
+
+      const encInput = await fhevm
+        .createEncryptedInput(this.token.target, this.holder.address)
+        .add64(250)
+        .encrypt();
+      const tx = await this.token
+        .connect(this.holder)
+        ['confidentialTransfer(address,bytes32,bytes)'](
+          this.recipient.address,
+          encInput.handles[0],
+          encInput.inputProof,
+        );
+      const receipt = await tx.wait();
+      const transferredHandle = getTransferredHandle(this.token, receipt);
+
+      const transferredViaHolderObs = await decrypt(this.token, transferredHandle, this.holderObserver);
+      const transferredViaRoleObs = await decrypt(this.token, transferredHandle, this.roleObserver);
+
+      expect(transferredViaHolderObs).to.equal(250n);
+      expect(transferredViaRoleObs).to.equal(250n);
     });
 
     it('observers on recipient get ACL on updated balance after transfer', async function () {

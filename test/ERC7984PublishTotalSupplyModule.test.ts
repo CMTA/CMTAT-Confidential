@@ -34,6 +34,12 @@ describe('ERC7984PublishTotalSupplyModule', function () {
         .withArgs(this.supplyManager.address);
     });
 
+    it('reverts when total supply handle is uninitialized', async function () {
+      await expect(
+        this.token.connect(this.supplyManager).publishTotalSupply()
+      ).to.be.revertedWithCustomError(this.token, 'ERC7984PublishTotalSupplyModule_TotalSupplyNotInitialized');
+    });
+
     it('unauthorized caller cannot call publishTotalSupply', async function () {
       await mint(this.token, this.minter, this.holder, 1000);
       await expect(this.token.connect(this.other).publishTotalSupply()).to.be.reverted;
