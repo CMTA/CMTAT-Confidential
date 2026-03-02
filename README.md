@@ -149,6 +149,7 @@ Two deployment-ready contracts are provided. Both share the same abstract base (
 | `publishTotalSupply` (public disclosure) | ✓ | ✓ |
 | Total supply observer list (auto ACL) | ✓ | ✗ |
 | `SUPPLY_OBSERVER_ROLE` | ✓ | ✓ |
+| `SUPPLY_PUBLISHER_ROLE` | ✓ | ✓ |
 | Contract size | ~20.5 KB | ~19.2 KB |
 
 Choose `CMTATFHELite` when automatic per-observer ACL re-grant on every mint/burn is not required and you want to minimize deployment cost. `publishTotalSupply` (one-shot public disclosure) is available in both variants.
@@ -181,7 +182,8 @@ npm run test
 | `ENFORCER_ROLE` | Can freeze and unfreeze addresses |
 | `FORCED_OPS_ROLE` | Can execute forced transfers and forced burns on frozen addresses |
 | `OBSERVER_ROLE` | Can assign per-account balance observers via `setRoleObserver` |
-| `SUPPLY_OBSERVER_ROLE` | Can manage total supply observers and call `publishTotalSupply` |
+| `SUPPLY_OBSERVER_ROLE` | Can manage total supply observers |
+| `SUPPLY_PUBLISHER_ROLE` | Can call `publishTotalSupply` |
 
 ## Contract Functions
 
@@ -288,7 +290,7 @@ function forcedBurn(
 
 ### Total Supply Visibility
 
-By default the total supply is encrypted and inaccessible to third parties. Two mechanisms are available to open read access, both gated by `SUPPLY_OBSERVER_ROLE`.
+By default the total supply is encrypted and inaccessible to third parties. Two mechanisms are available to open read access, gated by `SUPPLY_OBSERVER_ROLE` (observer list) or `SUPPLY_PUBLISHER_ROLE` (public disclosure).
 
 #### Option 1 — Authorized observers (automatic, stays current) — `CMTATFHE` only
 
@@ -297,6 +299,9 @@ Register addresses that will automatically receive ACL access to the total suppl
 ```solidity
 // Grant SUPPLY_OBSERVER_ROLE to the compliance manager
 await token.grantRole(SUPPLY_OBSERVER_ROLE, complianceManager.address);
+
+// Grant SUPPLY_PUBLISHER_ROLE to the compliance manager (separate permission)
+await token.grantRole(SUPPLY_PUBLISHER_ROLE, complianceManager.address);
 
 // Register a regulator as a total supply observer
 await token.connect(complianceManager).addTotalSupplyObserver(regulatorAddress);
@@ -326,7 +331,7 @@ await token.connect(complianceManager).publishTotalSupply();
 | Mechanism | Availability | Access scope | Stays current after mint/burn |
 |-----------|-------------|-------------|-------------------------------|
 | `addTotalSupplyObserver` | `CMTATFHE` only | Specific registered addresses | Yes — re-granted automatically via `_afterMint`/`_afterBurn` hooks |
-| `publishTotalSupply` | `CMTATFHE` and `CMTATFHELite` | Anyone (no ACL needed) | No — must be called again after each mint/burn |
+| `publishTotalSupply` | `CMTATFHE` and `CMTATFHELite` | `SUPPLY_PUBLISHER_ROLE` | No — must be called again after each mint/burn |
 
 > **Gas note:** In `CMTATFHE`, every mint or burn triggers `_updateTotalSupplyObserversACL()`, which iterates over all registered total supply observers and calls `FHE.allow()` for each one. Additionally, `_update` runs a chain of balance observer ACL grants. Keep both observer lists small to control gas costs per operation.
 
@@ -673,7 +678,7 @@ function confidentialTotalSupply() public view returns (euint64);
 
 #### How to grant access to the total supply
 
-CMTAT FHE provides two built-in mechanisms (both require `SUPPLY_OBSERVER_ROLE`):
+CMTAT FHE provides two built-in mechanisms:
 
 **Option A — Authorized observers (stays current automatically) — `ERC7984TotalSupplyViewModule`, `CMTATFHE` only**
 
@@ -688,11 +693,12 @@ Once registered, the observer decrypts using standard user-decryption — see [D
 
 **Option B — Public disclosure — `ERC7984PublishTotalSupplyModule`, available on both `CMTATFHE` and `CMTATFHELite`**
 
-Call `publishTotalSupply()` to mark the current handle as publicly decryptable. Must be called again after each mint or burn since the handle changes.
+Call `publishTotalSupply()` (requires `SUPPLY_PUBLISHER_ROLE`) to mark the current handle as publicly decryptable. Must be called again after each mint or burn since the handle changes. This will revert if total supply has never been initialized (no mint/burn yet).
 
 ```solidity
 token.publishTotalSupply();
 ```
+> **Note:** `publishTotalSupply()` reverts until the total supply handle is initialized (i.e., at least one mint or burn has occurred).
 
 Internally this calls `FHE.makePubliclyDecryptable()`, which triggers the following **asynchronous three-step process**:
 
@@ -940,7 +946,7 @@ The `inputProof` is tied to the **caller's address** and the **contract address*
   - [Access Control List (ACL)](https://docs.zama.org/protocol/solidity-guides/smart-contract/acl)
   - [Decryption](https://docs.zama.org/protocol/solidity-guides/smart-contract/oracle)
 
-- Part of this project was carried out with the help of [Claude Code](https://claude.com/product/claude-code)
+- Part of this project was carried out with the help of [Claude Code](https://claude.com/product/claude-code) and [Codex](https://chatgpt.com/codex)
 
 
 

@@ -22,6 +22,8 @@ import {FHE, euint64} from "@fhevm/solidity/lib/FHE.sol";
  */
 abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
     /* ============ State Variables ============ */
+    bytes32 public constant SUPPLY_OBSERVER_ROLE = keccak256("SUPPLY_OBSERVER_ROLE");
+
     address[] private _supplyObservers;
 
     /// @dev 1-based index into _supplyObservers. 0 means not registered.
@@ -34,6 +36,7 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
     /* ============ Errors ============ */
     error ERC7984TotalSupplyViewModule_AlreadyObserver(address observer);
     error ERC7984TotalSupplyViewModule_NotObserver(address observer);
+    error ERC7984TotalSupplyViewModule_ZeroAddressObserver();
 
     /* ============ Modifier ============ */
     modifier onlySupplyObserverManager() {
@@ -50,6 +53,9 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
      * @param observer The address to grant total supply read access to
      */
     function addTotalSupplyObserver(address observer) public virtual onlySupplyObserverManager {
+        if (observer == address(0)) {
+            revert ERC7984TotalSupplyViewModule_ZeroAddressObserver();
+        }
         if (_supplyObserverIndex[observer] != 0) {
             revert ERC7984TotalSupplyViewModule_AlreadyObserver(observer);
         }

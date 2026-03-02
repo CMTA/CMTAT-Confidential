@@ -196,7 +196,7 @@ describe('ERC7984BalanceViewModule (dual-observer)', function () {
     it('reverts SameRoleObserver when removeRoleObserver called with no observer set', async function () {
       await expect(
         this.token.connect(this.observerManager).removeRoleObserver(this.holder.address),
-      ).to.be.revertedWithCustomError(this.token, 'ERC7984BalanceViewModule_SameRoleObserver');
+      ).to.be.revertedWithCustomError(this.token, 'ERC7984BalanceViewModule_NoRoleObserver');
     });
 
     it('reverts on zero account', async function () {

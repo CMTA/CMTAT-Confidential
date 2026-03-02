@@ -19,7 +19,7 @@ import {CMTATFHEBase} from "./CMTATFHEBase.sol";
  *   - Pause / Unpause (PAUSER_ROLE)
  *   - Freeze / Unfreeze (ENFORCER_ROLE)
  *   - Per-account balance observers (OBSERVER_ROLE)
- *   - Public total supply disclosure via publishTotalSupply (SUPPLY_OBSERVER_ROLE)
+ *   - Public total supply disclosure via publishTotalSupply (SUPPLY_PUBLISHER_ROLE)
  *   - Document management and token metadata (CMTAT)
  *
  * For automatic per-observer ACL re-grant on every mint/burn, use CMTATFHE instead.

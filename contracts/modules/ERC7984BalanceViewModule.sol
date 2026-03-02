@@ -40,6 +40,7 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
 
     /* ============ Errors ============ */
     error ERC7984BalanceViewModule_SameRoleObserver(address account, address observer);
+    error ERC7984BalanceViewModule_NoRoleObserver(address account);
     error ERC7984BalanceViewModule_ZeroAccount();
 
     /* ============ Modifier ============ */
@@ -104,7 +105,7 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
         }
         address oldObserver = _roleObservers[account];
         if (oldObserver == address(0)) {
-            revert ERC7984BalanceViewModule_SameRoleObserver(account, address(0));
+            revert ERC7984BalanceViewModule_NoRoleObserver(account);
         }
 
         _roleObservers[account] = address(0);

@@ -23,7 +23,7 @@ abstract contract ERC7984MintModule is ERC7984 {
     event Mint(address indexed minter, address indexed to, euint64 encryptedAmount);
 
     /* ============ Errors ============ */
-    error ERC7984MintModule_MintBlocked(address to, string reason);
+    error ERC7984MintModule_UnauthorizedHandle();
 
     /* ============ Modifier ============ */
     /**
@@ -65,7 +65,9 @@ abstract contract ERC7984MintModule is ERC7984 {
         euint64 amount
     ) public virtual onlyMinter returns (euint64 transferred) {
         _validateMint(to);
-        require(FHE.isAllowed(amount, msg.sender), "ERC7984MintModule: Unauthorized use of encrypted amount");
+        if (!FHE.isAllowed(amount, msg.sender)) {
+            revert ERC7984MintModule_UnauthorizedHandle();
+        }
         transferred = _mint(to, amount);
         _afterMint(to, transferred);
         emit Mint(msg.sender, to, transferred);

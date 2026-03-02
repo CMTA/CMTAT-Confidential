@@ -3,7 +3,6 @@ pragma solidity ^0.8.27;
 
 /* ==== CMTAT Modules === */
 import {CMTATBaseGeneric} from "../CMTAT/contracts/modules/0_CMTATBaseGeneric.sol";
-import {PauseModule} from "../CMTAT/contracts/modules/wrapper/core/PauseModule.sol";
 import {ICMTATConstructor} from "../CMTAT/contracts/interfaces/technical/ICMTATConstructor.sol";
 
 /* ==== OpenZeppelin === */
@@ -11,7 +10,7 @@ import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/acce
 
 /* ==== OpenZeppelin Confidential Contracts === */
 import {ERC7984} from "../openzeppelin-confidential-contracts/contracts/token/ERC7984/ERC7984.sol";
-import {FHE, externalEuint64, ebool, euint64} from "@fhevm/solidity/lib/FHE.sol";
+import {externalEuint64, euint64} from "@fhevm/solidity/lib/FHE.sol";
 import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
 /* ==== FHE Modules === */
@@ -38,7 +37,7 @@ import {ERC7984PublishTotalSupplyModule} from "./modules/ERC7984PublishTotalSupp
  *   ├── ERC7984BurnModule                (burn with hook)
  *   ├── ERC7984EnforcementModule         (forcedTransfer, forcedBurn with hooks)
  *   ├── ERC7984BalanceViewModule         (dual-observer: holder slot + role slot)
- *   └── ERC7984PublishTotalSupplyModule  (publishTotalSupply — SUPPLY_OBSERVER_ROLE)
+ *   └── ERC7984PublishTotalSupplyModule  (publishTotalSupply — SUPPLY_PUBLISHER_ROLE)
  */
 abstract contract CMTATFHEBase is
     ERC7984,
@@ -70,7 +69,7 @@ abstract contract CMTATFHEBase is
     function initialize(
         address admin,
         ICMTATConstructor.ExtraInformationAttributes memory extraInformationAttributes_
-    ) public initializer {
+    ) internal initializer {
         __CMTAT_init(admin, extraInformationAttributes_);
     }
 
@@ -92,7 +91,7 @@ abstract contract CMTATFHEBase is
 
     function _authorizeObserverManagement() internal virtual override onlyRole(OBSERVER_ROLE) {}
 
-    function _authorizePublishTotalSupply() internal virtual override onlyRole(SUPPLY_OBSERVER_ROLE) {}
+    function _authorizePublishTotalSupply() internal virtual override onlyRole(SUPPLY_PUBLISHER_ROLE) {}
 
     /* ============ _update Override ============ */
     /**

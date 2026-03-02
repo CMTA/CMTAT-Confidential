@@ -27,6 +27,7 @@ export const ENFORCER_ROLE = ethers.keccak256(ethers.toUtf8Bytes('ENFORCER_ROLE'
 export const FORCED_OPS_ROLE = ethers.keccak256(ethers.toUtf8Bytes('FORCED_OPS_ROLE'));
 export const OBSERVER_ROLE = ethers.keccak256(ethers.toUtf8Bytes('OBSERVER_ROLE'));
 export const SUPPLY_OBSERVER_ROLE = ethers.keccak256(ethers.toUtf8Bytes('SUPPLY_OBSERVER_ROLE'));
+export const SUPPLY_PUBLISHER_ROLE = ethers.keccak256(ethers.toUtf8Bytes('SUPPLY_PUBLISHER_ROLE'));
 
 // ─── Deploy helper ────────────────────────────────────────────────────────────
 

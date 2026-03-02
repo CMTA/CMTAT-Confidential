@@ -51,6 +51,12 @@ describe('ERC7984TotalSupplyViewModule', function () {
       ).to.be.revertedWithCustomError(this.token, 'ERC7984TotalSupplyViewModule_AlreadyObserver');
     });
 
+    it('reverts on zero address observer', async function () {
+      await expect(
+        this.token.connect(this.supplyManager).addTotalSupplyObserver(ethers.ZeroAddress)
+      ).to.be.revertedWithCustomError(this.token, 'ERC7984TotalSupplyViewModule_ZeroAddressObserver');
+    });
+
     it('grants ACL immediately on existing total supply handle', async function () {
       await mint(this.token, this.minter, this.holder, 1000);
       await this.token.connect(this.supplyManager).addTotalSupplyObserver(this.observer.address);

@@ -18,7 +18,7 @@ import {ERC7984TotalSupplyViewModule} from "./modules/ERC7984TotalSupplyViewModu
  *
  * publishTotalSupply (publicly decryptable total supply) is inherited from
  * CMTATFHEBase via ERC7984PublishTotalSupplyModule and is also available in
- * CMTATFHELite.
+ * CMTATFHELite. Access is controlled by SUPPLY_PUBLISHER_ROLE.
  *
  * The thin overrides below exist solely to resolve Solidity's diamond-inheritance
  * requirement: CMTATFHEBase overrides every ERC7984 transfer function and

@@ -23,7 +23,7 @@ abstract contract ERC7984BurnModule is ERC7984 {
     event Burn(address indexed burner, address indexed from, euint64 encryptedAmount);
 
     /* ============ Errors ============ */
-    error ERC7984BurnModule_BurnBlocked(address from, string reason);
+    error ERC7984BurnModule_UnauthorizedHandle();
 
     /* ============ Modifier ============ */
     /**
@@ -65,7 +65,9 @@ abstract contract ERC7984BurnModule is ERC7984 {
         euint64 amount
     ) public virtual onlyBurner returns (euint64 transferred) {
         _validateBurn(from);
-        require(FHE.isAllowed(amount, msg.sender), "ERC7984BurnModule: Unauthorized use of encrypted amount");
+        if (!FHE.isAllowed(amount, msg.sender)) {
+            revert ERC7984BurnModule_UnauthorizedHandle();
+        }
         transferred = _burn(from, amount);
         _afterBurn(from, transferred);
         emit Burn(msg.sender, from, transferred);

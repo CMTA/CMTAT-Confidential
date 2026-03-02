@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { deployToken, SUPPLY_OBSERVER_ROLE, mint } from './helpers/deploy';
+import { deployToken, SUPPLY_PUBLISHER_ROLE, mint } from './helpers/deploy';
 
 /**
  * Tests for ERC7984PublishTotalSupplyModule.
@@ -21,7 +21,7 @@ describe('ERC7984PublishTotalSupplyModule', function () {
     this.supplyManager = supplyManager;
     this.other = other;
 
-    await this.token.connect(this.admin).grantRole(SUPPLY_OBSERVER_ROLE, supplyManager.address);
+    await this.token.connect(this.admin).grantRole(SUPPLY_PUBLISHER_ROLE, supplyManager.address);
   });
 
   // ─── CMTATFHE ────────────────────────────────────────────────────────────
@@ -56,7 +56,7 @@ describe('ERC7984PublishTotalSupplyModule', function () {
       this.liteHolder = liteCtx.holder;
       this.liteAdmin = liteCtx.admin;
 
-      await this.lite.connect(this.liteAdmin).grantRole(SUPPLY_OBSERVER_ROLE, this.supplyManager.address);
+      await this.lite.connect(this.liteAdmin).grantRole(SUPPLY_PUBLISHER_ROLE, this.supplyManager.address);
     });
 
     it('supply manager can call publishTotalSupply on CMTATFHELite', async function () {

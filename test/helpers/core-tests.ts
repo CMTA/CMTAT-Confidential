@@ -10,6 +10,7 @@ import {
   decryptBalance,
   mint,
 } from './deploy';
+import { anyValue } from '@nomicfoundation/hardhat-chai-matchers/withArgs';
 
 /**
  * Shared core test suite for CMTATFHE and CMTATFHELite.
@@ -80,7 +81,14 @@ export function runCoreTests() {
 
   describe('mint', function () {
     it('minter can mint tokens', async function () {
-      await mint(this.token, this.minter, this.holder, 1000);
+      const enc = await encryptAmount(this.token.target, this.minter.address, 1000);
+      await expect(
+        this.token.connect(this.minter)['mint(address,bytes32,bytes)'](
+          this.holder.address, enc.handles[0], enc.inputProof
+        )
+      )
+        .to.emit(this.token, 'Mint')
+        .withArgs(this.minter.address, this.holder.address, anyValue);
       const handle = await this.token.confidentialBalanceOf(this.holder.address);
       expect(await decryptBalance(this.token.target, handle, this.holder)).to.equal(1000n);
     });
@@ -134,9 +142,12 @@ export function runCoreTests() {
 
     it('burner can burn tokens', async function () {
       const enc = await encryptAmount(this.token.target, this.burner.address, 500);
-      await this.token.connect(this.burner)['burn(address,bytes32,bytes)'](
-        this.holder.address, enc.handles[0], enc.inputProof
-      );
+      await expect(
+        this.token.connect(this.burner)['burn(address,bytes32,bytes)'](
+          this.holder.address, enc.handles[0], enc.inputProof
+        )
+      ).to.emit(this.token, 'Burn')
+        .withArgs(this.burner.address, this.holder.address, anyValue);
       const handle = await this.token.confidentialBalanceOf(this.holder.address);
       expect(await decryptBalance(this.token.target, handle, this.holder)).to.equal(500n);
     });
@@ -289,9 +300,12 @@ export function runCoreTests() {
     it('enforcer can force transfer from frozen address', async function () {
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
       const enc = await encryptAmount(this.token.target, this.enforcer.address, 500);
-      await this.token.connect(this.enforcer)['forcedTransfer(address,address,bytes32,bytes)'](
-        this.holder.address, this.recipient.address, enc.handles[0], enc.inputProof
-      );
+      await expect(
+        this.token.connect(this.enforcer)['forcedTransfer(address,address,bytes32,bytes)'](
+          this.holder.address, this.recipient.address, enc.handles[0], enc.inputProof
+        )
+      ).to.emit(this.token, 'ForcedTransfer')
+        .withArgs(this.enforcer.address, this.holder.address, this.recipient.address, anyValue);
       const handle = await this.token.confidentialBalanceOf(this.recipient.address);
       expect(await decryptBalance(this.token.target, handle, this.recipient)).to.equal(500n);
     });
@@ -360,9 +374,12 @@ export function runCoreTests() {
     it('enforcer can force burn from frozen address', async function () {
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
       const enc = await encryptAmount(this.token.target, this.enforcer.address, 500);
-      await this.token.connect(this.enforcer)['forcedBurn(address,bytes32,bytes)'](
-        this.holder.address, enc.handles[0], enc.inputProof
-      );
+      await expect(
+        this.token.connect(this.enforcer)['forcedBurn(address,bytes32,bytes)'](
+          this.holder.address, enc.handles[0], enc.inputProof
+        )
+      ).to.emit(this.token, 'ForcedBurn')
+        .withArgs(this.enforcer.address, this.holder.address, anyValue);
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, false);
       const handle = await this.token.confidentialBalanceOf(this.holder.address);
       expect(await decryptBalance(this.token.target, handle, this.holder)).to.equal(500n);

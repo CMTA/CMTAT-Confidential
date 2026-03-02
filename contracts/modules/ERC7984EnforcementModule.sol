@@ -49,7 +49,7 @@ abstract contract ERC7984EnforcementModule is ERC7984 {
     );
 
     /* ============ Errors ============ */
-    error ERC7984EnforcementModule_TransferBlocked(address from, address to, string reason);
+    error ERC7984EnforcementModule_UnauthorizedHandle();
 
     /* ============ Modifier ============ */
     /**
@@ -106,7 +106,9 @@ abstract contract ERC7984EnforcementModule is ERC7984 {
         euint64 amount
     ) public virtual onlyForcedTransferAuthorized returns (euint64 transferred) {
         _validateForcedTransfer(from, to);
-        require(FHE.isAllowed(amount, msg.sender), "ERC7984EnforcementModule: Unauthorized use of encrypted amount");
+        if (!FHE.isAllowed(amount, msg.sender)) {
+            revert ERC7984EnforcementModule_UnauthorizedHandle();
+        }
         transferred = _transfer(from, to, amount);
         emit ForcedTransfer(msg.sender, from, to, transferred);
     }
@@ -142,7 +144,9 @@ abstract contract ERC7984EnforcementModule is ERC7984 {
         euint64 amount
     ) public virtual onlyForcedBurnAuthorized returns (euint64 burned) {
         _validateForcedBurn(from);
-        require(FHE.isAllowed(amount, msg.sender), "ERC7984EnforcementModule: Unauthorized use of encrypted amount");
+        if (!FHE.isAllowed(amount, msg.sender)) {
+            revert ERC7984EnforcementModule_UnauthorizedHandle();
+        }
         burned = _burn(from, amount);
         emit ForcedBurn(msg.sender, from, burned);
     }
