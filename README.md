@@ -171,6 +171,12 @@ npm run compile
 npm run test
 ```
 
+## Compiler & EVM Version
+
+- Solidity pragmas use `^0.8.27` across the codebase to stay compatible with OpenZeppelin Confidential Contracts.
+- Hardhat is configured to compile with `0.8.34`.
+- The configured EVM version is `prague` (see `hardhat.config.ts`).
+
 ## Roles
 
 | Role | Description |
