@@ -74,7 +74,8 @@ abstract contract ERC7984EnforcementModule is ERC7984 {
     /* ============ Public Functions - Forced Transfer ============ */
     /**
      * @dev Forces a transfer from one address to another using encrypted amount with input proof.
-     * Bypasses freeze checks but respects contract deactivation.
+     * Bypasses freeze checks. Can be performed even when the contract is deactivated
+     * unless the inheriting contract adds an explicit deactivation check.
      * @param from Source address
      * @param to Destination address
      * @param encryptedAmount Encrypted amount to transfer

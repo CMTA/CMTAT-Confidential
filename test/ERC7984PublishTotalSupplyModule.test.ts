@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { deployToken, SUPPLY_PUBLISHER_ROLE, mint } from './helpers/deploy';
+import { deployToken, SUPPLY_OBSERVER_ROLE, SUPPLY_PUBLISHER_ROLE, mint } from './helpers/deploy';
 
 /**
  * Tests for ERC7984PublishTotalSupplyModule.
@@ -34,6 +34,12 @@ describe('ERC7984PublishTotalSupplyModule', function () {
         .withArgs(this.supplyManager.address);
     });
 
+    it('observer role alone cannot call publishTotalSupply', async function () {
+      await mint(this.token, this.minter, this.holder, 1000);
+      await this.token.connect(this.admin).grantRole(SUPPLY_OBSERVER_ROLE, this.other.address);
+      await expect(this.token.connect(this.other).publishTotalSupply()).to.be.reverted;
+    });
+
     it('reverts when total supply handle is uninitialized', async function () {
       await expect(
         this.token.connect(this.supplyManager).publishTotalSupply()
@@ -64,6 +70,12 @@ describe('ERC7984PublishTotalSupplyModule', function () {
       await expect(this.lite.connect(this.supplyManager).publishTotalSupply())
         .to.emit(this.lite, 'TotalSupplyPublished')
         .withArgs(this.supplyManager.address);
+    });
+
+    it('observer role alone cannot call publishTotalSupply on CMTATFHELite', async function () {
+      await mint(this.lite, this.liteMinter, this.liteHolder, 500);
+      await this.lite.connect(this.liteAdmin).grantRole(SUPPLY_OBSERVER_ROLE, this.other.address);
+      await expect(this.lite.connect(this.other).publishTotalSupply()).to.be.reverted;
     });
 
     it('unauthorized caller cannot call publishTotalSupply on CMTATFHELite', async function () {
