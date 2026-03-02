@@ -19,6 +19,8 @@ import {ERC7984BurnModule} from "./modules/ERC7984BurnModule.sol";
 import {ERC7984EnforcementModule} from "./modules/ERC7984EnforcementModule.sol";
 import {ERC7984BalanceViewModule} from "./modules/ERC7984BalanceViewModule.sol";
 import {ERC7984PublishTotalSupplyModule} from "./modules/ERC7984PublishTotalSupplyModule.sol";
+import {CMTATVersionModule} from "./modules/CMTATVersionModule.sol";
+import {VersionModule} from "../CMTAT/contracts/modules/wrapper/core/VersionModule.sol";
 
 /**
  * @title CMTATFHEBase
@@ -47,7 +49,8 @@ abstract contract CMTATFHEBase is
     ERC7984BurnModule,
     ERC7984EnforcementModule,
     ERC7984BalanceViewModule,
-    ERC7984PublishTotalSupplyModule
+    ERC7984PublishTotalSupplyModule,
+    CMTATVersionModule
 {
     /* ============ Errors ============ */
     /// @dev Since the amount is encrypted, we use a string reason instead of amount
@@ -254,5 +257,17 @@ abstract contract CMTATFHEBase is
         returns (bool)
     {
         return ERC7984.supportsInterface(interfaceId) || AccessControlUpgradeable.supportsInterface(interfaceId);
+    }
+
+    /* ============ Version Override ============ */
+
+    function version()
+        public
+        view
+        virtual
+        override(VersionModule, CMTATVersionModule)
+        returns (string memory version_)
+    {
+        return CMTATVersionModule.version();
     }
 }

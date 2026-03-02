@@ -2,6 +2,21 @@
 
 A confidential security token implementation combining [CMTAT](https://github.com/CMTA/CMTAT) compliance features with the [Zama Confidential Blockchain Protocol](https://docs.zama.org/protocol) for private balances.
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Summary](#summary)
+- [Deployment Variants](#deployment-variants)
+- [Installation](#installation)
+- [Compiler & EVM Version](#compiler--evm-version)
+- [Audit Notes](#audit-notes)
+- [Roles](#roles)
+- [Contract Functions](#contract-functions)
+- [Role-Based Access Control](#role-based-access-control)
+- [Troubleshooting](#troubleshooting)
+- [References](#references)
+
 ## Overview
 
 CMTAT FHE implements the [ERC-7984](https://docs.openzeppelin.com/confidential-contracts/erc7984) standard (Confidential Fungible Token) with CMTAT regulatory compliance modules. All token balances and transfer amounts are encrypted using Fully Homomorphic Encryption (FHE), ensuring transfer amount and balance privacy while maintaining regulatory compliance capabilities.
@@ -24,6 +39,8 @@ Fully Homomorphic Encryption (FHE) enables computing directly on encrypted data 
 - **Role-Based Access Control**: Granular permissions for minting, burning, pausing, and enforcement
 - **Document Management**: Attach terms, documents, and metadata to tokens
 - **ERC-7984 Standard**: Based on OpenZeppelin's confidential token implementation
+
+
 
 ## Architecture
 
@@ -90,27 +107,27 @@ This section maps the CMTAT framework features to the CMTAT FHE implementation, 
 
 | **Functionalities** | **CMTAT FHE Features** | **Available** |
 | ------------------- | --------------------- | ------------- |
-| Forced Transfer | `forcedTransfer()` with encrypted amount | ✓ |
-| Forced Burn | `forcedBurn()` with encrypted amount | ✓ |
-| Operator System | `setOperator()` / `confidentialTransferFrom()` | ✓ |
-| Public Disclosure | `requestDiscloseEncryptedAmount()` / `discloseEncryptedAmount()` | ✓ |
-| On-chain snapshot | Not implemented | ✗ |
-| Freeze partial tokens | Not implemented (all balances are encrypted) | ✗ |
-| Integrated allowlisting | Not implemented | ✗ |
-| RuleEngine / transfer hook | Not implemented | ✗ |
-| Upgradability | Not implemented (standalone only) | ✗ |
+| Forced Transfer | `forcedTransfer()` with encrypted amount | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Forced Burn | `forcedBurn()` with encrypted amount | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Operator System | `setOperator()` / `confidentialTransferFrom()` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Public Disclosure | `requestDiscloseEncryptedAmount()` / `discloseEncryptedAmount()` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| On-chain snapshot | Not implemented | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
+| Freeze partial tokens | Not implemented (all balances are encrypted) | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
+| Integrated allowlisting | Not implemented | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
+| RuleEngine / transfer hook | Not implemented | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
+| Upgradability | Not implemented (standalone only) | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
 
 ### Implementation Details
 
 | **Functionalities** | **CMTAT FHE** | **Note** |
 | ------------------- | ------------ | -------- |
-| Mint while paused | ✓ | Minting is allowed when contract is paused (same as CMTAT) |
-| Burn while paused | ✓ | Burning is allowed when contract is paused (same as CMTAT) |
-| Self burn | ✗ | Only `BURNER_ROLE` can burn tokens |
-| Standard burn on frozen address | ✗ | Use `forcedBurn()` |
-| Forced burn from frozen address | ✓ | `forcedBurn()` with `FORCED_OPS_ROLE` |
-| Burn via `forcedTransfer` | ✗ | `forcedTransfer` reverts if `to` is `address(0)` -- use `forcedBurn()` |
-| Balance overflow protection | ✓ | Uses FHESafeMath: transfers 0 on overflow/underflow (privacy-preserving) |
+| Mint while paused | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | Minting is allowed when contract is paused (same as CMTAT) |
+| Burn while paused | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | Burning is allowed when contract is paused (same as CMTAT) |
+| Self burn | <strong><span style="color: #b00020;">&#x2718;</span></strong> | Only `BURNER_ROLE` can burn tokens |
+| Standard burn on frozen address | <strong><span style="color: #b00020;">&#x2718;</span></strong> | Use `forcedBurn()` |
+| Forced burn from frozen address | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | `forcedBurn()` with `FORCED_OPS_ROLE` |
+| Burn via `forcedTransfer` | <strong><span style="color: #b00020;">&#x2718;</span></strong> | `forcedTransfer` reverts if `to` is `address(0)` -- use `forcedBurn()` |
+| Balance overflow protection | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | Uses FHESafeMath: transfers 0 on overflow/underflow (privacy-preserving) |
 
 ### Key Differences from Standard CMTAT
 
@@ -142,14 +159,14 @@ Two deployment-ready contracts are provided. Both share the same abstract base (
 
 | | `CMTATFHE` | `CMTATFHELite` |
 |---|---|---|
-| Confidential balances & transfers | ✓ | ✓ |
-| Mint / Burn / Forced ops | ✓ | ✓ |
-| Pause / Freeze | ✓ | ✓ |
-| Per-account balance observers | ✓ | ✓ |
-| `publishTotalSupply` (public disclosure) | ✓ | ✓ |
-| Total supply observer list (auto ACL) | ✓ | ✗ |
-| `SUPPLY_OBSERVER_ROLE` | ✓ | ✓ |
-| `SUPPLY_PUBLISHER_ROLE` | ✓ | ✓ |
+| Confidential balances & transfers | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Mint / Burn / Forced ops | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Pause / Freeze | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Per-account balance observers | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| `publishTotalSupply` (public disclosure) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Total supply observer list (auto ACL) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
+| `SUPPLY_OBSERVER_ROLE` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| `SUPPLY_PUBLISHER_ROLE` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
 | Contract size | ~20.5 KB | ~19.2 KB |
 
 Choose `CMTATFHELite` when automatic per-observer ACL re-grant on every mint/burn is not required and you want to minimize deployment cost. `publishTotalSupply` (one-shot public disclosure) is available in both variants.
@@ -176,6 +193,23 @@ npm run test
 - Solidity pragmas use `^0.8.27` across the codebase to stay compatible with OpenZeppelin Confidential Contracts.
 - Hardhat is configured to compile with `0.8.34`.
 - The configured EVM version is `prague` (see `hardhat.config.ts`).
+
+## Versioning
+
+The contract-level `version()` string is pinned to `0.1.0` via `CMTATVersionModule`.
+
+## Audit Notes
+
+Aderyn static analysis (see `doc/audit/aderyn-report.md`) reported only low-severity items. Summary and maintainer notes:
+
+| Finding | Maintainer Notes |
+| --- | --- |
+| Centralization risk | Role-based admin controls are intentional for compliance operations. |
+| Unspecific pragma | `^0.8.27` is deliberate for upstream compatibility; Hardhat compiles with `0.8.34`. |
+| PUSH0 opcode | EVM target is `prague`, which supports PUSH0; change `evmVersion` if deploying to a chain without PUSH0. |
+| Single-use modifiers / empty overrides / initializer | These are part of the module pattern and kept for clarity. |
+| Unchecked return | `FHE.allow` is used for ACL side effects; return value is not documented and is intentionally ignored. |
+| Recent adjustments | Split supply roles (`SUPPLY_OBSERVER_ROLE` for observer list, `SUPPLY_PUBLISHER_ROLE` for public disclosure) and added a zero-address guard for total supply observers. |
 
 ## Roles
 

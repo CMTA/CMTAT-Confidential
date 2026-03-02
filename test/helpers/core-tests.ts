@@ -59,6 +59,10 @@ export function runCoreTests() {
     it('grants DEFAULT_ADMIN_ROLE to admin', async function () {
       expect(await this.token.hasRole(DEFAULT_ADMIN_ROLE, this.admin.address)).to.be.true;
     });
+
+    it('exposes the CMTAT FHE version', async function () {
+      expect(await this.token.version()).to.equal('0.1.0');
+    });
   });
 
   // ─── access control ──────────────────────────────────────────────────────
