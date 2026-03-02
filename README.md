@@ -196,7 +196,7 @@ npm run test
 
 ## Versioning
 
-The contract-level `version()` string is pinned to `0.1.0` via `CMTATVersionModule`.
+The contract-level `version()` string is pinned to `0.1.0` via `CMTATFHEVersionModule`.
 
 ## Audit Notes
 
@@ -503,6 +503,7 @@ CMTAT-FHE/
 │       ├── ERC7984BurnModule.sol                  # Burn with authorization hook
 │       ├── ERC7984EnforcementModule.sol           # Forced transfer and forced burn
 │       ├── ERC7984BalanceViewModule.sol           # Per-account balance observers
+│       ├── CMTATFHEVersionModule.sol              # CMTAT FHE version override (0.1.0)
 │       ├── ERC7984PublishTotalSupplyModule.sol    # Public total supply disclosure
 │       └── ERC7984TotalSupplyViewModule.sol       # Total supply observer list (auto ACL)
 ├── CMTAT/                                    # CMTAT submodule (compliance modules)

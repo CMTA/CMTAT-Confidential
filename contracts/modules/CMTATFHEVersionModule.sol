@@ -4,10 +4,10 @@ pragma solidity ^0.8.27;
 import {VersionModule} from "../../CMTAT/contracts/modules/wrapper/core/VersionModule.sol";
 
 /**
- * @title CMTATVersionModule
+ * @title CMTATFHEVersionModule
  * @dev Overrides CMTAT VersionModule to pin the exposed version string.
  */
-abstract contract CMTATVersionModule is VersionModule {
+abstract contract CMTATFHEVersionModule is VersionModule {
     string private constant CMTAT_FHE_VERSION = "0.1.0";
 
     function version() public view virtual override returns (string memory version_) {
