@@ -65,9 +65,7 @@ abstract contract ERC7984BurnModule is ERC7984 {
         euint64 amount
     ) public virtual onlyBurner returns (euint64 transferred) {
         _validateBurn(from);
-        if (!FHE.isAllowed(amount, msg.sender)) {
-            revert ERC7984BurnModule_UnauthorizedHandle();
-        }
+        require(FHE.isAllowed(amount, msg.sender), ERC7984BurnModule_UnauthorizedHandle());
         transferred = _burn(from, amount);
         _afterBurn(from, transferred);
         emit Burn(msg.sender, from, transferred);

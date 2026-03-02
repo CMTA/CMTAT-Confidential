@@ -65,9 +65,7 @@ abstract contract ERC7984MintModule is ERC7984 {
         euint64 amount
     ) public virtual onlyMinter returns (euint64 transferred) {
         _validateMint(to);
-        if (!FHE.isAllowed(amount, msg.sender)) {
-            revert ERC7984MintModule_UnauthorizedHandle();
-        }
+        require(FHE.isAllowed(amount, msg.sender), ERC7984MintModule_UnauthorizedHandle());
         transferred = _mint(to, amount);
         _afterMint(to, transferred);
         emit Mint(msg.sender, to, transferred);
