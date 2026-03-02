@@ -447,7 +447,8 @@ await token.grantRole(FORCED_OPS_ROLE, enforcerAddress);   // forced transfer / 
 | `@openzeppelin/contracts` | 5.5.0 |
 | `@openzeppelin/contracts-upgradeable` | 5.5.0 |
 | **Submodule** |  |
-| [OpenZeppelin Confidential Contracts](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts) | v0.3.1 |
+| [OpenZeppelin Confidential Contracts](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts) | [v0.3.1](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts/releases/tag/v0.3.1) |
+| [CMTAT](https://github.com/CMTA/CMTAT/) | [v3.2.0](https://github.com/CMTA/CMTAT/releases/tag/v3.2.0) |
 
 ## Project Structure
 
