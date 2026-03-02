@@ -17,12 +17,21 @@ import {FHE, externalEuint64, euint64} from "@fhevm/solidity/lib/FHE.sol";
  * They can be performed even when the contract is deactivated.
  * Use cases include: court orders, sanctions compliance, error correction.
  *
+ * Role separation:
+ * - `FORCED_OPS_ROLE` (defined here) — execute forced transfers and forced burns
+ * - `ENFORCER_ROLE` (CMTAT's EnforcementModule) — freeze / unfreeze addresses
+ *
+ * The two roles are intentionally distinct: freezing an address and moving
+ * its funds are separate regulatory powers that may be held by different actors.
+ *
  * The authorization functions must be overridden in the inheriting contract
  * to implement the desired access control.
  * The validation functions should be overridden to enforce that the
  * source address is frozen.
  */
 abstract contract ERC7984EnforcementModule is ERC7984 {
+    /* ============ Roles ============ */
+    bytes32 public constant FORCED_OPS_ROLE = keccak256("FORCED_OPS_ROLE");
     /* ============ Events ============ */
     event ForcedTransfer(
         address indexed enforcer,

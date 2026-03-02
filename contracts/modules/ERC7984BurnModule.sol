@@ -50,6 +50,7 @@ abstract contract ERC7984BurnModule is ERC7984 {
     ) public virtual onlyBurner returns (euint64 transferred) {
         _validateBurn(from);
         transferred = _burn(from, FHE.fromExternal(encryptedAmount, inputProof));
+        _afterBurn(from, transferred);
         emit Burn(msg.sender, from, transferred);
     }
 
@@ -66,6 +67,7 @@ abstract contract ERC7984BurnModule is ERC7984 {
         _validateBurn(from);
         require(FHE.isAllowed(amount, msg.sender), "ERC7984BurnModule: Unauthorized use of encrypted amount");
         transferred = _burn(from, amount);
+        _afterBurn(from, transferred);
         emit Burn(msg.sender, from, transferred);
     }
 
@@ -78,6 +80,15 @@ abstract contract ERC7984BurnModule is ERC7984 {
         // Default: no additional validation
         // Override to add pause/freeze checks
     }
+
+    /**
+     * @dev Hook called after every successful burn, with the source address and
+     * the resulting encrypted amount handle. Override to add post-burn logic
+     * (e.g., updating total supply observer ACL).
+     * @param from Source address
+     * @param burned The encrypted amount actually burned
+     */
+    function _afterBurn(address from, euint64 burned) internal virtual {}
 
     /* ============ Access Control ============ */
     /**

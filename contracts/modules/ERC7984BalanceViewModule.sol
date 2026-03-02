@@ -121,6 +121,21 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
      * each balance change, in addition to the holder observers handled by
      * `ERC7984ObserverAccess`. Since FHE creates new ciphertext handles on every
      * arithmetic operation, observers lose access unless re-granted.
+     *
+     * **Observer ACL scope — intentional design:**
+     * Both the holder observer and the role observer receive ACL access to two
+     * handles per `_update` call:
+     *   1. The account's new **balance** handle (`confidentialBalanceOf(account)`)
+     *   2. The **transferred amount** handle (`transferred`)
+     *
+     * Granting access to the transferred amount is deliberate: for regulatory
+     * purposes a compliance observer needs to be able to reconstruct individual
+     * transaction amounts, not just the resulting balance. An observer set via
+     * `setRoleObserver` should therefore be considered to have transfer-level
+     * granularity, not just balance-snapshot visibility.
+     *
+     * Note: ACL grants are permanent (FHE ACL cannot be revoked). Removing an
+     * observer stops future grants but does not revoke access to already-granted handles.
      */
     function _update(
         address from,

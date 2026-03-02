@@ -43,10 +43,30 @@ contract CMTATFHE is CMTATFHEBase, ERC7984TotalSupplyViewModule {
 
     function _authorizeTotalSupplyObserverManagement() internal virtual override onlyRole(SUPPLY_OBSERVER_ROLE) {}
 
+    /* ============ Total supply observer hooks ============ */
+
+    /**
+     * @dev After every mint, re-grant ACL access to all registered total supply
+     * observers on the new total supply handle.
+     */
+    function _afterMint(address to, euint64 minted) internal virtual override {
+        super._afterMint(to, minted);
+        _updateTotalSupplyObserversACL();
+    }
+
+    /**
+     * @dev After every burn, re-grant ACL access to all registered total supply
+     * observers on the new total supply handle.
+     */
+    function _afterBurn(address from, euint64 burned) internal virtual override {
+        super._afterBurn(from, burned);
+        _updateTotalSupplyObserversACL();
+    }
+
     /* ============ _update ============ */
 
     function _update(address from, address to, euint64 amount)
-        internal virtual override(CMTATFHEBase, ERC7984TotalSupplyViewModule)
+        internal virtual override(CMTATFHEBase, ERC7984)
         returns (euint64 transferred)
     {
         return super._update(from, to, amount);

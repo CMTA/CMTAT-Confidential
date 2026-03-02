@@ -15,7 +15,7 @@ import {CMTATFHEBase} from "./CMTATFHEBase.sol";
  *   - Confidential balances (euint64)
  *   - Confidential transfers with ZKPoK inputs
  *   - Mint / Burn (MINTER_ROLE / BURNER_ROLE)
- *   - Forced transfer / Forced burn (ENFORCER_ROLE)
+ *   - Forced transfer / Forced burn (FORCED_OPS_ROLE)
  *   - Pause / Unpause (PAUSER_ROLE)
  *   - Freeze / Unfreeze (ENFORCER_ROLE)
  *   - Per-account balance observers (OBSERVER_ROLE)

@@ -99,23 +99,23 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
     /* ============ Internal Functions ============ */
 
     /**
-     * @dev Overrides `_update` to re-grant ACL access to all registered total
-     * supply observers after every mint or burn. The total supply handle changes
-     * only on mint (from == address(0)) and burn (to == address(0)).
+     * @dev Re-grants ACL access to all registered total supply observers on
+     * the current total supply handle. Call this after any operation that
+     * changes the total supply (mint or burn) to keep observer ACL current.
+     *
+     * This function is intentionally NOT called from `_update`. Instead, it is
+     * invoked via the `_afterMint` / `_afterBurn` hooks defined in
+     * `ERC7984MintModule` and `ERC7984BurnModule`, which are overridden in
+     * `CMTATFHE`. This avoids the zero-address guard that would otherwise be
+     * required inside a generic `_update` override.
+     *
+     * ⚠ Gas: iterates over all registered observers. Keep the list small.
      */
-    function _update(
-        address from,
-        address to,
-        euint64 amount
-    ) internal virtual override returns (euint64 transferred) {
-        transferred = super._update(from, to, amount);
-
-        if (from == address(0) || to == address(0)) {
-            euint64 ts = confidentialTotalSupply();
-            uint256 len = _supplyObservers.length;
-            for (uint256 i = 0; i < len; i++) {
-                FHE.allow(ts, _supplyObservers[i]);
-            }
+    function _updateTotalSupplyObserversACL() internal {
+        euint64 ts = confidentialTotalSupply();
+        uint256 len = _supplyObservers.length;
+        for (uint256 i = 0; i < len; i++) {
+            FHE.allow(ts, _supplyObservers[i]);
         }
     }
 

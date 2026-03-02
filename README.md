@@ -108,7 +108,7 @@ This section maps the CMTAT framework features to the CMTAT FHE implementation, 
 | Burn while paused | ✓ | Burning is allowed when contract is paused (same as CMTAT) |
 | Self burn | ✗ | Only `BURNER_ROLE` can burn tokens |
 | Standard burn on frozen address | ✗ | Use `forcedBurn()` |
-| Forced burn from frozen address | ✓ | `forcedBurn()` with `ENFORCER_ROLE` |
+| Forced burn from frozen address | ✓ | `forcedBurn()` with `FORCED_OPS_ROLE` |
 | Burn via `forcedTransfer` | ✗ | `forcedTransfer` reverts if `to` is `address(0)` -- use `forcedBurn()` |
 | Balance overflow protection | ✓ | Uses FHESafeMath: transfers 0 on overflow/underflow (privacy-preserving) |
 
@@ -178,7 +178,8 @@ npm run test
 | `MINTER_ROLE` | Can mint new tokens |
 | `BURNER_ROLE` | Can burn tokens |
 | `PAUSER_ROLE` | Can pause/unpause all transfers |
-| `ENFORCER_ROLE` | Can freeze addresses and execute forced transfers |
+| `ENFORCER_ROLE` | Can freeze and unfreeze addresses |
+| `FORCED_OPS_ROLE` | Can execute forced transfers and forced burns on frozen addresses |
 | `OBSERVER_ROLE` | Can assign per-account balance observers via `setRoleObserver` |
 | `SUPPLY_OBSERVER_ROLE` | Can manage total supply observers and call `publishTotalSupply` |
 
@@ -257,7 +258,7 @@ function forcedTransfer(
     address to,          // Must not be address(0)
     externalEuint64 encryptedAmount,
     bytes calldata inputProof
-) public onlyRole(ENFORCER_ROLE) returns (euint64 transferred);
+) public onlyRole(FORCED_OPS_ROLE) returns (euint64 transferred);
 ```
 
 **Requirements:**
@@ -276,7 +277,7 @@ function forcedBurn(
     address from,        // Must be frozen
     externalEuint64 encryptedAmount,
     bytes calldata inputProof
-) public onlyRole(ENFORCER_ROLE) returns (euint64 burned);
+) public onlyRole(FORCED_OPS_ROLE) returns (euint64 burned);
 ```
 
 **Requirements:**
@@ -324,8 +325,10 @@ await token.connect(complianceManager).publishTotalSupply();
 
 | Mechanism | Availability | Access scope | Stays current after mint/burn |
 |-----------|-------------|-------------|-------------------------------|
-| `addTotalSupplyObserver` | `CMTATFHE` only | Specific registered addresses | Yes — re-granted automatically in `_update` |
+| `addTotalSupplyObserver` | `CMTATFHE` only | Specific registered addresses | Yes — re-granted automatically via `_afterMint`/`_afterBurn` hooks |
 | `publishTotalSupply` | `CMTATFHE` and `CMTATFHELite` | Anyone (no ACL needed) | No — must be called again after each mint/burn |
+
+> **Gas note:** In `CMTATFHE`, every mint or burn triggers `_updateTotalSupplyObserversACL()`, which iterates over all registered total supply observers and calls `FHE.allow()` for each one. Additionally, `_update` runs a chain of balance observer ACL grants. Keep both observer lists small to control gas costs per operation.
 
 ### Pause / Unpause
 
@@ -426,7 +429,8 @@ const token = await ethers.deployContract('CMTATFHE', [
 await token.grantRole(MINTER_ROLE, minterAddress);
 await token.grantRole(BURNER_ROLE, burnerAddress);
 await token.grantRole(PAUSER_ROLE, pauserAddress);
-await token.grantRole(ENFORCER_ROLE, enforcerAddress);
+await token.grantRole(ENFORCER_ROLE, enforcerAddress);     // freeze/unfreeze addresses
+await token.grantRole(FORCED_OPS_ROLE, enforcerAddress);   // forced transfer / forced burn
 ```
 
 ## Dependencies
@@ -477,14 +481,14 @@ CMTAT-FHE/
 
 ### 1. As an issuer, can I burn tokens from a token holder without their consent?
 
-**Answer:** Yes, as an issuer with the `ENFORCER_ROLE`, you can burn tokens from any holder without their consent using the `forcedBurn()` function.
+**Answer:** Yes, as an issuer with the `FORCED_OPS_ROLE`, you can burn tokens from any holder without their consent using the `forcedBurn()` function.
 
 **How it works:**
 
-1. First freeze the holder's address using `setAddressFrozen(holderAddress, true)`
-2. Use the `forcedBurn()` function to burn tokens directly from the frozen address
+1. First freeze the holder's address using `setAddressFrozen(holderAddress, true)` (requires `ENFORCER_ROLE`)
+2. Use the `forcedBurn()` function to burn tokens directly from the frozen address (requires `FORCED_OPS_ROLE`)
 3. This function can be performed even when the contract is deactivated
-4. Only accounts with `ENFORCER_ROLE` can execute forced burns
+4. Only accounts with `FORCED_OPS_ROLE` can execute forced burns
 
 **Use cases for regulatory compliance:**
 - Court orders requiring asset seizure
@@ -510,7 +514,7 @@ await token.connect(enforcer)['forcedBurn(address,bytes32,bytes)'](
 );
 ```
 
-**Note:** The regular `burn()` function requires `BURNER_ROLE` and will fail if the target address is frozen. For frozen addresses, use `forcedBurn()` instead. The `from` address must be frozen before calling `forcedBurn()`. Note that `forcedTransfer()` reverts if `to` is `address(0)` -- use `forcedBurn()` for burning.
+**Note:** The regular `burn()` function requires `BURNER_ROLE` and will fail if the target address is frozen. For frozen addresses, use `forcedBurn()` instead (requires `FORCED_OPS_ROLE`). The `from` address must be frozen before calling `forcedBurn()`. Note that `forcedTransfer()` reverts if `to` is `address(0)` -- use `forcedBurn()` for burning.
 
 > **Design choice:** Standard CMTAT allows `forcedTransfer` and `forcedBurn` on any address (frozen or not). CMTAT FHE intentionally requires the address to be frozen first, creating an explicit audit trail (freeze event followed by forced burn/transfer).
 
@@ -818,6 +822,14 @@ CMTAT FHE solves this with the `ERC7984ObserverAccess` extension. After every `_
 | **Role observer** (`setRoleObserver`, requires `OBSERVER_ROLE`) | The issuer / compliance team | Regulator, auditor, compliance tool |
 
 Both slots receive `FHE.allow()` on every balance update automatically.
+
+**Observer ACL scope: balance *and* transfer amount**
+
+On every `_update`, observers are granted ACL access to **two** ciphertext handles:
+1. The account's new **balance** handle — so the observer can read the current balance at any time
+2. The **transferred amount** handle — so the observer can reconstruct individual transaction amounts
+
+This is intentional design for regulatory compliance: a compliance observer needs transfer-level granularity, not just balance snapshots. An observer set via `setRoleObserver` should therefore be treated as having access to individual transaction amounts for the account they are observing.
 
 **Decrypting as an observer**
 

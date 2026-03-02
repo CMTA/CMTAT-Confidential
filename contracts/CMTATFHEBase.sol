@@ -80,9 +80,9 @@ abstract contract CMTATFHEBase is
 
     function _authorizeBurn() internal virtual override onlyRole(BURNER_ROLE) {}
 
-    function _authorizeForcedTransfer() internal virtual override onlyRole(ENFORCER_ROLE) {}
+    function _authorizeForcedTransfer() internal virtual override onlyRole(FORCED_OPS_ROLE) {}
 
-    function _authorizeForcedBurn() internal virtual override onlyRole(ENFORCER_ROLE) {}
+    function _authorizeForcedBurn() internal virtual override onlyRole(FORCED_OPS_ROLE) {}
 
     function _authorizePause() internal virtual override onlyRole(PAUSER_ROLE) {}
 
@@ -98,6 +98,13 @@ abstract contract CMTATFHEBase is
     /**
      * @dev Explicit override resolving the diamond between ERC7984 and ERC7984BalanceViewModule.
      * Delegates entirely to the module chain (holder + role observer ACL grants).
+     *
+     * ⚠ **GAS WARNING — deep `_update` call chain**
+     * A single transfer triggers up to five `_update` overrides in series:
+     *   CMTATFHEBase → ERC7984BalanceViewModule → ERC7984ObserverAccess → ERC7984
+     * In CMTATFHE (full variant) the total supply view module further extends this
+     * via its `_afterMint`/`_afterBurn` hooks, iterating over all registered supply
+     * observers. Each FHE.allow() call adds gas. Keep observer lists small.
      */
     function _update(address from, address to, euint64 amount)
         internal virtual override(ERC7984, ERC7984BalanceViewModule)

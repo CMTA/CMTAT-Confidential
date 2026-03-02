@@ -24,6 +24,7 @@ export const MINTER_ROLE = ethers.keccak256(ethers.toUtf8Bytes('MINTER_ROLE'));
 export const BURNER_ROLE = ethers.keccak256(ethers.toUtf8Bytes('BURNER_ROLE'));
 export const PAUSER_ROLE = ethers.keccak256(ethers.toUtf8Bytes('PAUSER_ROLE'));
 export const ENFORCER_ROLE = ethers.keccak256(ethers.toUtf8Bytes('ENFORCER_ROLE'));
+export const FORCED_OPS_ROLE = ethers.keccak256(ethers.toUtf8Bytes('FORCED_OPS_ROLE'));
 export const OBSERVER_ROLE = ethers.keccak256(ethers.toUtf8Bytes('OBSERVER_ROLE'));
 export const SUPPLY_OBSERVER_ROLE = ethers.keccak256(ethers.toUtf8Bytes('SUPPLY_OBSERVER_ROLE'));
 
@@ -54,6 +55,7 @@ export async function deployToken(contractName: string) {
   await token.connect(admin).grantRole(BURNER_ROLE, burner.address);
   await token.connect(admin).grantRole(PAUSER_ROLE, pauser.address);
   await token.connect(admin).grantRole(ENFORCER_ROLE, enforcer.address);
+  await token.connect(admin).grantRole(FORCED_OPS_ROLE, enforcer.address);
 
   return { token, admin, minter, burner, pauser, enforcer, holder, recipient, accounts };
 }
