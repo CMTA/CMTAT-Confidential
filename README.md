@@ -21,7 +21,7 @@ A confidential security token implementation combining [CMTAT](https://github.co
 
 CMTAT Confidential implements the [ERC-7984](https://docs.openzeppelin.com/confidential-contracts/erc7984) standard (Confidential Fungible Token) with CMTAT regulatory compliance modules. All token balances and transfer amounts are encrypted using Fully Homomorphic Encryption (FHE), ensuring transfer amount and balance privacy while maintaining regulatory compliance capabilities.
 
-CMTAT is a security token framework by [Capital Markets and Technology Association](https://www.cmta.ch/) that includes various compliance features such as conditional transfer, account freeze, and token pause. The specification are blockchain agnostic with implementation available for several different blockchain ecosystem such as [Ethereum](https://github.com/CMTA/CMTAT), [Solana](https://github.com/CMTA/CMTAT-Solana/) and [Tezos](https://github.com/CMTA/CMTAT-Tezos-FA2). CMTAT Confidential is built on the Ethereum version written in Solidity.
+CMTAT is a security token framework by [Capital Markets and Technology Association](https://www.cmta.ch/) that includes various compliance features such as conditional transfer, account freeze, and token pause. The specification are blockchain agnostic with implementation available for several different blockchain ecosystem such as [Ethereum](https://github.com/CMTA/CMTAT), [Solana](https://github.com/CMTA/CMTAT-Solana/), [Tezos](https://github.com/CMTA/CMTAT-Tezos-FA2), and [Aztec](https://github.com/CMTA/private-CMTAT-aztec) (which also enables confidential transactions). CMTAT Confidential is built on the Ethereum version written in Solidity.
 
 ### What is FHE?
 
@@ -202,7 +202,7 @@ The contract-level `version()` string is pinned to `0.1.0` via `CMTATConfidentia
 
 ### Static Analysis — Aderyn
 
-Aderyn static analysis reported **0 high** and **8 low** severity findings. All are accepted or not applicable. Full rationale in [`doc/audit/aderyn-report-feedback.md`](doc/audit/aderyn-report-feedback.md).
+Aderyn static analysis reported **0 high** and **8 low** severity findings. All are accepted or not applicable. Full rationale in [`aderyn-report-feedback.md`](./doc/audit/aderyn-report-feedback.md).
 
 | ID | Finding | Instances | Disposition |
 |----|---------|-----------|-------------|
