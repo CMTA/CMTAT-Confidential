@@ -52,20 +52,35 @@ abstract contract CMTATFHEBase is
     ERC7984PublishTotalSupplyModule,
     CMTATFHEVersionModule
 {
+    uint8 private immutable _tokenDecimals;
+
     /* ============ Errors ============ */
     /// @dev Since the amount is encrypted, we use a string reason instead of amount
     error CMTAT_InvalidTransfer(address from, address to, string reason);
     error CMTAT_AddressZeroNotAllowed();
+    /// @dev Reverted when `decimals_` exceeds 18. ERC-7984 balances use `euint64`
+    /// (max 18_446_744_073_709_551_615 raw units); above 18 decimals the type cannot
+    /// represent even a single human-readable token.
+    error CMTAT_DecimalsTooHigh(uint8 decimals);
 
     /* ============ Constructor ============ */
     /// @custom:oz-upgrades-unsafe-allow constructor
+    /// @dev `ERC7984` stores balances and supply as `euint64` (max 18_446_744_073_709_551_615 raw units).
+    /// The maximum human-readable supply equals `uint64 max / 10^decimals_`:
+    ///   - 6 decimals  → ~18 trillion tokens  (recommended default)
+    ///   - 8 decimals  → ~184 billion tokens
+    ///   - 18 decimals → ~18 tokens
+    /// Values above 18 are rejected because even 1 token (10^decimals raw units) would overflow `uint64`.
     constructor(
         string memory name_,
         string memory symbol_,
         string memory contractURI_,
+        uint8 decimals_,
         address admin,
         ICMTATConstructor.ExtraInformationAttributes memory extraInformationAttributes_
     ) ERC7984(name_, symbol_, contractURI_) {
+        require(decimals_ <= 18, CMTAT_DecimalsTooHigh(decimals_));
+        _tokenDecimals = decimals_;
         initialize(admin, extraInformationAttributes_);
     }
 
@@ -95,6 +110,11 @@ abstract contract CMTATFHEBase is
     function _authorizeObserverManagement() internal virtual override onlyRole(OBSERVER_ROLE) {}
 
     function _authorizePublishTotalSupply() internal virtual override onlyRole(SUPPLY_PUBLISHER_ROLE) {}
+
+    /// @inheritdoc ERC7984
+    function decimals() public view virtual override returns (uint8) {
+        return _tokenDecimals;
+    }
 
     /* ============ _update Override ============ */
     /**

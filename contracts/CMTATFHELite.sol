@@ -30,7 +30,8 @@ contract CMTATFHELite is CMTATFHEBase {
         string memory name_,
         string memory symbol_,
         string memory contractURI_,
+        uint8 decimals_,
         address admin,
         ICMTATConstructor.ExtraInformationAttributes memory extraInformationAttributes_
-    ) CMTATFHEBase(name_, symbol_, contractURI_, admin, extraInformationAttributes_) {}
+    ) CMTATFHEBase(name_, symbol_, contractURI_, decimals_, admin, extraInformationAttributes_) {}
 }

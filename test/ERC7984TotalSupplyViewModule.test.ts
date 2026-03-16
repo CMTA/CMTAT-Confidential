@@ -1,7 +1,7 @@
 import { FhevmType } from '@fhevm/hardhat-plugin';
 import { expect } from 'chai';
 import { ethers, fhevm } from 'hardhat';
-import { deployToken, MINTER_ROLE, SUPPLY_OBSERVER_ROLE, mint, decryptBalance } from './helpers/deploy';
+import { deployToken, MINTER_ROLE, SUPPLY_OBSERVER_ROLE, TOKEN_DECIMALS, mint, decryptBalance } from './helpers/deploy';
 
 describe('ERC7984TotalSupplyViewModule', function () {
   beforeEach(async function () {
@@ -200,7 +200,7 @@ describe('ERC7984TotalSupplyViewModule', function () {
   describe('CMTATFHELite absence', function () {
     it('CMTATFHELite does not expose totalSupplyObservers', async function () {
       const lite = await ethers.deployContract('CMTATFHELite', [
-        'Lite', 'LITE', 'https://example.com', this.admin.address,
+        'Lite', 'LITE', 'https://example.com', TOKEN_DECIMALS, this.admin.address,
         { tokenId: '', terms: { name: '', uri: '', documentHash: ethers.ZeroHash }, information: '' },
       ]);
       expect((lite as any).totalSupplyObservers).to.be.undefined;

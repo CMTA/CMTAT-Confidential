@@ -142,7 +142,7 @@ This section maps the CMTAT framework features to the CMTAT FHE implementation, 
 | Allowance system | ERC20 `approve`/`allowance` | Operator system with time-limited access |
 | Forced Burn | Through `forcedTransfer`or `forcedBurn` if implemented | Through `forcedBurn` since the function is implemented |
 
-> **Important:** The `euint64` type has a significantly smaller range than `uint256`. For tokens with 18 decimals, `euint64` supports a maximum of ~18.44 tokens. Consider using fewer decimals (e.g., 6 or 8) to accommodate larger supplies.
+> **Important:** The `euint64` type has a significantly smaller range than `uint256`. Decimals above 18 are rejected at construction (`CMTAT_DecimalsTooHigh`). See [Choosing Decimals](#choosing-decimals) for the full supply impact table.
 
 ### Decryption Requirements
 
@@ -458,7 +458,11 @@ import { ethers } from 'hardhat';
 
 const extraInfoAttributes = {
   tokenId: 'TOKEN-001',
-  terms: 'https://example.com/terms',
+  terms: {
+    name: 'Terms Document',
+    uri: 'https://example.com/terms',
+    documentHash: ethers.ZeroHash,
+  },
   information: 'Security token for XYZ',
 };
 
@@ -466,6 +470,7 @@ const token = await ethers.deployContract('CMTATFHE', [
   'My Token',           // name
   'MTK',                // symbol
   'https://example.com/metadata', // contractURI
+  6,                    // decimals (choose per token, e.g. 0, 6, 8)
   adminAddress,         // admin with DEFAULT_ADMIN_ROLE
   extraInfoAttributes,  // token metadata
 ]);
@@ -477,6 +482,23 @@ await token.grantRole(PAUSER_ROLE, pauserAddress);
 await token.grantRole(ENFORCER_ROLE, enforcerAddress);     // freeze/unfreeze addresses
 await token.grantRole(FORCED_OPS_ROLE, enforcerAddress);   // forced transfer / forced burn
 ```
+
+### Choosing Decimals
+
+Decimals are configurable at deployment for both `CMTATFHE` and `CMTATFHELite`. The constructor argument order is: `name, symbol, contractURI, decimals, admin, extraInfoAttributes`.
+
+> **Warning:** ERC-7984 balances use `euint64` (max `18,446,744,073,709,551,615` raw units). The maximum human-readable supply is `uint64 max / 10^decimals`:
+>
+> | Decimals | Max supply |
+> |----------|-----------|
+> | 0 | ~18.4 × 10¹⁸ tokens |
+> | 6 | ~18.4 trillion tokens *(recommended default)* |
+> | 8 | ~184 billion tokens |
+> | 18 | ~18 tokens |
+>
+> Values above **18 are rejected** at construction (`CMTAT_DecimalsTooHigh`), because even a single token (`1 × 10^decimals` raw units) would overflow `uint64`. Values of 9 or more are technically valid but severely constrain the maximum supply — verify that `expectedMaxSupply × 10^decimals ≤ 18,446,744,073,709,551,615` before deploying.
+>
+> **Note:** FHE overflow is silent — a mint or transfer that exceeds `uint64` max will transfer `0` without reverting.
 
 ## Dependencies
 

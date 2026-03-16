@@ -35,9 +35,10 @@ contract CMTATFHE is CMTATFHEBase, ERC7984TotalSupplyViewModule {
         string memory name_,
         string memory symbol_,
         string memory contractURI_,
+        uint8 decimals_,
         address admin,
         ICMTATConstructor.ExtraInformationAttributes memory extraInformationAttributes_
-    ) CMTATFHEBase(name_, symbol_, contractURI_, admin, extraInformationAttributes_) {}
+    ) CMTATFHEBase(name_, symbol_, contractURI_, decimals_, admin, extraInformationAttributes_) {}
 
     /* ============ Authorization ============ */
 
@@ -120,4 +121,9 @@ contract CMTATFHE is CMTATFHEBase, ERC7984TotalSupplyViewModule {
         public view virtual override(CMTATFHEBase, ERC7984)
         returns (bool)
     { return super.supportsInterface(interfaceId); }
+
+    function decimals()
+        public view virtual override(CMTATFHEBase, ERC7984)
+        returns (uint8)
+    { return super.decimals(); }
 }

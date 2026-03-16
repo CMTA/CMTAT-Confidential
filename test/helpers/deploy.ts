@@ -6,6 +6,7 @@ import { ethers, fhevm } from 'hardhat';
 export const TOKEN_NAME = 'CMTATFHE Token';
 export const TOKEN_SYMBOL = 'CMTATFHE';
 export const CONTRACT_URI = 'https://example.com/metadata';
+export const TOKEN_DECIMALS = 6;
 
 export const EXTRA_INFO = {
   tokenId: 'TOKEN-001',
@@ -39,7 +40,7 @@ export const SUPPLY_PUBLISHER_ROLE = ethers.keccak256(ethers.toUtf8Bytes('SUPPLY
  *   [0] admin  [1] minter  [2] burner  [3] pauser  [4] enforcer
  *   [5] holder [6] recipient  [7..] accounts (extra)
  */
-export async function deployToken(contractName: string) {
+export async function deployToken(contractName: string, decimals: number = TOKEN_DECIMALS) {
   const signers = await ethers.getSigners();
   const [admin, minter, burner, pauser, enforcer, holder, recipient] = signers;
   const accounts = signers.slice(7);
@@ -48,6 +49,7 @@ export async function deployToken(contractName: string) {
     TOKEN_NAME,
     TOKEN_SYMBOL,
     CONTRACT_URI,
+    decimals,
     admin.address,
     EXTRA_INFO,
   ]);

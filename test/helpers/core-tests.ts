@@ -4,6 +4,7 @@ import {
   TOKEN_NAME,
   TOKEN_SYMBOL,
   CONTRACT_URI,
+  TOKEN_DECIMALS,
   DEFAULT_ADMIN_ROLE,
   MINTER_ROLE,
   encryptAmount,
@@ -52,8 +53,8 @@ export function runCoreTests() {
       expect(await this.token.contractURI()).to.equal(CONTRACT_URI);
     });
 
-    it('sets decimals to 6', async function () {
-      expect(await this.token.decimals()).to.equal(6);
+    it('sets decimals to the configured value', async function () {
+      expect(await this.token.decimals()).to.equal(TOKEN_DECIMALS);
     });
 
     it('grants DEFAULT_ADMIN_ROLE to admin', async function () {
