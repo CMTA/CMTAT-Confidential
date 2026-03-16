@@ -2,13 +2,13 @@
 pragma solidity ^0.8.27;
 
 import {ICMTATConstructor} from "../CMTAT/contracts/interfaces/technical/ICMTATConstructor.sol";
-import {CMTATFHEBase} from "./CMTATFHEBase.sol";
+import {CMTATConfidentialBase} from "./CMTATConfidentialBase.sol";
 
 /**
- * @title CMTATFHELite
- * @dev Lightweight deployment variant of CMTAT FHE.
+ * @title CMTATConfidentialLite
+ * @dev Lightweight deployment variant of CMTAT Confidential.
  *
- * Identical to CMTATFHE but without ERC7984TotalSupplyViewModule, reducing
+ * Identical to CMTATConfidential but without ERC7984TotalSupplyViewModule, reducing
  * gas costs and contract size when total supply visibility is not required.
  *
  * Includes:
@@ -22,9 +22,9 @@ import {CMTATFHEBase} from "./CMTATFHEBase.sol";
  *   - Public total supply disclosure via publishTotalSupply (SUPPLY_PUBLISHER_ROLE)
  *   - Document management and token metadata (CMTAT)
  *
- * For automatic per-observer ACL re-grant on every mint/burn, use CMTATFHE instead.
+ * For automatic per-observer ACL re-grant on every mint/burn, use CMTATConfidential instead.
  */
-contract CMTATFHELite is CMTATFHEBase {
+contract CMTATConfidentialLite is CMTATConfidentialBase {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(
         string memory name_,
@@ -33,5 +33,5 @@ contract CMTATFHELite is CMTATFHEBase {
         uint8 decimals_,
         address admin,
         ICMTATConstructor.ExtraInformationAttributes memory extraInformationAttributes_
-    ) CMTATFHEBase(name_, symbol_, contractURI_, decimals_, admin, extraInformationAttributes_) {}
+    ) CMTATConfidentialBase(name_, symbol_, contractURI_, decimals_, admin, extraInformationAttributes_) {}
 }

@@ -14,7 +14,7 @@ import {
 import { anyValue } from '@nomicfoundation/hardhat-chai-matchers/withArgs';
 
 /**
- * Shared core test suite for CMTATFHE and CMTATFHELite.
+ * Shared core test suite for CMTATConfidential and CMTATConfidentialLite.
  *
  * Call this function inside a describe block that has a beforeEach setting:
  *   this.token, this.admin, this.minter, this.burner, this.pauser,
@@ -61,7 +61,7 @@ export function runCoreTests() {
       expect(await this.token.hasRole(DEFAULT_ADMIN_ROLE, this.admin.address)).to.be.true;
     });
 
-    it('exposes the CMTAT FHE version', async function () {
+    it('exposes the CMTAT Confidential version', async function () {
       expect(await this.token.version()).to.equal('0.1.0');
     });
   });

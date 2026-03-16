@@ -15,7 +15,7 @@ import {FHE, euint64} from "@fhevm/solidity/lib/FHE.sol";
  * inside `_update`, keeping their view current without manual intervention.
  *
  * For one-off public disclosure (anyone can decrypt), combine with
- * ERC7984PublishTotalSupplyModule — already included in CMTATFHEBase.
+ * ERC7984PublishTotalSupplyModule — already included in CMTATConfidentialBase.
  *
  * The authorization function `_authorizeTotalSupplyObserverManagement()` must be
  * overridden in the inheriting contract to implement the desired access control.
@@ -112,7 +112,7 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
      * This function is intentionally NOT called from `_update`. Instead, it is
      * invoked via the `_afterMint` / `_afterBurn` hooks defined in
      * `ERC7984MintModule` and `ERC7984BurnModule`, which are overridden in
-     * `CMTATFHE`. This avoids the zero-address guard that would otherwise be
+     * `CMTATConfidential`. This avoids the zero-address guard that would otherwise be
      * required inside a generic `_update` override.
      *
      * ⚠ Gas: iterates over all registered observers. Keep the list small.

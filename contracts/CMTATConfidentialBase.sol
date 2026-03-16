@@ -19,19 +19,19 @@ import {ERC7984BurnModule} from "./modules/ERC7984BurnModule.sol";
 import {ERC7984EnforcementModule} from "./modules/ERC7984EnforcementModule.sol";
 import {ERC7984BalanceViewModule} from "./modules/ERC7984BalanceViewModule.sol";
 import {ERC7984PublishTotalSupplyModule} from "./modules/ERC7984PublishTotalSupplyModule.sol";
-import {CMTATFHEVersionModule} from "./modules/CMTATFHEVersionModule.sol";
+import {CMTATConfidentialVersionModule} from "./modules/CMTATConfidentialVersionModule.sol";
 import {VersionModule} from "../CMTAT/contracts/modules/wrapper/core/VersionModule.sol";
 
 /**
- * @title CMTATFHEBase
- * @dev Abstract base contract shared by all CMTAT FHE deployment variants.
+ * @title CMTATConfidentialBase
+ * @dev Abstract base contract shared by all CMTAT Confidential deployment variants.
  *
  * Contains all shared logic: constructor, role authorization hooks, transfer
  * validation, confidential transfer overrides, and ERC-165 support.
- * Not intended for direct deployment — use CMTATFHE or CMTATFHELite instead.
+ * Not intended for direct deployment — use CMTATConfidential or CMTATConfidentialLite instead.
  *
  * Inheritance chain:
- *   CMTATFHEBase
+ *   CMTATConfidentialBase
  *   ├── ERC7984                          (encrypted balances, transfers, operators)
  *   ├── CMTATBaseGeneric                 (pause, freeze, access control, documents)
  *   ├── ZamaEthereumConfig               (Zama coprocessor addresses)
@@ -41,7 +41,7 @@ import {VersionModule} from "../CMTAT/contracts/modules/wrapper/core/VersionModu
  *   ├── ERC7984BalanceViewModule         (dual-observer: holder slot + role slot)
  *   └── ERC7984PublishTotalSupplyModule  (publishTotalSupply — SUPPLY_PUBLISHER_ROLE)
  */
-abstract contract CMTATFHEBase is
+abstract contract CMTATConfidentialBase is
     ERC7984,
     CMTATBaseGeneric,
     ZamaEthereumConfig,
@@ -50,7 +50,7 @@ abstract contract CMTATFHEBase is
     ERC7984EnforcementModule,
     ERC7984BalanceViewModule,
     ERC7984PublishTotalSupplyModule,
-    CMTATFHEVersionModule
+    CMTATConfidentialVersionModule
 {
     uint8 private immutable _tokenDecimals;
 
@@ -123,8 +123,8 @@ abstract contract CMTATFHEBase is
      *
      * ⚠ **GAS WARNING — deep `_update` call chain**
      * A single transfer triggers up to five `_update` overrides in series:
-     *   CMTATFHEBase → ERC7984BalanceViewModule → ERC7984ObserverAccess → ERC7984
-     * In CMTATFHE (full variant) the total supply view module further extends this
+     *   CMTATConfidentialBase → ERC7984BalanceViewModule → ERC7984ObserverAccess → ERC7984
+     * In CMTATConfidential (full variant) the total supply view module further extends this
      * via its `_afterMint`/`_afterBurn` hooks, iterating over all registered supply
      * observers. Each FHE.allow() call adds gas. Keep observer lists small.
      */
@@ -285,9 +285,9 @@ abstract contract CMTATFHEBase is
         public
         view
         virtual
-        override(VersionModule, CMTATFHEVersionModule)
+        override(VersionModule, CMTATConfidentialVersionModule)
         returns (string memory version_)
     {
-        return CMTATFHEVersionModule.version();
+        return CMTATConfidentialVersionModule.version();
     }
 }

@@ -1,12 +1,12 @@
-# AGENTS.md — CMTAT FHE Project Guide
+# AGENTS.md — CMTAT Confidential Project Guide
 
 ## Project Overview
 
-CMTAT FHE is a confidential security token combining [CMTAT](https://github.com/CMTA/CMTAT) compliance modules with the [Zama FHEVM](https://docs.zama.ai/fhevm) for encrypted balances. All balances and transfer amounts are stored as `euint64` (FHE-encrypted 64-bit integers).
+CMTAT Confidential is a confidential security token combining [CMTAT](https://github.com/CMTA/CMTAT) compliance modules with the [Zama FHEVM](https://docs.zama.ai/fhevm) for encrypted balances. All balances and transfer amounts are stored as `euint64` (FHE-encrypted 64-bit integers).
 
 This file must always have the same content as CLAUDE.md
 
-**Main contract:** `contracts/CMTATFHE.sol`
+**Main contract:** `contracts/CMTATConfidential.sol`
 **Test framework:** Hardhat + Mocha/Chai (`test/*.test.ts`)
 **Compile (quick check):** `forge build`
 **Compile (for tests):** `npx hardhat compile`
@@ -19,7 +19,7 @@ This file must always have the same content as CLAUDE.md
 ### Inheritance chain (simplified)
 
 ```
-CMTATFHE
+CMTATConfidential
 ├── ERC7984                          (OZ Confidential — encrypted balances, transfers, operators)
 │   └── ERC7984ObserverAccess        (via ERC7984BalanceViewModule)
 ├── CMTATBaseGeneric                 (CMTAT — pause, freeze, access control, documents)
@@ -62,22 +62,22 @@ abstract contract ERC7984XxxModule is ERC7984 {
     function doXxx(...) public virtual onlyXxx returns (...) { ... }
 
     // Optional: validation hook (called inside the function, not the modifier)
-    // Override in CMTATFHE to apply pause/freeze logic
+    // Override in CMTATConfidential to apply pause/freeze logic
     function _validateXxx(...) internal virtual { }
 
-    // Authorization hook — MUST be overridden in CMTATFHE
+    // Authorization hook — MUST be overridden in CMTATConfidential
     function _authorizeXxx() internal virtual;
 }
 ```
 
-### 2. Wire into `CMTATFHE.sol`
+### 2. Wire into `CMTATConfidential.sol`
 
 ```solidity
 // 1. Add import
 import {ERC7984XxxModule} from "./modules/ERC7984XxxModule.sol";
 
 // 2. Add to inheritance list (append, do not insert before ERC7984)
-contract CMTATFHE is ERC7984, ..., ERC7984XxxModule {
+contract CMTATConfidential is ERC7984, ..., ERC7984XxxModule {
 
 // 3. Override the authorization hook
 function _authorizeXxx() internal virtual override onlyRole(XXX_ROLE) {}
@@ -96,10 +96,10 @@ function _validateXxx(...) internal virtual override {
 - [ ] Define role constant as `bytes32 public constant XXX_ROLE = keccak256("XXX_ROLE")`
 - [ ] Define a modifier + virtual `_authorizeXxx()` hook
 - [ ] Define optional virtual `_validateXxx()` hook for pause/freeze logic
-- [ ] Add import + inheritance in `CMTATFHE.sol`
-- [ ] Override `_authorizeXxx()` with `onlyRole(XXX_ROLE)` in `CMTATFHE.sol`
+- [ ] Add import + inheritance in `CMTATConfidential.sol`
+- [ ] Override `_authorizeXxx()` with `onlyRole(XXX_ROLE)` in `CMTATConfidential.sol`
 - [ ] Override `_validateXxx()` with CMTAT module checks if applicable
-- [ ] If the module overrides `_update`: add explicit `_update` override in `CMTATFHE.sol`
+- [ ] If the module overrides `_update`: add explicit `_update` override in `CMTATConfidential.sol`
 - [ ] Update `README.md` (Architecture tree, Roles table, Extended Features table, Contract Functions section, Project Structure)
 - [ ] Write tests in `test/ERC7984XxxModule.test.ts`
 
@@ -111,7 +111,7 @@ function _validateXxx(...) internal virtual override {
 
 | File | Purpose |
 |------|---------|
-| `test/CMTATFHE.test.ts` | Core contract behaviour (mint, burn, transfer, pause, freeze, forced ops) |
+| `test/CMTATConfidential.test.ts` | Core contract behaviour (mint, burn, transfer, pause, freeze, forced ops) |
 | `test/ERC7984XxxModule.test.ts` | One file per module feature |
 
 ### Imports & globals
@@ -131,7 +131,7 @@ beforeEach(async function () {
   const [admin, minter, holder, ...] = await ethers.getSigners();
   // assign to this.*
 
-  this.token = await ethers.deployContract('CMTATFHE', [
+  this.token = await ethers.deployContract('CMTATConfidential', [
     name, symbol, contractURI, admin.address, extraInfoAttributes,
   ]);
 

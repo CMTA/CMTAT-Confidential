@@ -3,8 +3,8 @@ import { ethers, fhevm } from 'hardhat';
 
 // ─── Token metadata ───────────────────────────────────────────────────────────
 
-export const TOKEN_NAME = 'CMTATFHE Token';
-export const TOKEN_SYMBOL = 'CMTATFHE';
+export const TOKEN_NAME = 'CMTATConfidential Token';
+export const TOKEN_SYMBOL = 'CMTATConfidential';
 export const CONTRACT_URI = 'https://example.com/metadata';
 export const TOKEN_DECIMALS = 6;
 
@@ -33,7 +33,7 @@ export const SUPPLY_PUBLISHER_ROLE = ethers.keccak256(ethers.toUtf8Bytes('SUPPLY
 // ─── Deploy helper ────────────────────────────────────────────────────────────
 
 /**
- * Deploys the given contract (CMTATFHE or CMTATFHELite), grants standard roles,
+ * Deploys the given contract (CMTATConfidential or CMTATConfidentialLite), grants standard roles,
  * and returns the token + named signers.
  *
  * Signer layout (matches all test files):

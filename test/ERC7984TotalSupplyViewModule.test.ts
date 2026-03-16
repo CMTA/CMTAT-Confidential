@@ -5,7 +5,7 @@ import { deployToken, MINTER_ROLE, SUPPLY_OBSERVER_ROLE, TOKEN_DECIMALS, mint, d
 
 describe('ERC7984TotalSupplyViewModule', function () {
   beforeEach(async function () {
-    const ctx = await deployToken('CMTATFHE');
+    const ctx = await deployToken('CMTATConfidential');
     Object.assign(this, ctx);
 
     // supplyManager holds SUPPLY_OBSERVER_ROLE
@@ -195,11 +195,11 @@ describe('ERC7984TotalSupplyViewModule', function () {
     });
   });
 
-  // ─── CMTATFHELite does not have ERC7984TotalSupplyViewModule ────────────
+  // ─── CMTATConfidentialLite does not have ERC7984TotalSupplyViewModule ────────────
 
-  describe('CMTATFHELite absence', function () {
-    it('CMTATFHELite does not expose totalSupplyObservers', async function () {
-      const lite = await ethers.deployContract('CMTATFHELite', [
+  describe('CMTATConfidentialLite absence', function () {
+    it('CMTATConfidentialLite does not expose totalSupplyObservers', async function () {
+      const lite = await ethers.deployContract('CMTATConfidentialLite', [
         'Lite', 'LITE', 'https://example.com', TOKEN_DECIMALS, this.admin.address,
         { tokenId: '', terms: { name: '', uri: '', documentHash: ethers.ZeroHash }, information: '' },
       ]);

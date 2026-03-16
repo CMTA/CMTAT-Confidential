@@ -28,7 +28,7 @@ describe('ERC7984BalanceViewModule (dual-observer)', function () {
     const allSigners = await ethers.getSigners();
     const [, , , , , , , observerManager, holderObserver, roleObserver, other] = allSigners;
 
-    const ctx = await deployToken('CMTATFHE');
+    const ctx = await deployToken('CMTATConfidential');
     this.token = ctx.token;
     this.admin = ctx.admin;
     this.minter = ctx.minter;

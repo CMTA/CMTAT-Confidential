@@ -1,5 +1,5 @@
 {
-  "name": "CMTAT-FHE",
+  "name": "CMTAT-Confidential",
   "version": "0.1.0",
   "description": "CMTAT token with FHE confidential balances",
   "scripts": {

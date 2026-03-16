@@ -5,15 +5,15 @@ import { deployToken, SUPPLY_OBSERVER_ROLE, SUPPLY_PUBLISHER_ROLE, mint } from '
 /**
  * Tests for ERC7984PublishTotalSupplyModule.
  *
- * publishTotalSupply is part of CMTATFHEBase, so it is available on both
- * CMTATFHE (full) and CMTATFHELite (lite).
+ * publishTotalSupply is part of CMTATConfidentialBase, so it is available on both
+ * CMTATConfidential (full) and CMTATConfidentialLite (lite).
  */
 describe('ERC7984PublishTotalSupplyModule', function () {
   beforeEach(async function () {
     const allSigners = await ethers.getSigners();
     const [, , , , , , , supplyManager, other] = allSigners;
 
-    const ctx = await deployToken('CMTATFHE');
+    const ctx = await deployToken('CMTATConfidential');
     this.token = ctx.token;
     this.admin = ctx.admin;
     this.minter = ctx.minter;
@@ -24,9 +24,9 @@ describe('ERC7984PublishTotalSupplyModule', function () {
     await this.token.connect(this.admin).grantRole(SUPPLY_PUBLISHER_ROLE, supplyManager.address);
   });
 
-  // ─── CMTATFHE ────────────────────────────────────────────────────────────
+  // ─── CMTATConfidential ────────────────────────────────────────────────────────────
 
-  describe('on CMTATFHE', function () {
+  describe('on CMTATConfidential', function () {
     it('supply manager can call publishTotalSupply', async function () {
       await mint(this.token, this.minter, this.holder, 1000);
       await expect(this.token.connect(this.supplyManager).publishTotalSupply())
@@ -52,11 +52,11 @@ describe('ERC7984PublishTotalSupplyModule', function () {
     });
   });
 
-  // ─── CMTATFHELite ─────────────────────────────────────────────────────────
+  // ─── CMTATConfidentialLite ─────────────────────────────────────────────────────────
 
-  describe('on CMTATFHELite', function () {
+  describe('on CMTATConfidentialLite', function () {
     beforeEach(async function () {
-      const liteCtx = await deployToken('CMTATFHELite');
+      const liteCtx = await deployToken('CMTATConfidentialLite');
       this.lite = liteCtx.token;
       this.liteMinter = liteCtx.minter;
       this.liteHolder = liteCtx.holder;
@@ -65,20 +65,20 @@ describe('ERC7984PublishTotalSupplyModule', function () {
       await this.lite.connect(this.liteAdmin).grantRole(SUPPLY_PUBLISHER_ROLE, this.supplyManager.address);
     });
 
-    it('supply manager can call publishTotalSupply on CMTATFHELite', async function () {
+    it('supply manager can call publishTotalSupply on CMTATConfidentialLite', async function () {
       await mint(this.lite, this.liteMinter, this.liteHolder, 500);
       await expect(this.lite.connect(this.supplyManager).publishTotalSupply())
         .to.emit(this.lite, 'TotalSupplyPublished')
         .withArgs(this.supplyManager.address);
     });
 
-    it('observer role alone cannot call publishTotalSupply on CMTATFHELite', async function () {
+    it('observer role alone cannot call publishTotalSupply on CMTATConfidentialLite', async function () {
       await mint(this.lite, this.liteMinter, this.liteHolder, 500);
       await this.lite.connect(this.liteAdmin).grantRole(SUPPLY_OBSERVER_ROLE, this.other.address);
       await expect(this.lite.connect(this.other).publishTotalSupply()).to.be.reverted;
     });
 
-    it('unauthorized caller cannot call publishTotalSupply on CMTATFHELite', async function () {
+    it('unauthorized caller cannot call publishTotalSupply on CMTATConfidentialLite', async function () {
       await mint(this.lite, this.liteMinter, this.liteHolder, 500);
       await expect(this.lite.connect(this.other).publishTotalSupply()).to.be.reverted;
     });
