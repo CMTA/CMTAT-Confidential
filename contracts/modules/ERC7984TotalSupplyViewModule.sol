@@ -117,7 +117,7 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
      *
      * ⚠ Gas: iterates over all registered observers. Keep the list small.
      */
-    function _updateTotalSupplyObserversACL() internal {
+    function _updateTotalSupplyObserversAcl() internal {
         euint64 ts = confidentialTotalSupply();
         uint256 len = _supplyObservers.length;
         for (uint256 i = 0; i < len; i++) {

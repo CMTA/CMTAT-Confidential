@@ -52,7 +52,7 @@ abstract contract CMTATConfidentialBase is
     ERC7984PublishTotalSupplyModule,
     CMTATConfidentialVersionModule
 {
-    uint8 private immutable _tokenDecimals;
+    uint8 private immutable _TOKEN_DECIMALS;
 
     /* ============ Errors ============ */
     /// @dev Since the amount is encrypted, we use a string reason instead of amount
@@ -74,13 +74,13 @@ abstract contract CMTATConfidentialBase is
     constructor(
         string memory name_,
         string memory symbol_,
-        string memory contractURI_,
+        string memory contractUri_,
         uint8 decimals_,
         address admin,
         ICMTATConstructor.ExtraInformationAttributes memory extraInformationAttributes_
-    ) ERC7984(name_, symbol_, contractURI_) {
+    ) ERC7984(name_, symbol_, contractUri_) {
         require(decimals_ <= 18, CMTAT_DecimalsTooHigh(decimals_));
-        _tokenDecimals = decimals_;
+        _TOKEN_DECIMALS = decimals_;
         initialize(admin, extraInformationAttributes_);
     }
 
@@ -113,7 +113,7 @@ abstract contract CMTATConfidentialBase is
 
     /// @inheritdoc ERC7984
     function decimals() public view virtual override returns (uint8) {
-        return _tokenDecimals;
+        return _TOKEN_DECIMALS;
     }
 
     /* ============ _update Override ============ */

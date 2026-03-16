@@ -1,4 +1,4 @@
-# CMTAT FHE - Confidential Security Token
+# CMTAT Confidential - Confidential Security Token
 
 A confidential security token implementation combining [CMTAT](https://github.com/CMTA/CMTAT) compliance features with the [Zama Confidential Blockchain Protocol](https://docs.zama.org/protocol) for private balances.
 
@@ -10,7 +10,7 @@ A confidential security token implementation combining [CMTAT](https://github.co
 - [Deployment Variants](#deployment-variants)
 - [Installation](#installation)
 - [Compiler & EVM Version](#compiler--evm-version)
-- [Audit Notes](#audit-notes)
+- [Security](#security)
 - [Roles](#roles)
 - [Contract Functions](#contract-functions)
 - [Role-Based Access Control](#role-based-access-control)
@@ -19,9 +19,9 @@ A confidential security token implementation combining [CMTAT](https://github.co
 
 ## Overview
 
-CMTAT FHE implements the [ERC-7984](https://docs.openzeppelin.com/confidential-contracts/erc7984) standard (Confidential Fungible Token) with CMTAT regulatory compliance modules. All token balances and transfer amounts are encrypted using Fully Homomorphic Encryption (FHE), ensuring transfer amount and balance privacy while maintaining regulatory compliance capabilities.
+CMTAT Confidential implements the [ERC-7984](https://docs.openzeppelin.com/confidential-contracts/erc7984) standard (Confidential Fungible Token) with CMTAT regulatory compliance modules. All token balances and transfer amounts are encrypted using Fully Homomorphic Encryption (FHE), ensuring transfer amount and balance privacy while maintaining regulatory compliance capabilities.
 
-CMTAT is a security token framework by [Capital Markets and Technology Association](https://www.cmta.ch/) that includes various compliance features such as conditional transfer, account freeze, and token pause. The specification are blockchain agnostic with implementation available for several different blockchain ecosystem such as [Ethereum](https://github.com/CMTA/CMTAT), [Solana](https://github.com/CMTA/CMTAT-Solana/) and [Tezos](https://github.com/CMTA/CMTAT-Tezos-FA2). CMTAT FHE is built on the Ethereum version written in Solidity.
+CMTAT is a security token framework by [Capital Markets and Technology Association](https://www.cmta.ch/) that includes various compliance features such as conditional transfer, account freeze, and token pause. The specification are blockchain agnostic with implementation available for several different blockchain ecosystem such as [Ethereum](https://github.com/CMTA/CMTAT), [Solana](https://github.com/CMTA/CMTAT-Solana/) and [Tezos](https://github.com/CMTA/CMTAT-Tezos-FA2). CMTAT Confidential is built on the Ethereum version written in Solidity.
 
 ### What is FHE?
 
@@ -45,7 +45,7 @@ Fully Homomorphic Encryption (FHE) enables computing directly on encrypted data 
 ## Architecture
 
 ```
-CMTAT-FHE
+CMTAT-Confidential
 ├── ERC7984 (OpenZeppelin Confidential Contracts)
 │   ├── Encrypted balances (euint64)
 │   ├── Confidential transfers
@@ -64,8 +64,8 @@ CMTAT-FHE
 │   ├── ERC7984BurnModule - Modular burn with authorization hook
 │   ├── ERC7984EnforcementModule - Forced transfer and forced burn
 │   ├── ERC7984BalanceViewModule - Per-account balance observers (holder + role slots)
-│   ├── ERC7984PublishTotalSupplyModule - Public total supply disclosure (in CMTATFHEBase)
-│   └── ERC7984TotalSupplyViewModule - Total supply observer list with auto ACL re-grant (CMTATFHE only)
+│   ├── ERC7984PublishTotalSupplyModule - Public total supply disclosure (in CMTATConfidentialBase)
+│   └── ERC7984TotalSupplyViewModule - Total supply observer list with auto ACL re-grant (CMTATConfidential only)
 │
 └── Zama Protocol Infrastructure (configured via ZamaEthereumConfig)
     ├── ACL - Access Control List for encrypted data permissions
@@ -82,11 +82,11 @@ CMTAT-FHE
 
 ## Summary
 
-This section maps the CMTAT framework features to the CMTAT FHE implementation, showing how standard functionalities are adapted for Fully Homomorphic Encryption.
+This section maps the CMTAT framework features to the CMTAT Confidential implementation, showing how standard functionalities are adapted for Fully Homomorphic Encryption.
 
 ### CMTAT Framework Mapping
 
-| **CMTAT Framework Mandatory Functionalities** | **CMTATFHE Corresponding Features** |
+| **CMTAT Framework Mandatory Functionalities** | **CMTATConfidential Corresponding Features** |
 | --------------------------------------------- | ----------------------------------- |
 | Know total supply | `confidentialTotalSupply()` returns `euint64` (encrypted) |
 | Know balance | `confidentialBalanceOf()` returns `euint64` (encrypted) |
@@ -105,7 +105,7 @@ This section maps the CMTAT framework features to the CMTAT FHE implementation, 
 
 ### Extended Features
 
-| **Functionalities** | **CMTAT FHE Features** | **Available** |
+| **Functionalities** | **CMTAT Confidential Features** | **Available** |
 | ------------------- | --------------------- | ------------- |
 | Forced Transfer | `forcedTransfer()` with encrypted amount | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
 | Forced Burn | `forcedBurn()` with encrypted amount | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
@@ -119,7 +119,7 @@ This section maps the CMTAT framework features to the CMTAT FHE implementation, 
 
 ### Implementation Details
 
-| **Functionalities** | **CMTAT FHE** | **Note** |
+| **Functionalities** | **CMTAT Confidential** | **Note** |
 | ------------------- | ------------ | -------- |
 | Mint while paused | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | Minting is allowed when contract is paused (same as CMTAT) |
 | Burn while paused | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | Burning is allowed when contract is paused (same as CMTAT) |
@@ -131,7 +131,7 @@ This section maps the CMTAT framework features to the CMTAT FHE implementation, 
 
 ### Key Differences from Standard CMTAT
 
-| **Aspect** | **CMTAT (Standard)** | **CMTAT FHE (Confidential)** |
+| **Aspect** | **CMTAT (Standard)** | **CMTAT Confidential (Confidential)** |
 | ---------- | -------------------- | --------------------------- |
 | Balance type | `uint256` (public) | `euint64` (encrypted) |
 | Value range | Up to ~1.15 × 10⁷⁷ (`uint256`) | Up to ~1.84 × 10¹⁹ (`uint64` max = 18,446,744,073,709,551,615) |
@@ -155,9 +155,9 @@ To decrypt encrypted values (balances, amounts, total supply), the requesting pa
 
 ## Deployment Variants
 
-Two deployment-ready contracts are provided. Both share the same abstract base (`CMTATFHEBase`) and are functionally identical except for total supply visibility.
+Two deployment-ready contracts are provided. Both share the same abstract base (`CMTATConfidentialBase`) and are functionally identical except for total supply visibility.
 
-| | `CMTATFHE` | `CMTATFHELite` |
+| | `CMTATConfidential` | `CMTATConfidentialLite` |
 |---|---|---|
 | Confidential balances & transfers | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
 | Mint / Burn / Forced ops | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
@@ -169,14 +169,14 @@ Two deployment-ready contracts are provided. Both share the same abstract base (
 | `SUPPLY_PUBLISHER_ROLE` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
 | Contract size | ~20.5 KB | ~19.2 KB |
 
-Choose `CMTATFHELite` when automatic per-observer ACL re-grant on every mint/burn is not required and you want to minimize deployment cost. `publishTotalSupply` (one-shot public disclosure) is available in both variants.
+Choose `CMTATConfidentialLite` when automatic per-observer ACL re-grant on every mint/burn is not required and you want to minimize deployment cost. `publishTotalSupply` (one-shot public disclosure) is available in both variants.
 
 ## Installation
 
 ```bash
 # Clone the repository
-git clone --recursive https://github.com/your-repo/CMTAT-FHE.git
-cd CMTAT-FHE
+git clone --recursive https://github.com/your-repo/CMTAT-Confidential.git
+cd CMTAT-Confidential
 
 # Install dependencies
 npm install
@@ -196,20 +196,24 @@ npm run test
 
 ## Versioning
 
-The contract-level `version()` string is pinned to `0.1.0` via `CMTATFHEVersionModule`.
+The contract-level `version()` string is pinned to `0.1.0` via `CMTATConfidentialVersionModule`.
 
-## Audit Notes
+## Security
 
-Aderyn static analysis (see `doc/audit/aderyn-report.md`) reported only low-severity items. Summary and maintainer notes:
+### Static Analysis — Aderyn
 
-| Finding | Maintainer Notes |
-| --- | --- |
-| Centralization risk | Role-based admin controls are intentional for compliance operations. |
-| Unspecific pragma | `^0.8.27` is deliberate for upstream compatibility; Hardhat compiles with `0.8.34`. |
-| PUSH0 opcode | EVM target is `prague`, which supports PUSH0; change `evmVersion` if deploying to a chain without PUSH0. |
-| Single-use modifiers / empty overrides / initializer | These are part of the module pattern and kept for clarity. |
-| Unchecked return | `FHE.allow` is used for ACL side effects; return value is not documented and is intentionally ignored. |
-| Recent adjustments | Split supply roles (`SUPPLY_OBSERVER_ROLE` for observer list, `SUPPLY_PUBLISHER_ROLE` for public disclosure) and added a zero-address guard for total supply observers. |
+Aderyn static analysis reported **0 high** and **8 low** severity findings. All are accepted or not applicable. Full rationale in [`doc/audit/aderyn-report-feedback.md`](doc/audit/aderyn-report-feedback.md).
+
+| ID | Finding | Instances | Disposition |
+|----|---------|-----------|-------------|
+| L-1 | Centralization Risk | 10 | Accepted — role-based access control is mandatory for a regulated security token |
+| L-2 | Unspecific Solidity Pragma (`^0.8.27`) | 12 | Accepted — lower bound required by OZ Confidential submodule; Hardhat compiles with `0.8.34` |
+| L-3 | PUSH0 Opcode | 12 | Not applicable — target is Ethereum mainnet, EVM version set to `prague` in `hardhat.config.ts` |
+| L-4 | Modifier Invoked Only Once | 1 | Accepted — consistent with the module authorization pattern across all modules |
+| L-5 | Empty Block | 16 | Accepted — modifier-only authorization hooks and intentional virtual extension points |
+| L-6 | Internal Function Used Only Once | 1 | Accepted — required by the OpenZeppelin `initializer` modifier pattern |
+| L-7 | State Change Without Event | 1 | Not applicable — occurs in a mock contract (`ConfidentialReceiverMock`), not production code |
+| L-8 | Unchecked Return | 12 | Not applicable — `FHE.allow()` / `FHE.makePubliclyDecryptable()` return the same handle (fluent interface), not an error code |
 
 ## Roles
 
@@ -308,7 +312,7 @@ function forcedTransfer(
 - The `to` address must not be `address(0)` -- use `forcedBurn()` for burning
 - Can be performed even when the contract is deactivated
 
-> **Note:** This is intentionally stricter than standard CMTAT, which allows `forcedTransfer` on any address (frozen or not). CMTAT FHE requires the address to be frozen first, creating an explicit audit trail (freeze event followed by forced transfer).
+> **Note:** This is intentionally stricter than standard CMTAT, which allows `forcedTransfer` on any address (frozen or not). CMTAT Confidential requires the address to be frozen first, creating an explicit audit trail (freeze event followed by forced transfer).
 
 ### Forced Burn
 
@@ -332,7 +336,7 @@ function forcedBurn(
 
 By default the total supply is encrypted and inaccessible to third parties. Two mechanisms are available to open read access, gated by `SUPPLY_OBSERVER_ROLE` (observer list) or `SUPPLY_PUBLISHER_ROLE` (public disclosure).
 
-#### Option 1 — Authorized observers (automatic, stays current) — `CMTATFHE` only
+#### Option 1 — Authorized observers (automatic, stays current) — `CMTATConfidential` only
 
 Register addresses that will automatically receive ACL access to the total supply handle after every mint or burn:
 
@@ -360,7 +364,7 @@ const handle = await token.confidentialTotalSupply();
 const supply = await fhevm.userDecryptEuint(FhevmType.euint64, handle, tokenAddress, observer);
 ```
 
-#### Option 2 — Public disclosure (anyone, irrevocable per handle) — `CMTATFHE` and `CMTATFHELite`
+#### Option 2 — Public disclosure (anyone, irrevocable per handle) — `CMTATConfidential` and `CMTATConfidentialLite`
 
 Mark the current total supply handle as publicly decryptable. Any off-chain party can then request decryption via the Zama Relayer SDK without ACL access. After the next mint or burn, the new handle will not be publicly decryptable — call again if needed.
 
@@ -370,10 +374,10 @@ await token.connect(complianceManager).publishTotalSupply();
 
 | Mechanism | Availability | Access scope | Stays current after mint/burn |
 |-----------|-------------|-------------|-------------------------------|
-| `addTotalSupplyObserver` | `CMTATFHE` only | Specific registered addresses | Yes — re-granted automatically via `_afterMint`/`_afterBurn` hooks |
-| `publishTotalSupply` | `CMTATFHE` and `CMTATFHELite` | `SUPPLY_PUBLISHER_ROLE` | No — must be called again after each mint/burn |
+| `addTotalSupplyObserver` | `CMTATConfidential` only | Specific registered addresses | Yes — re-granted automatically via `_afterMint`/`_afterBurn` hooks |
+| `publishTotalSupply` | `CMTATConfidential` and `CMTATConfidentialLite` | `SUPPLY_PUBLISHER_ROLE` | No — must be called again after each mint/burn |
 
-> **Gas note:** In `CMTATFHE`, every mint or burn triggers `_updateTotalSupplyObserversACL()`, which iterates over all registered total supply observers and calls `FHE.allow()` for each one. Additionally, `_update` runs a chain of balance observer ACL grants. Keep both observer lists small to control gas costs per operation.
+> **Gas note:** In `CMTATConfidential`, every mint or burn triggers `_updateTotalSupplyObserversACL()`, which iterates over all registered total supply observers and calls `FHE.allow()` for each one. Additionally, `_update` runs a chain of balance observer ACL grants. Keep both observer lists small to control gas costs per operation.
 
 ### Pause / Unpause
 
@@ -466,7 +470,7 @@ const extraInfoAttributes = {
   information: 'Security token for XYZ',
 };
 
-const token = await ethers.deployContract('CMTATFHE', [
+const token = await ethers.deployContract('CMTATConfidential', [
   'My Token',           // name
   'MTK',                // symbol
   'https://example.com/metadata', // contractURI
@@ -485,7 +489,7 @@ await token.grantRole(FORCED_OPS_ROLE, enforcerAddress);   // forced transfer / 
 
 ### Choosing Decimals
 
-Decimals are configurable at deployment for both `CMTATFHE` and `CMTATFHELite`. The constructor argument order is: `name, symbol, contractURI, decimals, admin, extraInfoAttributes`.
+Decimals are configurable at deployment for both `CMTATConfidential` and `CMTATConfidentialLite`. The constructor argument order is: `name, symbol, contractURI, decimals, admin, extraInfoAttributes`.
 
 > **Warning:** ERC-7984 balances use `euint64` (max `18,446,744,073,709,551,615` raw units). The maximum human-readable supply is `uint64 max / 10^decimals`:
 >
@@ -515,17 +519,17 @@ Decimals are configurable at deployment for both `CMTATFHE` and `CMTATFHELite`. 
 ## Project Structure
 
 ```
-CMTAT-FHE/
+CMTAT-Confidential/
 ├── contracts/
-│   ├── CMTATFHEBase.sol                      # Abstract base (all shared logic)
-│   ├── CMTATFHE.sol                          # Full variant (+ total supply visibility)
-│   ├── CMTATFHELite.sol                      # Lite variant (smaller, no total supply module)
+│   ├── CMTATConfidentialBase.sol                      # Abstract base (all shared logic)
+│   ├── CMTATConfidential.sol                          # Full variant (+ total supply visibility)
+│   ├── CMTATConfidentialLite.sol                      # Lite variant (smaller, no total supply module)
 │   └── modules/
 │       ├── ERC7984MintModule.sol                  # Mint with authorization hook
 │       ├── ERC7984BurnModule.sol                  # Burn with authorization hook
 │       ├── ERC7984EnforcementModule.sol           # Forced transfer and forced burn
 │       ├── ERC7984BalanceViewModule.sol           # Per-account balance observers
-│       ├── CMTATFHEVersionModule.sol              # CMTAT FHE version override (0.1.0)
+│       ├── CMTATConfidentialVersionModule.sol              # CMTAT Confidential version override (0.1.0)
 │       ├── ERC7984PublishTotalSupplyModule.sol    # Public total supply disclosure
 │       └── ERC7984TotalSupplyViewModule.sol       # Total supply observer list (auto ACL)
 ├── CMTAT/                                    # CMTAT submodule (compliance modules)
@@ -534,8 +538,8 @@ CMTAT-FHE/
 │   ├── fhe/                                  # Zama FHE documentation
 │   └── openzeppelin-confidential/            # OZ confidential docs
 ├── test/
-│   ├── CMTATFHE.test.ts                           # Full variant core tests
-│   ├── CMTATFHELite.test.ts                       # Lite variant core tests (shared suite)
+│   ├── CMTATConfidential.test.ts                           # Full variant core tests
+│   ├── CMTATConfidentialLite.test.ts                       # Lite variant core tests (shared suite)
 │   ├── ERC7984BalanceViewModule.test.ts           # Balance observer module tests
 │   ├── ERC7984PublishTotalSupplyModule.test.ts    # Public disclosure module tests
 │   ├── ERC7984TotalSupplyViewModule.test.ts       # Total supply observer module tests
@@ -585,11 +589,11 @@ await token.connect(enforcer)['forcedBurn(address,bytes32,bytes)'](
 
 **Note:** The regular `burn()` function requires `BURNER_ROLE` and will fail if the target address is frozen. For frozen addresses, use `forcedBurn()` instead (requires `FORCED_OPS_ROLE`). The `from` address must be frozen before calling `forcedBurn()`. Note that `forcedTransfer()` reverts if `to` is `address(0)` -- use `forcedBurn()` for burning.
 
-> **Design choice:** Standard CMTAT allows `forcedTransfer` and `forcedBurn` on any address (frozen or not). CMTAT FHE intentionally requires the address to be frozen first, creating an explicit audit trail (freeze event followed by forced burn/transfer).
+> **Design choice:** Standard CMTAT allows `forcedTransfer` and `forcedBurn` on any address (frozen or not). CMTAT Confidential intentionally requires the address to be frozen first, creating an explicit audit trail (freeze event followed by forced burn/transfer).
 
 ### 2. As a token holder, how do I transfer my tokens to another address?
 
-**Answer:** Transfers in CMTAT FHE use encrypted inputs to preserve confidentiality. Here's the complete process:
+**Answer:** Transfers in CMTAT Confidential use encrypted inputs to preserve confidentiality. Here's the complete process:
 
 #### Step 1: Create an encrypted input
 
@@ -644,7 +648,7 @@ await token.connect(operator).confidentialTransferFrom(
 
 ---
 
-### 3. Can I deploy CMTAT FHE contracts on Ethereum mainnet?
+### 3. Can I deploy CMTAT Confidential contracts on Ethereum mainnet?
 
 **Answer:** **Yes** - the Zama Protocol mainnet on Ethereum is now live.
 
@@ -742,9 +746,9 @@ function confidentialTotalSupply() public view returns (euint64);
 
 #### How to grant access to the total supply
 
-CMTAT FHE provides two built-in mechanisms:
+CMTAT Confidential provides two built-in mechanisms:
 
-**Option A — Authorized observers (stays current automatically) — `ERC7984TotalSupplyViewModule`, `CMTATFHE` only**
+**Option A — Authorized observers (stays current automatically) — `ERC7984TotalSupplyViewModule`, `CMTATConfidential` only**
 
 Register specific addresses that automatically receive ACL access after every mint or burn:
 
@@ -755,7 +759,7 @@ token.removeTotalSupplyObserver(regulatorAddress); // stops future grants
 
 Once registered, the observer decrypts using standard user-decryption — see [Decrypting Balances](#decrypting-balances).
 
-**Option B — Public disclosure — `ERC7984PublishTotalSupplyModule`, available on both `CMTATFHE` and `CMTATFHELite`**
+**Option B — Public disclosure — `ERC7984PublishTotalSupplyModule`, available on both `CMTATConfidential` and `CMTATConfidentialLite`**
 
 Call `publishTotalSupply()` (requires `SUPPLY_PUBLISHER_ROLE`) to mark the current handle as publicly decryptable. Must be called again after each mint or burn since the handle changes. This will revert if total supply has never been initialized (no mint/burn yet).
 
@@ -880,7 +884,7 @@ Yes, if they are granted ACL permission. The contract logic decides who gets acc
 
 Every FHE arithmetic operation (mint, transfer, burn) produces a *new* ciphertext handle for the affected balance. A third party who was granted ACL access to an old handle loses the ability to read the balance the moment that handle is replaced. Access must therefore be re-granted after every update — it cannot be set once and forgotten.
 
-CMTAT FHE solves this with the `ERC7984ObserverAccess` extension. After every `_update`, the contract automatically calls `FHE.allow()` on the new balance handle for each registered observer, keeping their ACL access current without any manual intervention.
+CMTAT Confidential solves this with the `ERC7984ObserverAccess` extension. After every `_update`, the contract automatically calls `FHE.allow()` on the new balance handle for each registered observer, keeping their ACL access current without any manual intervention.
 
 **Two observer slots per holder**
 
@@ -979,7 +983,7 @@ The `inputProof` is tied to the **caller's address** and the **contract address*
 
 | **Term** | **Definition** |
 | -------- | -------------- |
-| **FHE (Fully Homomorphic Encryption)** | Cryptographic scheme that enables arbitrary computations directly on ciphertext without ever decrypting it. The result, once decrypted, is identical to what would have been produced on the plaintext. It is the core primitive behind confidential balances and transfers in CMTAT FHE. |
+| **FHE (Fully Homomorphic Encryption)** | Cryptographic scheme that enables arbitrary computations directly on ciphertext without ever decrypting it. The result, once decrypted, is identical to what would have been produced on the plaintext. It is the core primitive behind confidential balances and transfers in CMTAT Confidential. |
 | **euint64** | Encrypted unsigned 64-bit integer — the on-chain type used to store confidential balances and transfer amounts. It is a pointer to a ciphertext managed by the Zama coprocessor network, not a raw encrypted value. Maximum representable value is ~18.4 × 10¹⁸. |
 | **externalEuint64** | The user-facing form of an encrypted 64-bit integer: a ciphertext handle produced by the client library and submitted alongside a ZKPoK. Converted to `euint64` on-chain via `FHE.fromExternal()` after the proof is verified. |
 | **ZKPoK (Zero-Knowledge Proof of Knowledge)** | A cryptographic proof that the submitter knows the plaintext inside an encrypted input, without revealing that plaintext. Required for every encrypted input to prevent malleability and replay attacks. Verified on-chain by the InputVerifier contract. |
@@ -989,7 +993,7 @@ The `inputProof` is tied to the **caller's address** and the **contract address*
 | **KMS (Key Management System)** | Zama's key management infrastructure that holds the FHE private key in a distributed manner using MPC. Decryption requests are sent to the KMS, which returns a decrypted value together with a cryptographic proof that can be verified on-chain. |
 | **MPC (Multi-Party Computation)** | Threshold cryptography protocol used by the KMS so that no single node ever holds the complete FHE private key. Decryption only succeeds when a quorum of KMS nodes cooperates, preventing any single point of compromise. |
 | **Symbolic Execution** | The on-chain execution model for FHE operations: the EVM does not perform the actual FHE computation — it only records an intent (emits an event with a new handle). The coprocessor network executes the computation off-chain asynchronously. |
-| **ERC-7984** | The Confidential Fungible Token standard (drafted by OpenZeppelin). It defines the interface for tokens with encrypted balances and transfer amounts, including the operator system, disclosure mechanism, and ACL-based access patterns used by CMTAT FHE. |
+| **ERC-7984** | The Confidential Fungible Token standard (drafted by OpenZeppelin). It defines the interface for tokens with encrypted balances and transfer amounts, including the operator system, disclosure mechanism, and ACL-based access patterns used by CMTAT Confidential. |
 | **Operator** | An address authorized by a token holder to call `confidentialTransferFrom` on their behalf. Unlike ERC-20 allowances, operators are granted time-limited *unlimited* access — they may transfer any amount until the approval timestamp expires. |
 | **Observer** | An ACL-authorized third party (e.g., a regulator or auditor) granted read access to one or more encrypted balance handles. Implemented via `ERC7984ObserverAccess`: the contract grants `FHE.allow()` on balances affected by each transfer, giving the observer a continuously updated view. |
 

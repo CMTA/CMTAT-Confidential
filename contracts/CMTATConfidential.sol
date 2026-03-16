@@ -34,11 +34,11 @@ contract CMTATConfidential is CMTATConfidentialBase, ERC7984TotalSupplyViewModul
     constructor(
         string memory name_,
         string memory symbol_,
-        string memory contractURI_,
+        string memory contractUri_,
         uint8 decimals_,
         address admin,
         ICMTATConstructor.ExtraInformationAttributes memory extraInformationAttributes_
-    ) CMTATConfidentialBase(name_, symbol_, contractURI_, decimals_, admin, extraInformationAttributes_) {}
+    ) CMTATConfidentialBase(name_, symbol_, contractUri_, decimals_, admin, extraInformationAttributes_) {}
 
     /* ============ Authorization ============ */
 
@@ -52,7 +52,7 @@ contract CMTATConfidential is CMTATConfidentialBase, ERC7984TotalSupplyViewModul
      */
     function _afterMint(address to, euint64 minted) internal virtual override {
         super._afterMint(to, minted);
-        _updateTotalSupplyObserversACL();
+        _updateTotalSupplyObserversAcl();
     }
 
     /**
@@ -61,7 +61,7 @@ contract CMTATConfidential is CMTATConfidentialBase, ERC7984TotalSupplyViewModul
      */
     function _afterBurn(address from, euint64 burned) internal virtual override {
         super._afterBurn(from, burned);
-        _updateTotalSupplyObserversACL();
+        _updateTotalSupplyObserversAcl();
     }
 
     /* ============ _update ============ */
