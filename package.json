@@ -1,5 +1,5 @@
 {
-  "name": "CMTAT-FHE",
+  "name": "CMTAT-Confidential",
   "version": "0.1.0",
   "description": "CMTAT token with FHE confidential balances",
   "scripts": {
@@ -14,17 +14,18 @@
     "hardhat-contract-sizer": "^2.10.0"
   },
   "devDependencies": {
-    "@zama-fhe/relayer-sdk": "0.3.0-5",
     "@fhevm/hardhat-plugin": "0.3.0-1",
-    "@nomicfoundation/hardhat-ethers": "^3.0.8",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.3",
     "@types/chai": "^4.3.20",
     "@types/mocha": "^10.0.10",
     "@types/node": "^22.10.10",
+    "@zama-fhe/relayer-sdk": "0.3.0-5",
     "chai": "^4.5.0",
     "ethers": "^6.13.5",
     "hardhat": "^2.24.0",
+    "surya": "^0.4.13",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4"
   }

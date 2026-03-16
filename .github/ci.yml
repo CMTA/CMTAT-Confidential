@@ -1,0 +1,31 @@
+name: Hardhat CI
+
+on:
+  push:
+    branches: [dev, master, main]
+  pull_request:
+    branches: [dev, master, main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2
+
+      - name: Setup NodeJS 20.5.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 #v4.4.0
+        with:
+          node-version: 20.5.0
+
+      - name: Show NodeJS version
+        run: npm --version
+
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+
+      - name: Install Project Dependencies
+        run: npm install
+
+      - name: Run Hardhat Test
+        run: npx hardhat test

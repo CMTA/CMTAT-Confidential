@@ -23,7 +23,7 @@ abstract contract ERC7984MintModule is ERC7984 {
     event Mint(address indexed minter, address indexed to, euint64 encryptedAmount);
 
     /* ============ Errors ============ */
-    error ERC7984MintModule_MintBlocked(address to, string reason);
+    error ERC7984MintModule_UnauthorizedHandle();
 
     /* ============ Modifier ============ */
     /**
@@ -50,6 +50,7 @@ abstract contract ERC7984MintModule is ERC7984 {
     ) public virtual onlyMinter returns (euint64 transferred) {
         _validateMint(to);
         transferred = _mint(to, FHE.fromExternal(encryptedAmount, inputProof));
+        _afterMint(to, transferred);
         emit Mint(msg.sender, to, transferred);
     }
 
@@ -64,8 +65,9 @@ abstract contract ERC7984MintModule is ERC7984 {
         euint64 amount
     ) public virtual onlyMinter returns (euint64 transferred) {
         _validateMint(to);
-        require(FHE.isAllowed(amount, msg.sender), "ERC7984MintModule: Unauthorized use of encrypted amount");
+        require(FHE.isAllowed(amount, msg.sender), ERC7984MintModule_UnauthorizedHandle());
         transferred = _mint(to, amount);
+        _afterMint(to, transferred);
         emit Mint(msg.sender, to, transferred);
     }
 
@@ -78,6 +80,15 @@ abstract contract ERC7984MintModule is ERC7984 {
         // Default: no additional validation
         // Override to add pause/freeze checks
     }
+
+    /**
+     * @dev Hook called after every successful mint, with the recipient address and
+     * the resulting encrypted amount handle. Override to add post-mint logic
+     * (e.g., updating total supply observer ACL).
+     * @param to Recipient address
+     * @param minted The encrypted amount actually minted
+     */
+    function _afterMint(address to, euint64 minted) internal virtual {}
 
     /* ============ Access Control ============ */
     /**
