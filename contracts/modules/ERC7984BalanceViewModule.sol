@@ -42,6 +42,7 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
     error ERC7984BalanceViewModule_SameRoleObserver(address account, address observer);
     error ERC7984BalanceViewModule_NoRoleObserver(address account);
     error ERC7984BalanceViewModule_ZeroAccount();
+    error ERC7984BalanceViewModule_ZeroObserver();
 
     /* ============ Modifier ============ */
     /**
@@ -64,6 +65,9 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
      * initialized), ACL access is granted immediately. For future balance
      * changes, `_update` re-grants access automatically.
      *
+     * To remove a role observer use `removeRoleObserver` — passing `address(0)`
+     * here is rejected to avoid ambiguity between the two operations.
+     *
      * @param account The account whose balance the observer can view
      * @param newObserver The address that will have ACL access to the balance
      */
@@ -74,6 +78,9 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
         if (account == address(0)) {
             revert ERC7984BalanceViewModule_ZeroAccount();
         }
+        if (newObserver == address(0)) {
+            revert ERC7984BalanceViewModule_ZeroObserver();
+        }
         address oldObserver = _roleObservers[account];
         if (oldObserver == newObserver) {
             revert ERC7984BalanceViewModule_SameRoleObserver(account, newObserver);
@@ -81,12 +88,9 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
 
         _roleObservers[account] = newObserver;
 
-        // Grant ACL access to the current balance handle if it exists
-        if (newObserver != address(0)) {
-            euint64 balanceHandle = confidentialBalanceOf(account);
-            if (FHE.isInitialized(balanceHandle)) {
-                FHE.allow(balanceHandle, newObserver);
-            }
+        euint64 balanceHandle = confidentialBalanceOf(account);
+        if (FHE.isInitialized(balanceHandle)) {
+            FHE.allow(balanceHandle, newObserver);
         }
 
         emit RoleObserverSet(account, oldObserver, newObserver, msg.sender);
