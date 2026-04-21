@@ -24,6 +24,13 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
     /* ============ State Variables ============ */
     bytes32 public constant SUPPLY_OBSERVER_ROLE = keccak256("SUPPLY_OBSERVER_ROLE");
 
+    /// @dev Default cap applied at deployment. Kept low to bound gas cost of
+    /// _updateTotalSupplyObserversAcl (one FHE.allow() per observer per mint/burn).
+    uint256 private constant _DEFAULT_MAX_SUPPLY_OBSERVERS = 10;
+
+    /// @dev Admin-configurable cap on the number of registered supply observers.
+    uint256 private _maxSupplyObservers = _DEFAULT_MAX_SUPPLY_OBSERVERS;
+
     address[] private _supplyObservers;
 
     /// @dev 1-based index into _supplyObservers. 0 means not registered.
@@ -32,11 +39,14 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
     /* ============ Events ============ */
     event TotalSupplyObserverAdded(address indexed observer, address indexed addedBy);
     event TotalSupplyObserverRemoved(address indexed observer, address indexed removedBy);
+    event MaxSupplyObserversUpdated(uint256 oldMax, uint256 newMax, address updatedBy);
 
     /* ============ Errors ============ */
     error ERC7984TotalSupplyViewModule_AlreadyObserver(address observer);
     error ERC7984TotalSupplyViewModule_NotObserver(address observer);
     error ERC7984TotalSupplyViewModule_ZeroAddressObserver();
+    error ERC7984TotalSupplyViewModule_ObserverCapReached();
+    error ERC7984TotalSupplyViewModule_MaxBelowCurrentCount(uint256 newMax, uint256 currentCount);
 
     /* ============ Modifier ============ */
     modifier onlySupplyObserverManager() {
@@ -44,7 +54,34 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
         _;
     }
 
+    modifier onlyMaxObserversAdmin() {
+        _authorizeSetMaxSupplyObservers();
+        _;
+    }
+
     /* ============ Public Functions ============ */
+
+    /**
+     * @dev Returns the current maximum number of supply observers allowed.
+     */
+    function maxSupplyObservers() public view virtual returns (uint256) {
+        return _maxSupplyObservers;
+    }
+
+    /**
+     * @dev Sets the maximum number of supply observers. Cannot be set below
+     * the current observer count. Gated by `_authorizeSetMaxSupplyObservers`.
+     * @param newMax New maximum value
+     */
+    function setMaxSupplyObservers(uint256 newMax) public virtual onlyMaxObserversAdmin {
+        uint256 currentCount = _supplyObservers.length;
+        if (newMax < currentCount) {
+            revert ERC7984TotalSupplyViewModule_MaxBelowCurrentCount(newMax, currentCount);
+        }
+        uint256 oldMax = _maxSupplyObservers;
+        _maxSupplyObservers = newMax;
+        emit MaxSupplyObserversUpdated(oldMax, newMax, msg.sender);
+    }
 
     /**
      * @dev Registers an observer that will automatically receive ACL access to
@@ -55,6 +92,9 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
     function addTotalSupplyObserver(address observer) public virtual onlySupplyObserverManager {
         if (observer == address(0)) {
             revert ERC7984TotalSupplyViewModule_ZeroAddressObserver();
+        }
+        if (_supplyObservers.length >= _maxSupplyObservers) {
+            revert ERC7984TotalSupplyViewModule_ObserverCapReached();
         }
         if (_supplyObserverIndex[observer] != 0) {
             revert ERC7984TotalSupplyViewModule_AlreadyObserver(observer);
@@ -132,4 +172,10 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
      * Must be overridden to implement access control.
      */
     function _authorizeTotalSupplyObserverManagement() internal virtual;
+
+    /**
+     * @dev Authorization function for updating the observer cap.
+     * Must be overridden to implement access control (typically DEFAULT_ADMIN_ROLE).
+     */
+    function _authorizeSetMaxSupplyObservers() internal virtual;
 }

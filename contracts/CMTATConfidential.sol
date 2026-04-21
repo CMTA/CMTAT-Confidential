@@ -44,6 +44,8 @@ contract CMTATConfidential is CMTATConfidentialBase, ERC7984TotalSupplyViewModul
 
     function _authorizeTotalSupplyObserverManagement() internal virtual override onlyRole(SUPPLY_OBSERVER_ROLE) {}
 
+    function _authorizeSetMaxSupplyObservers() internal virtual override onlyRole(DEFAULT_ADMIN_ROLE) {}
+
     /* ============ Total supply observer hooks ============ */
 
     /**

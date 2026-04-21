@@ -221,14 +221,14 @@ Aderyn static analysis reported **0 high** and **8 low** severity findings. All 
 
 | Role | Description |
 |------|-------------|
-| `DEFAULT_ADMIN_ROLE` | Can grant/revoke all roles, deactivate contract |
+| `DEFAULT_ADMIN_ROLE` | Can grant/revoke all roles, deactivate contract, set total supply observer cap (`setMaxSupplyObservers`) |
 | `MINTER_ROLE` | Can mint new tokens |
 | `BURNER_ROLE` | Can burn tokens |
 | `PAUSER_ROLE` | Can pause/unpause all transfers |
 | `ENFORCER_ROLE` | Can freeze and unfreeze addresses |
 | `FORCED_OPS_ROLE` | Can execute forced transfers and forced burns on frozen addresses |
 | `OBSERVER_ROLE` | Can assign per-account balance observers via `setRoleObserver` |
-| `SUPPLY_OBSERVER_ROLE` | Can manage total supply observers |
+| `SUPPLY_OBSERVER_ROLE` | Can manage total supply observers (`addTotalSupplyObserver`, `removeTotalSupplyObserver`) |
 | `SUPPLY_PUBLISHER_ROLE` | Can call `publishTotalSupply` |
 
 ## Contract Functions
@@ -349,14 +349,18 @@ await token.grantRole(SUPPLY_OBSERVER_ROLE, complianceManager.address);
 // Grant SUPPLY_PUBLISHER_ROLE to the compliance manager (separate permission)
 await token.grantRole(SUPPLY_PUBLISHER_ROLE, complianceManager.address);
 
-// Register a regulator as a total supply observer
+// Register a regulator as a total supply observer (capped by maxSupplyObservers, default 10)
 await token.connect(complianceManager).addTotalSupplyObserver(regulatorAddress);
 
 // Remove an observer (stops future grants; past ACL grants are irrevocable)
 await token.connect(complianceManager).removeTotalSupplyObserver(regulatorAddress);
 
-// Inspect the current observer list
+// Inspect the current observer list and cap
 const observers = await token.totalSupplyObservers();
+const cap = await token.maxSupplyObservers(); // default 10
+
+// Adjust the cap (DEFAULT_ADMIN_ROLE only; cannot go below current observer count)
+await token.connect(admin).setMaxSupplyObservers(20);
 ```
 
 Once registered, the observer can decrypt off-chain using the standard user-decryption flow:
