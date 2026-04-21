@@ -226,7 +226,19 @@ abstract contract CMTATConfidentialBase is
         return ERC7984.confidentialTransferFrom(from, to, amount);
     }
 
-    /// @inheritdoc ERC7984
+    /**
+     * @inheritdoc ERC7984
+     * @dev **Non-atomic refund warning.** The receiver's `onConfidentialTransferReceived`
+     * callback fires while the receiver already holds the tokens (Step 1 credits the
+     * receiver before Step 2 calls the hook). If the callback returns `false`, Step 3
+     * attempts a best-effort reverse transfer — but this is NOT an EVM revert: it only
+     * succeeds if the receiver still holds the tokens at that point. A malicious or
+     * re-entrant receiver can drain its balance before returning `false`, causing the
+     * refund to silently produce 0. This is a structural limitation of FHE arithmetic
+     * (`FHESafeMath.tryDecrease` cannot revert on an encrypted condition) and an
+     * intentional design choice in the upstream ERC-7984 library.
+     * **Only call this function with trusted, audited receiver contracts.**
+     */
     function confidentialTransferAndCall(
         address to,
         externalEuint64 encryptedAmount,
@@ -240,7 +252,12 @@ abstract contract CMTATConfidentialBase is
         return ERC7984.confidentialTransferAndCall(to, encryptedAmount, inputProof, data);
     }
 
-    /// @inheritdoc ERC7984
+    /**
+     * @inheritdoc ERC7984
+     * @dev **Non-atomic refund warning.** See the `externalEuint64` overload above for a
+     * full description of the non-atomic refund risk. The same limitation applies here.
+     * **Only call this function with trusted, audited receiver contracts.**
+     */
     function confidentialTransferAndCall(
         address to,
         euint64 amount,
