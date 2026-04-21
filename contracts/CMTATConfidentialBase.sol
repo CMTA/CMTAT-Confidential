@@ -116,6 +116,19 @@ abstract contract CMTATConfidentialBase is
         return _TOKEN_DECIMALS;
     }
 
+    /* ============ _afterBurn Diamond Resolution ============ */
+    /**
+     * @dev Explicit override resolving the diamond between ERC7984BurnModule and
+     * ERC7984EnforcementModule, both of which declare a virtual `_afterBurn` hook.
+     * Delegates to super so the full hook chain is preserved.
+     * CMTATConfidential further overrides this to call _updateTotalSupplyObserversAcl.
+     */
+    function _afterBurn(address from, euint64 burned)
+        internal virtual override(ERC7984BurnModule, ERC7984EnforcementModule)
+    {
+        super._afterBurn(from, burned);
+    }
+
     /* ============ _update Override ============ */
     /**
      * @dev Explicit override resolving the diamond between ERC7984 and ERC7984BalanceViewModule.
