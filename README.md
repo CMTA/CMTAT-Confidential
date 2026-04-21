@@ -225,7 +225,7 @@ Aderyn static analysis reported **0 high** and **8 low** severity findings. All 
 | `MINTER_ROLE` | Can mint new tokens |
 | `BURNER_ROLE` | Can burn tokens |
 | `PAUSER_ROLE` | Can pause/unpause all transfers |
-| `ENFORCER_ROLE` | Can freeze and unfreeze addresses |
+| `ENFORCER_ROLE` | Can freeze and unfreeze addresses — **must not freeze `address(0)`** (see warning below) |
 | `FORCED_OPS_ROLE` | Can execute forced transfers and forced burns on frozen addresses |
 | `OBSERVER_ROLE` | Can assign per-account balance observers via `setRoleObserver` |
 | `SUPPLY_OBSERVER_ROLE` | Can manage total supply observers (`addTotalSupplyObserver`, `removeTotalSupplyObserver`) |
@@ -402,6 +402,13 @@ Freeze specific addresses (requires `ENFORCER_ROLE`):
 function setAddressFrozen(address account, bool freeze) public onlyRole(ENFORCER_ROLE);
 function isFrozen(address account) public view returns (bool);
 ```
+
+> **Warning:** `ENFORCER_ROLE` holders must never freeze `address(0)`. The upstream CMTAT
+> `EnforcementModule` does not guard against it. Direct holder transfers
+> (`confidentialTransfer`, `confidentialTransferAndCall`) use `address(0)` as a synthetic
+> spender in the freeze check, so freezing it would block **all** holder-initiated transfers,
+> effectively acting as a global pause without holding `PAUSER_ROLE`. See
+> [`FREEZE_ISSUE.md`](./FREEZE_ISSUE.md) for a detailed analysis and the upstream fix proposal.
 
 ### Deactivate Contract
 
