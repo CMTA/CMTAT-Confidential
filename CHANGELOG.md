@@ -1,6 +1,31 @@
 # Changelog
 
-## 0.2.0 - 2026-04-21
+## Semantic Version 2.0.0
+
+Given a version number MAJOR.MINOR.PATCH, increment the:
+
+1. MAJOR version when the new version makes:
+   -  Incompatible proxy **storage** change internally or through the upgrade of an external library (OpenZeppelin)
+   -  A significant change in external APIs (public/external functions) or in the internal architecture
+2. MINOR version when the new version adds functionality in a backward compatible manner
+3. PATCH version when the new version makes backward compatible bug fixes
+
+See [https://semver.org](https://semver.org)
+
+## Type of changes
+
+- `Added` for new features.
+- `Changed` for changes in existing functionality.
+- `Deprecated` for soon-to-be removed features.
+- `Removed` for now removed features.
+- `Fixed` for any bug fixes.
+- `Security` in case of vulnerabilities.
+
+Reference: [keepachangelog.com/en/1.1.0/](https://keepachangelog.com/en/1.1.0/)
+
+Custom changelog tag: `Dependencies`, `Documentation`, `Testing`
+
+## 0.2.0
 
 Nethermind AuditAgent findings (March 18, 2026) — all addressed.
 
@@ -14,6 +39,20 @@ Nethermind AuditAgent findings (March 18, 2026) — all addressed.
 
 - **Non-atomic refund warning** (`36dbd3f`): NatSpec added to both `confidentialTransferAndCall` overrides documenting that the refund is non-atomic, the callback fires while the receiver already holds the tokens, and the function must only be used with trusted receiver contracts (findings #1, #2).
 - **`address(0)` freeze risk** (`1abe564`): `ENFORCER_ROLE` holders must not freeze `address(0)`; doing so blocks all direct holder transfers. Warning added to README. Upstream fix proposed in [CMTA/CMTAT#372](https://github.com/CMTA/CMTAT/issues/372) and detailed in `FREEZE_ISSUE.md` (finding #3).
+
+### Dependencies
+
+- Upgraded `@fhevm/solidity` to `0.11.1`.
+- Upgraded `@openzeppelin/contracts` to `5.6.1`.
+- Upgraded `@openzeppelin/contracts-upgradeable` to `5.6.1`.
+- Upgraded `@fhevm/hardhat-plugin` to `0.4.2` (required compatibility with `@fhevm/solidity@0.11.1`).
+- Upgraded `@zama-fhe/relayer-sdk` to `0.4.1`.
+- Updated OpenZeppelin Confidential Contracts submodule to `v0.4.0`.
+
+### Testing
+
+- `npx hardhat compile` succeeds.
+- `npm run test` passes (`177 passing`).
 
 ## 0.1.0 - 2026-03-16
 

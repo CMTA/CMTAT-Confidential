@@ -556,12 +556,13 @@ Decimals are configurable at deployment for both `CMTATConfidential` and `CMTATC
 
 | Package | Version |
 |---------|---------|
-| `@fhevm/solidity` | 0.9.1 |
-| `@fhevm/hardhat-plugin` | 0.3.0-1 |
-| `@openzeppelin/contracts` | 5.5.0 |
-| `@openzeppelin/contracts-upgradeable` | 5.5.0 |
+| `@fhevm/solidity` | 0.11.1 |
+| `@fhevm/hardhat-plugin` | 0.4.2 |
+| `@zama-fhe/relayer-sdk` | 0.4.1 |
+| `@openzeppelin/contracts` | 5.6.1 |
+| `@openzeppelin/contracts-upgradeable` | 5.6.1 |
 | **Submodule** |  |
-| [OpenZeppelin Confidential Contracts](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts) | [v0.3.1](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts/releases/tag/v0.3.1) |
+| [OpenZeppelin Confidential Contracts](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts) | [v0.4.0](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts/releases/tag/v0.4.0) |
 | [CMTAT](https://github.com/CMTA/CMTAT/) | [v3.2.0](https://github.com/CMTA/CMTAT/releases/tag/v3.2.0) |
 
 ## Project Structure
