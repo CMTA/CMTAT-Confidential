@@ -62,7 +62,7 @@ export function runCoreTests() {
     });
 
     it('exposes the CMTAT Confidential version', async function () {
-      expect(await this.token.version()).to.equal('0.1.0');
+      expect(await this.token.version()).to.equal('0.2.0');
     });
   });
 

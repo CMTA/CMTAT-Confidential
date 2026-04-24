@@ -25,6 +25,21 @@ Reference: [keepachangelog.com/en/1.1.0/](https://keepachangelog.com/en/1.1.0/)
 
 Custom changelog tag: `Dependencies`, `Documentation`, `Testing`
 
+## Release checklist (mandatory)
+
+Before each release:
+
+1. Update the version string in `contracts/modules/CMTATConfidentialVersionModule.sol`.
+2. Run Prettier on Solidity sources:
+
+```bash
+npx prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'
+```
+3. Run Aderyn static analysis and update:
+   - command: `aderyn --output aderyn-report.md`
+   - `doc/audit/vX.Y.Z/aderyn-report.md`
+   - `doc/audit/vX.Y.Z/aderyn-report-feedback.md`
+
 ## 0.2.0
 
 Nethermind AuditAgent findings (March 18, 2026) — all addressed.

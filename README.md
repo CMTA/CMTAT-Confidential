@@ -198,7 +198,7 @@ npm run test
 
 ## Versioning
 
-The contract-level `version()` string is pinned to `0.1.0` via `CMTATConfidentialVersionModule`.
+The contract-level `version()` string is pinned to `0.2.0` via `CMTATConfidentialVersionModule`.
 
 ## Security
 
@@ -222,6 +222,12 @@ Nethermind AuditAgent automated scan (March 18, 2026, commit `51f9d7aa`) reporte
 ### Static Analysis — Aderyn
 
 Aderyn static analysis (v0.2.0) reported **0 high** and **8 low** severity findings across 12 contracts (663 nSLOC). All findings are accepted or not applicable for this codebase. Full rationale in [`aderyn-report-feedback.md`](./doc/audit/v0.2.0/aderyn-report-feedback.md), source report in [`aderyn-report.md`](./doc/audit/v0.2.0/aderyn-report.md).
+
+Command used to generate the report:
+
+```bash
+aderyn --output aderyn-report.md
+```
 
 | ID | Finding | Instances | Disposition |
 |----|---------|-----------|-------------|
@@ -578,7 +584,7 @@ CMTAT-Confidential/
 │       ├── ERC7984BurnModule.sol                  # Burn with authorization hook
 │       ├── ERC7984EnforcementModule.sol           # Forced transfer and forced burn
 │       ├── ERC7984BalanceViewModule.sol           # Per-account balance observers
-│       ├── CMTATConfidentialVersionModule.sol              # CMTAT Confidential version override (0.1.0)
+│       ├── CMTATConfidentialVersionModule.sol              # CMTAT Confidential version override (0.2.0)
 │       ├── ERC7984PublishTotalSupplyModule.sol    # Public total supply disclosure
 │       └── ERC7984TotalSupplyViewModule.sol       # Total supply observer list (auto ACL)
 ├── CMTAT/                                    # CMTAT submodule (compliance modules)
