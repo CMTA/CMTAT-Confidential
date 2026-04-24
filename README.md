@@ -202,20 +202,57 @@ The contract-level `version()` string is pinned to `0.1.0` via `CMTATConfidentia
 
 ## Security
 
+### Automated Audit — Nethermind AuditAgent
+
+Nethermind AuditAgent automated scan (March 18, 2026, commit `51f9d7aa`) reported **3 medium**, **2 low**, **2 info**, and **1 best practice** findings across 10 contracts (1 239 lines of code). Full rationale and fix details in [`nethermind-audit-agent-report-feedback.md`](./doc/audit/v0.1.0/nethermind-audit-agent/nethermind-audit-agent-report-feedback.md).
+
+> This report was generated entirely by AI and has not been manually reviewed by Nethermind's security team.
+
+| # | Severity | Finding | Disposition | Commit |
+|---|----------|---------|-------------|--------|
+| 1 | Medium | Receiver reentrancy can bypass the `transferAndCall` rollback path | Disputed — upstream ERC-7984 design; NatSpec warning added | `36dbd3f` |
+| 2 | Medium | Receiver reentrancy can steal tokens via `confidentialTransferAndCall` | Duplicate of #1 — resolved together | `36dbd3f` |
+| 3 | Medium | Freezing `address(0)` gives `ENFORCER_ROLE` a global block over holder transfers | Documented — upstream fix proposed in [CMTA/CMTAT#372](https://github.com/CMTA/CMTAT/issues/372); operator warning added | `1abe564` |
+| 4 | Low | Unbounded supply-observer ACL refresh can cause OOG on mint/burn | Fixed — admin-controlled cap (`setMaxSupplyObservers`, default 10) | `12249c1` |
+| 5 | Low | `forcedBurn` does not invoke `_afterBurn`, causing observer ACL staleness | Fixed — `_afterBurn` hook added to `ERC7984EnforcementModule` | `681ebde` |
+| 6 | Info | `forcedBurn` does not refresh total-supply observer ACLs (full variant) | Duplicate of #5 — resolved together | `681ebde` |
+| 7 | Info | Unbounded observer list can cause DoS on `mint` and `burn` | Duplicate of #4 — resolved together | `12249c1` |
+| 8 | Best Practice | Duplicate observer removal via `setRoleObserver(account, address(0))` | Fixed — `setRoleObserver` now rejects `address(0)` | `a74314e` |
+
 ### Static Analysis — Aderyn
 
-Aderyn static analysis reported **0 high** and **8 low** severity findings. All are accepted or not applicable. Full rationale in [`aderyn-report-feedback.md`](./doc/audit/aderyn-report-feedback.md).
+Aderyn static analysis (v0.2.0) reported **0 high** and **8 low** severity findings across 12 contracts (663 nSLOC). All findings are accepted or not applicable for this codebase. Full rationale in [`aderyn-report-feedback.md`](./doc/audit/v0.2.0/aderyn-report-feedback.md), source report in [`aderyn-report.md`](./doc/audit/v0.2.0/aderyn-report.md).
 
 | ID | Finding | Instances | Disposition |
 |----|---------|-----------|-------------|
-| L-1 | Centralization Risk | 10 | Accepted — role-based access control is mandatory for a regulated security token |
+| L-1 | Centralization Risk | 11 | Accepted — role-based access control is mandatory for a regulated security token |
 | L-2 | Unspecific Solidity Pragma (`^0.8.27`) | 12 | Accepted — lower bound required by OZ Confidential submodule; Hardhat compiles with `0.8.34` |
 | L-3 | PUSH0 Opcode | 12 | Not applicable — target is Ethereum mainnet, EVM version set to `prague` in `hardhat.config.ts` |
-| L-4 | Modifier Invoked Only Once | 1 | Accepted — consistent with the module authorization pattern across all modules |
-| L-5 | Empty Block | 16 | Accepted — modifier-only authorization hooks and intentional virtual extension points |
+| L-4 | Modifier Invoked Only Once | 2 | Accepted — consistent with the module authorization pattern across all modules |
+| L-5 | Empty Block | 18 | Accepted — modifier-only authorization hooks and intentional virtual extension points |
 | L-6 | Internal Function Used Only Once | 1 | Accepted — required by the OpenZeppelin `initializer` modifier pattern |
 | L-7 | State Change Without Event | 1 | Not applicable — occurs in a mock contract (`ConfidentialReceiverMock`), not production code |
 | L-8 | Unchecked Return | 12 | Not applicable — `FHE.allow()` / `FHE.makePubliclyDecryptable()` return the same handle (fluent interface), not an error code |
+
+### Static Analysis — Slither
+
+We attempted to run Slither with:
+
+```bash
+slither . --checklist --filter-paths "openzeppelin-contracts|test|forge-std" > slither-report.md
+```
+
+But the run failed with:
+
+```text
+ERROR:root:Error:
+ERROR:root:The source code appears to be out of sync with the build artifacts on disk.
+        This discrepancy can occur after recent modifications to node_modules/@fhevm/solidity/config/ZamaConfig.sol. To resolve this
+        issue, consider executing the clean command of the build system (e.g. forge clean).
+ERROR:root:Please report an issue to https://github.com/crytic/slither/issues
+```
+
+At this stage, no Slither findings are available for this release due to this tooling/build-artifact sync issue.
 
 ## Roles
 
@@ -404,11 +441,9 @@ function isFrozen(address account) public view returns (bool);
 ```
 
 > **Warning:** `ENFORCER_ROLE` holders must never freeze `address(0)`. The upstream CMTAT
-> `EnforcementModule` does not guard against it. Direct holder transfers
-> (`confidentialTransfer`, `confidentialTransferAndCall`) use `address(0)` as a synthetic
-> spender in the freeze check, so freezing it would block **all** holder-initiated transfers,
+> `EnforcementModule` does not guard against it. Direct holder transfers (`confidentialTransfer`, `confidentialTransferAndCall`) use `address(0)` as a synthetic spender in the freeze check, so freezing it would block **all** holder-initiated transfers,
 > effectively acting as a global pause without holding `PAUSER_ROLE`. See
-> [`FREEZE_ISSUE.md`](./FREEZE_ISSUE.md) for a detailed analysis and the upstream fix proposal.
+> [`CMTAT`](https://github.com/CMTA/CMTAT/issues/372) for a detailed analysis and the upstream fix proposal.
 
 ### Deactivate Contract
 
