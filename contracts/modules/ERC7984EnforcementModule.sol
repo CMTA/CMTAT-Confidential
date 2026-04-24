@@ -87,9 +87,18 @@ abstract contract ERC7984EnforcementModule is ERC7984 {
         address to,
         externalEuint64 encryptedAmount,
         bytes calldata inputProof
-    ) public virtual onlyForcedTransferAuthorized returns (euint64 transferred) {
+    )
+        public
+        virtual
+        onlyForcedTransferAuthorized
+        returns (euint64 transferred)
+    {
         _validateForcedTransfer(from, to);
-        transferred = _transfer(from, to, FHE.fromExternal(encryptedAmount, inputProof));
+        transferred = _transfer(
+            from,
+            to,
+            FHE.fromExternal(encryptedAmount, inputProof)
+        );
         emit ForcedTransfer(msg.sender, from, to, transferred);
     }
 
@@ -105,9 +114,17 @@ abstract contract ERC7984EnforcementModule is ERC7984 {
         address from,
         address to,
         euint64 amount
-    ) public virtual onlyForcedTransferAuthorized returns (euint64 transferred) {
+    )
+        public
+        virtual
+        onlyForcedTransferAuthorized
+        returns (euint64 transferred)
+    {
         _validateForcedTransfer(from, to);
-        require(FHE.isAllowed(amount, msg.sender), ERC7984EnforcementModule_UnauthorizedHandle());
+        require(
+            FHE.isAllowed(amount, msg.sender),
+            ERC7984EnforcementModule_UnauthorizedHandle()
+        );
         transferred = _transfer(from, to, amount);
         emit ForcedTransfer(msg.sender, from, to, transferred);
     }
@@ -144,7 +161,10 @@ abstract contract ERC7984EnforcementModule is ERC7984 {
         euint64 amount
     ) public virtual onlyForcedBurnAuthorized returns (euint64 burned) {
         _validateForcedBurn(from);
-        require(FHE.isAllowed(amount, msg.sender), ERC7984EnforcementModule_UnauthorizedHandle());
+        require(
+            FHE.isAllowed(amount, msg.sender),
+            ERC7984EnforcementModule_UnauthorizedHandle()
+        );
         burned = _burn(from, amount);
         _afterBurn(from, burned);
         emit ForcedBurn(msg.sender, from, burned);
@@ -156,7 +176,10 @@ abstract contract ERC7984EnforcementModule is ERC7984 {
      * @param from Source address
      * @param to Destination address
      */
-    function _validateForcedTransfer(address from, address to) internal virtual {
+    function _validateForcedTransfer(
+        address from,
+        address to
+    ) internal virtual {
         // Default: no additional validation
         // Override to enforce frozen address requirement
     }

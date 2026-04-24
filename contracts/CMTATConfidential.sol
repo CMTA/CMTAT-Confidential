@@ -29,7 +29,10 @@ import {ERC7984TotalSupplyViewModule} from "./modules/ERC7984TotalSupplyViewModu
  *
  * For the lighter version without total supply observer registration, use CMTATConfidentialLite.
  */
-contract CMTATConfidential is CMTATConfidentialBase, ERC7984TotalSupplyViewModule {
+contract CMTATConfidential is
+    CMTATConfidentialBase,
+    ERC7984TotalSupplyViewModule
+{
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(
         string memory name_,
@@ -38,13 +41,32 @@ contract CMTATConfidential is CMTATConfidentialBase, ERC7984TotalSupplyViewModul
         uint8 decimals_,
         address admin,
         ICMTATConstructor.ExtraInformationAttributes memory extraInformationAttributes_
-    ) CMTATConfidentialBase(name_, symbol_, contractUri_, decimals_, admin, extraInformationAttributes_) {}
+    )
+        CMTATConfidentialBase(
+            name_,
+            symbol_,
+            contractUri_,
+            decimals_,
+            admin,
+            extraInformationAttributes_
+        )
+    {}
 
     /* ============ Authorization ============ */
 
-    function _authorizeTotalSupplyObserverManagement() internal virtual override onlyRole(SUPPLY_OBSERVER_ROLE) {}
+    function _authorizeTotalSupplyObserverManagement()
+        internal
+        virtual
+        override
+        onlyRole(SUPPLY_OBSERVER_ROLE)
+    {}
 
-    function _authorizeSetMaxSupplyObservers() internal virtual override onlyRole(DEFAULT_ADMIN_ROLE) {}
+    function _authorizeSetMaxSupplyObservers()
+        internal
+        virtual
+        override
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {}
 
     /* ============ Total supply observer hooks ============ */
 
@@ -61,15 +83,24 @@ contract CMTATConfidential is CMTATConfidentialBase, ERC7984TotalSupplyViewModul
      * @dev After every burn, re-grant ACL access to all registered total supply
      * observers on the new total supply handle.
      */
-    function _afterBurn(address from, euint64 burned) internal virtual override {
+    function _afterBurn(
+        address from,
+        euint64 burned
+    ) internal virtual override {
         super._afterBurn(from, burned);
         _updateTotalSupplyObserversAcl();
     }
 
     /* ============ _update ============ */
 
-    function _update(address from, address to, euint64 amount)
-        internal virtual override(CMTATConfidentialBase, ERC7984)
+    function _update(
+        address from,
+        address to,
+        euint64 amount
+    )
+        internal
+        virtual
+        override(CMTATConfidentialBase, ERC7984)
         returns (euint64 transferred)
     {
         return super._update(from, to, amount);
@@ -79,53 +110,152 @@ contract CMTATConfidential is CMTATConfidentialBase, ERC7984TotalSupplyViewModul
     // CMTATConfidentialBase overrides each function; ERC7984TotalSupplyViewModule inherits
     // the originals from ERC7984. The override spec lists both defining bases.
 
-    function confidentialTransfer(address to, externalEuint64 encryptedAmount, bytes calldata inputProof)
-        public virtual override(CMTATConfidentialBase, ERC7984)
+    function confidentialTransfer(
+        address to,
+        externalEuint64 encryptedAmount,
+        bytes calldata inputProof
+    )
+        public
+        virtual
+        override(CMTATConfidentialBase, ERC7984)
         returns (euint64)
-    { return super.confidentialTransfer(to, encryptedAmount, inputProof); }
+    {
+        return super.confidentialTransfer(to, encryptedAmount, inputProof);
+    }
 
-    function confidentialTransfer(address to, euint64 amount)
-        public virtual override(CMTATConfidentialBase, ERC7984)
+    function confidentialTransfer(
+        address to,
+        euint64 amount
+    )
+        public
+        virtual
+        override(CMTATConfidentialBase, ERC7984)
         returns (euint64)
-    { return super.confidentialTransfer(to, amount); }
+    {
+        return super.confidentialTransfer(to, amount);
+    }
 
-    function confidentialTransferFrom(address from, address to, externalEuint64 encryptedAmount, bytes calldata inputProof)
-        public virtual override(CMTATConfidentialBase, ERC7984)
+    function confidentialTransferFrom(
+        address from,
+        address to,
+        externalEuint64 encryptedAmount,
+        bytes calldata inputProof
+    )
+        public
+        virtual
+        override(CMTATConfidentialBase, ERC7984)
         returns (euint64)
-    { return super.confidentialTransferFrom(from, to, encryptedAmount, inputProof); }
+    {
+        return
+            super.confidentialTransferFrom(
+                from,
+                to,
+                encryptedAmount,
+                inputProof
+            );
+    }
 
-    function confidentialTransferFrom(address from, address to, euint64 amount)
-        public virtual override(CMTATConfidentialBase, ERC7984)
+    function confidentialTransferFrom(
+        address from,
+        address to,
+        euint64 amount
+    )
+        public
+        virtual
+        override(CMTATConfidentialBase, ERC7984)
         returns (euint64)
-    { return super.confidentialTransferFrom(from, to, amount); }
+    {
+        return super.confidentialTransferFrom(from, to, amount);
+    }
 
-    function confidentialTransferAndCall(address to, externalEuint64 encryptedAmount, bytes calldata inputProof, bytes calldata data)
-        public virtual override(CMTATConfidentialBase, ERC7984)
+    function confidentialTransferAndCall(
+        address to,
+        externalEuint64 encryptedAmount,
+        bytes calldata inputProof,
+        bytes calldata data
+    )
+        public
+        virtual
+        override(CMTATConfidentialBase, ERC7984)
         returns (euint64)
-    { return super.confidentialTransferAndCall(to, encryptedAmount, inputProof, data); }
+    {
+        return
+            super.confidentialTransferAndCall(
+                to,
+                encryptedAmount,
+                inputProof,
+                data
+            );
+    }
 
-    function confidentialTransferAndCall(address to, euint64 amount, bytes calldata data)
-        public virtual override(CMTATConfidentialBase, ERC7984)
+    function confidentialTransferAndCall(
+        address to,
+        euint64 amount,
+        bytes calldata data
+    )
+        public
+        virtual
+        override(CMTATConfidentialBase, ERC7984)
         returns (euint64)
-    { return super.confidentialTransferAndCall(to, amount, data); }
+    {
+        return super.confidentialTransferAndCall(to, amount, data);
+    }
 
-    function confidentialTransferFromAndCall(address from, address to, externalEuint64 encryptedAmount, bytes calldata inputProof, bytes calldata data)
-        public virtual override(CMTATConfidentialBase, ERC7984)
+    function confidentialTransferFromAndCall(
+        address from,
+        address to,
+        externalEuint64 encryptedAmount,
+        bytes calldata inputProof,
+        bytes calldata data
+    )
+        public
+        virtual
+        override(CMTATConfidentialBase, ERC7984)
         returns (euint64)
-    { return super.confidentialTransferFromAndCall(from, to, encryptedAmount, inputProof, data); }
+    {
+        return
+            super.confidentialTransferFromAndCall(
+                from,
+                to,
+                encryptedAmount,
+                inputProof,
+                data
+            );
+    }
 
-    function confidentialTransferFromAndCall(address from, address to, euint64 amount, bytes calldata data)
-        public virtual override(CMTATConfidentialBase, ERC7984)
+    function confidentialTransferFromAndCall(
+        address from,
+        address to,
+        euint64 amount,
+        bytes calldata data
+    )
+        public
+        virtual
+        override(CMTATConfidentialBase, ERC7984)
         returns (euint64)
-    { return super.confidentialTransferFromAndCall(from, to, amount, data); }
+    {
+        return super.confidentialTransferFromAndCall(from, to, amount, data);
+    }
 
-    function supportsInterface(bytes4 interfaceId)
-        public view virtual override(CMTATConfidentialBase, ERC7984)
+    function supportsInterface(
+        bytes4 interfaceId
+    )
+        public
+        view
+        virtual
+        override(CMTATConfidentialBase, ERC7984)
         returns (bool)
-    { return super.supportsInterface(interfaceId); }
+    {
+        return super.supportsInterface(interfaceId);
+    }
 
     function decimals()
-        public view virtual override(CMTATConfidentialBase, ERC7984)
+        public
+        view
+        virtual
+        override(CMTATConfidentialBase, ERC7984)
         returns (uint8)
-    { return super.decimals(); }
+    {
+        return super.decimals();
+    }
 }

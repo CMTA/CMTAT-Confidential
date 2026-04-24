@@ -20,7 +20,11 @@ abstract contract ERC7984BurnModule is ERC7984 {
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
     /* ============ Events ============ */
-    event Burn(address indexed burner, address indexed from, euint64 encryptedAmount);
+    event Burn(
+        address indexed burner,
+        address indexed from,
+        euint64 encryptedAmount
+    );
 
     /* ============ Errors ============ */
     error ERC7984BurnModule_UnauthorizedHandle();
@@ -49,7 +53,10 @@ abstract contract ERC7984BurnModule is ERC7984 {
         bytes calldata inputProof
     ) public virtual onlyBurner returns (euint64 transferred) {
         _validateBurn(from);
-        transferred = _burn(from, FHE.fromExternal(encryptedAmount, inputProof));
+        transferred = _burn(
+            from,
+            FHE.fromExternal(encryptedAmount, inputProof)
+        );
         _afterBurn(from, transferred);
         emit Burn(msg.sender, from, transferred);
     }
@@ -65,7 +72,10 @@ abstract contract ERC7984BurnModule is ERC7984 {
         euint64 amount
     ) public virtual onlyBurner returns (euint64 transferred) {
         _validateBurn(from);
-        require(FHE.isAllowed(amount, msg.sender), ERC7984BurnModule_UnauthorizedHandle());
+        require(
+            FHE.isAllowed(amount, msg.sender),
+            ERC7984BurnModule_UnauthorizedHandle()
+        );
         transferred = _burn(from, amount);
         _afterBurn(from, transferred);
         emit Burn(msg.sender, from, transferred);

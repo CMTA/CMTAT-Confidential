@@ -39,7 +39,10 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
     );
 
     /* ============ Errors ============ */
-    error ERC7984BalanceViewModule_SameRoleObserver(address account, address observer);
+    error ERC7984BalanceViewModule_SameRoleObserver(
+        address account,
+        address observer
+    );
     error ERC7984BalanceViewModule_NoRoleObserver(address account);
     error ERC7984BalanceViewModule_ZeroAccount();
     error ERC7984BalanceViewModule_ZeroObserver();
@@ -83,7 +86,10 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
         }
         address oldObserver = _roleObservers[account];
         if (oldObserver == newObserver) {
-            revert ERC7984BalanceViewModule_SameRoleObserver(account, newObserver);
+            revert ERC7984BalanceViewModule_SameRoleObserver(
+                account,
+                newObserver
+            );
         }
 
         _roleObservers[account] = newObserver;
@@ -103,7 +109,9 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
      * receive access to future balance handles after updates.
      * @param account The account to remove the role observer from
      */
-    function removeRoleObserver(address account) public virtual onlyObserverManager {
+    function removeRoleObserver(
+        address account
+    ) public virtual onlyObserverManager {
         if (account == address(0)) {
             revert ERC7984BalanceViewModule_ZeroAccount();
         }
@@ -122,7 +130,9 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
      * @param account The account to query
      * @return The role observer address, or address(0) if none is set
      */
-    function roleObserver(address account) public view virtual returns (address) {
+    function roleObserver(
+        address account
+    ) public view virtual returns (address) {
         return _roleObservers[account];
     }
 

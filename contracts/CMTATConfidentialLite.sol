@@ -33,5 +33,14 @@ contract CMTATConfidentialLite is CMTATConfidentialBase {
         uint8 decimals_,
         address admin,
         ICMTATConstructor.ExtraInformationAttributes memory extraInformationAttributes_
-    ) CMTATConfidentialBase(name_, symbol_, contractUri_, decimals_, admin, extraInformationAttributes_) {}
+    )
+        CMTATConfidentialBase(
+            name_,
+            symbol_,
+            contractUri_,
+            decimals_,
+            admin,
+            extraInformationAttributes_
+        )
+    {}
 }

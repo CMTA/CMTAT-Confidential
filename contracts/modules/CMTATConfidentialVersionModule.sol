@@ -10,7 +10,13 @@ import {VersionModule} from "../../CMTAT/contracts/modules/wrapper/core/VersionM
 abstract contract CMTATConfidentialVersionModule is VersionModule {
     string private constant CMTAT_CONFIDENTIAL_VERSION = "0.1.0";
 
-    function version() public view virtual override returns (string memory version_) {
+    function version()
+        public
+        view
+        virtual
+        override
+        returns (string memory version_)
+    {
         return CMTAT_CONFIDENTIAL_VERSION;
     }
 }

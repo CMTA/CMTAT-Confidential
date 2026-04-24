@@ -22,7 +22,9 @@ import {FHE, euint64} from "@fhevm/solidity/lib/FHE.sol";
  */
 abstract contract ERC7984PublishTotalSupplyModule is ERC7984 {
     /* ============ Constants ============ */
-    bytes32 public constant SUPPLY_PUBLISHER_ROLE = keccak256("SUPPLY_PUBLISHER_ROLE");
+    bytes32 public constant SUPPLY_PUBLISHER_ROLE = keccak256(
+        "SUPPLY_PUBLISHER_ROLE"
+    );
 
     /* ============ Events ============ */
     event TotalSupplyPublished(address indexed publishedBy);

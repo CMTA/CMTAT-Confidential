@@ -20,7 +20,11 @@ abstract contract ERC7984MintModule is ERC7984 {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
     /* ============ Events ============ */
-    event Mint(address indexed minter, address indexed to, euint64 encryptedAmount);
+    event Mint(
+        address indexed minter,
+        address indexed to,
+        euint64 encryptedAmount
+    );
 
     /* ============ Errors ============ */
     error ERC7984MintModule_UnauthorizedHandle();
@@ -65,7 +69,10 @@ abstract contract ERC7984MintModule is ERC7984 {
         euint64 amount
     ) public virtual onlyMinter returns (euint64 transferred) {
         _validateMint(to);
-        require(FHE.isAllowed(amount, msg.sender), ERC7984MintModule_UnauthorizedHandle());
+        require(
+            FHE.isAllowed(amount, msg.sender),
+            ERC7984MintModule_UnauthorizedHandle()
+        );
         transferred = _mint(to, amount);
         _afterMint(to, transferred);
         emit Mint(msg.sender, to, transferred);
