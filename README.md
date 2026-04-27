@@ -743,7 +743,10 @@ Ethereum mainnet does not natively support FHE operations. The Zama Protocol use
 
 ### 4. Is it possible to also provide privacy for addresses?
 
-**Answer:** Yes, it is technically possible using **encrypted addresses** (`eaddress` type in fhEVM).
+**Answer:** **Not in this implementation.** CMTAT Confidential does **not** provide encrypted addresses.  
+This project keeps Ethereum addresses public and only encrypts amounts/balances (`euint64`).
+
+Encrypted addresses are technically possible in fhEVM using the `eaddress` type.
 
 #### How it works
 
