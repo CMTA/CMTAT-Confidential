@@ -44,6 +44,10 @@ npx prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'
 
 Nethermind AuditAgent findings (March 18, 2026) — all addressed.
 
+**Changed**
+
+- Update `CMTAT_CONFIDENTIAL_VERSION` in `CMTATConfidentialVersionModule`to `0.2.0`
+
 ### Fixed
 
 - **`setRoleObserver` zero-address guard** (`a74314e`): `setRoleObserver` now rejects `address(0)` as `newObserver` with `ERC7984BalanceViewModule_ZeroObserver`; use `removeRoleObserver` to clear an observer (finding #8).
