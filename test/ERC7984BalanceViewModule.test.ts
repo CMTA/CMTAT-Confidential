@@ -207,6 +207,12 @@ describe('ERC7984BalanceViewModule (dual-observer)', function () {
         this.token.connect(this.observerManager).removeRoleObserver(ethers.ZeroAddress),
       ).to.be.revertedWithCustomError(this.token, 'ERC7984BalanceViewModule_ZeroAccount');
     });
+
+    it('reverts ZeroObserver when setRoleObserver called with address(0) observer — use removeRoleObserver instead', async function () {
+      await expect(
+        this.token.connect(this.observerManager).setRoleObserver(this.holder.address, ethers.ZeroAddress),
+      ).to.be.revertedWithCustomError(this.token, 'ERC7984BalanceViewModule_ZeroObserver');
+    });
   });
 
   // ─────────────────────────────────────────────────────────────

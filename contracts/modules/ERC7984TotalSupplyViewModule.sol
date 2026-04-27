@@ -22,7 +22,16 @@ import {FHE, euint64} from "@fhevm/solidity/lib/FHE.sol";
  */
 abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
     /* ============ State Variables ============ */
-    bytes32 public constant SUPPLY_OBSERVER_ROLE = keccak256("SUPPLY_OBSERVER_ROLE");
+    bytes32 public constant SUPPLY_OBSERVER_ROLE = keccak256(
+        "SUPPLY_OBSERVER_ROLE"
+    );
+
+    /// @dev Default cap applied at deployment. Kept low to bound gas cost of
+    /// _updateTotalSupplyObserversAcl (one FHE.allow() per observer per mint/burn).
+    uint256 private constant _DEFAULT_MAX_SUPPLY_OBSERVERS = 10;
+
+    /// @dev Admin-configurable cap on the number of registered supply observers.
+    uint256 private _maxSupplyObservers = _DEFAULT_MAX_SUPPLY_OBSERVERS;
 
     address[] private _supplyObservers;
 
@@ -30,13 +39,29 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
     mapping(address => uint256) private _supplyObserverIndex;
 
     /* ============ Events ============ */
-    event TotalSupplyObserverAdded(address indexed observer, address indexed addedBy);
-    event TotalSupplyObserverRemoved(address indexed observer, address indexed removedBy);
+    event TotalSupplyObserverAdded(
+        address indexed observer,
+        address indexed addedBy
+    );
+    event TotalSupplyObserverRemoved(
+        address indexed observer,
+        address indexed removedBy
+    );
+    event MaxSupplyObserversUpdated(
+        uint256 oldMax,
+        uint256 newMax,
+        address updatedBy
+    );
 
     /* ============ Errors ============ */
     error ERC7984TotalSupplyViewModule_AlreadyObserver(address observer);
     error ERC7984TotalSupplyViewModule_NotObserver(address observer);
     error ERC7984TotalSupplyViewModule_ZeroAddressObserver();
+    error ERC7984TotalSupplyViewModule_ObserverCapReached();
+    error ERC7984TotalSupplyViewModule_MaxBelowCurrentCount(
+        uint256 newMax,
+        uint256 currentCount
+    );
 
     /* ============ Modifier ============ */
     modifier onlySupplyObserverManager() {
@@ -44,7 +69,39 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
         _;
     }
 
+    modifier onlyMaxObserversAdmin() {
+        _authorizeSetMaxSupplyObservers();
+        _;
+    }
+
     /* ============ Public Functions ============ */
+
+    /**
+     * @dev Returns the current maximum number of supply observers allowed.
+     */
+    function maxSupplyObservers() public view virtual returns (uint256) {
+        return _maxSupplyObservers;
+    }
+
+    /**
+     * @dev Sets the maximum number of supply observers. Cannot be set below
+     * the current observer count. Gated by `_authorizeSetMaxSupplyObservers`.
+     * @param newMax New maximum value
+     */
+    function setMaxSupplyObservers(
+        uint256 newMax
+    ) public virtual onlyMaxObserversAdmin {
+        uint256 currentCount = _supplyObservers.length;
+        if (newMax < currentCount) {
+            revert ERC7984TotalSupplyViewModule_MaxBelowCurrentCount(
+                newMax,
+                currentCount
+            );
+        }
+        uint256 oldMax = _maxSupplyObservers;
+        _maxSupplyObservers = newMax;
+        emit MaxSupplyObserversUpdated(oldMax, newMax, msg.sender);
+    }
 
     /**
      * @dev Registers an observer that will automatically receive ACL access to
@@ -52,9 +109,14 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
      * handle is already initialized, ACL access is granted immediately.
      * @param observer The address to grant total supply read access to
      */
-    function addTotalSupplyObserver(address observer) public virtual onlySupplyObserverManager {
+    function addTotalSupplyObserver(
+        address observer
+    ) public virtual onlySupplyObserverManager {
         if (observer == address(0)) {
             revert ERC7984TotalSupplyViewModule_ZeroAddressObserver();
+        }
+        if (_supplyObservers.length >= _maxSupplyObservers) {
+            revert ERC7984TotalSupplyViewModule_ObserverCapReached();
         }
         if (_supplyObserverIndex[observer] != 0) {
             revert ERC7984TotalSupplyViewModule_AlreadyObserver(observer);
@@ -76,7 +138,9 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
      * previous handles cannot be revoked (FHE ACL is irrevocable).
      * @param observer The address to remove
      */
-    function removeTotalSupplyObserver(address observer) public virtual onlySupplyObserverManager {
+    function removeTotalSupplyObserver(
+        address observer
+    ) public virtual onlySupplyObserverManager {
         uint256 index = _supplyObserverIndex[observer];
         if (index == 0) {
             revert ERC7984TotalSupplyViewModule_NotObserver(observer);
@@ -98,7 +162,12 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
     /**
      * @dev Returns the list of registered total supply observers.
      */
-    function totalSupplyObservers() public view virtual returns (address[] memory) {
+    function totalSupplyObservers()
+        public
+        view
+        virtual
+        returns (address[] memory)
+    {
         return _supplyObservers;
     }
 
@@ -132,4 +201,10 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
      * Must be overridden to implement access control.
      */
     function _authorizeTotalSupplyObserverManagement() internal virtual;
+
+    /**
+     * @dev Authorization function for updating the observer cap.
+     * Must be overridden to implement access control (typically DEFAULT_ADMIN_ROLE).
+     */
+    function _authorizeSetMaxSupplyObservers() internal virtual;
 }

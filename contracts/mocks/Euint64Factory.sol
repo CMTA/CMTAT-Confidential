@@ -14,7 +14,10 @@ contract Euint64Factory is ZamaEthereumConfig {
         return handle;
     }
 
-    function makeFor(address authorized, uint64 value) external returns (euint64) {
+    function makeFor(
+        address authorized,
+        uint64 value
+    ) external returns (euint64) {
         euint64 handle = FHE.asEuint64(value);
         FHE.allow(handle, msg.sender);
         FHE.allow(handle, authorized);

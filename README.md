@@ -198,37 +198,80 @@ npm run test
 
 ## Versioning
 
-The contract-level `version()` string is pinned to `0.1.0` via `CMTATConfidentialVersionModule`.
+The contract-level `version()` string is pinned to `0.2.0` via `CMTATConfidentialVersionModule`.
 
 ## Security
 
+### Automated Audit — Nethermind AuditAgent
+
+Nethermind AuditAgent automated scan (March 18, 2026, commit `51f9d7aa`) reported **3 medium**, **2 low**, **2 info**, and **1 best practice** findings across 10 contracts (1 239 lines of code). Full rationale and fix details in [`nethermind-audit-agent-report-feedback.md`](./doc/audit/v0.1.0/nethermind-audit-agent/nethermind-audit-agent-report-feedback.md).
+
+> This report was generated entirely by AI and has not been manually reviewed by Nethermind's security team.
+
+| # | Severity | Finding | Disposition | Commit |
+|---|----------|---------|-------------|--------|
+| 1 | Medium | Receiver reentrancy can bypass the `transferAndCall` rollback path | Disputed — upstream ERC-7984 design; NatSpec warning added | `36dbd3f` |
+| 2 | Medium | Receiver reentrancy can steal tokens via `confidentialTransferAndCall` | Duplicate of #1 — resolved together | `36dbd3f` |
+| 3 | Medium | Freezing `address(0)` gives `ENFORCER_ROLE` a global block over holder transfers | Documented — upstream fix proposed in [CMTA/CMTAT#372](https://github.com/CMTA/CMTAT/issues/372); operator warning added | `1abe564` |
+| 4 | Low | Unbounded supply-observer ACL refresh can cause OOG on mint/burn | Fixed — admin-controlled cap (`setMaxSupplyObservers`, default 10) | `12249c1` |
+| 5 | Low | `forcedBurn` does not invoke `_afterBurn`, causing observer ACL staleness | Fixed — `_afterBurn` hook added to `ERC7984EnforcementModule` | `681ebde` |
+| 6 | Info | `forcedBurn` does not refresh total-supply observer ACLs (full variant) | Duplicate of #5 — resolved together | `681ebde` |
+| 7 | Info | Unbounded observer list can cause DoS on `mint` and `burn` | Duplicate of #4 — resolved together | `12249c1` |
+| 8 | Best Practice | Duplicate observer removal via `setRoleObserver(account, address(0))` | Fixed — `setRoleObserver` now rejects `address(0)` | `a74314e` |
+
 ### Static Analysis — Aderyn
 
-Aderyn static analysis reported **0 high** and **8 low** severity findings. All are accepted or not applicable. Full rationale in [`aderyn-report-feedback.md`](./doc/audit/aderyn-report-feedback.md).
+Aderyn static analysis (v0.2.0) reported **0 high** and **8 low** severity findings across 12 contracts (663 nSLOC). All findings are accepted or not applicable for this codebase. Full rationale in [`aderyn-report-feedback.md`](./doc/audit/v0.2.0/aderyn-report-feedback.md), source report in [`aderyn-report.md`](./doc/audit/v0.2.0/aderyn-report.md).
+
+Command used to generate the report:
+
+```bash
+aderyn --output aderyn-report.md
+```
 
 | ID | Finding | Instances | Disposition |
 |----|---------|-----------|-------------|
-| L-1 | Centralization Risk | 10 | Accepted — role-based access control is mandatory for a regulated security token |
+| L-1 | Centralization Risk | 11 | Accepted — role-based access control is mandatory for a regulated security token |
 | L-2 | Unspecific Solidity Pragma (`^0.8.27`) | 12 | Accepted — lower bound required by OZ Confidential submodule; Hardhat compiles with `0.8.34` |
 | L-3 | PUSH0 Opcode | 12 | Not applicable — target is Ethereum mainnet, EVM version set to `prague` in `hardhat.config.ts` |
-| L-4 | Modifier Invoked Only Once | 1 | Accepted — consistent with the module authorization pattern across all modules |
-| L-5 | Empty Block | 16 | Accepted — modifier-only authorization hooks and intentional virtual extension points |
+| L-4 | Modifier Invoked Only Once | 2 | Accepted — consistent with the module authorization pattern across all modules |
+| L-5 | Empty Block | 18 | Accepted — modifier-only authorization hooks and intentional virtual extension points |
 | L-6 | Internal Function Used Only Once | 1 | Accepted — required by the OpenZeppelin `initializer` modifier pattern |
 | L-7 | State Change Without Event | 1 | Not applicable — occurs in a mock contract (`ConfidentialReceiverMock`), not production code |
 | L-8 | Unchecked Return | 12 | Not applicable — `FHE.allow()` / `FHE.makePubliclyDecryptable()` return the same handle (fluent interface), not an error code |
+
+### Static Analysis — Slither
+
+We attempted to run Slither with:
+
+```bash
+slither . --checklist --filter-paths "openzeppelin-contracts|test|forge-std" > slither-report.md
+```
+
+But the run failed with:
+
+```text
+ERROR:root:Error:
+ERROR:root:The source code appears to be out of sync with the build artifacts on disk.
+        This discrepancy can occur after recent modifications to node_modules/@fhevm/solidity/config/ZamaConfig.sol. To resolve this
+        issue, consider executing the clean command of the build system (e.g. forge clean).
+ERROR:root:Please report an issue to https://github.com/crytic/slither/issues
+```
+
+At this stage, no Slither findings are available for this release due to this tooling/build-artifact sync issue.
 
 ## Roles
 
 | Role | Description |
 |------|-------------|
-| `DEFAULT_ADMIN_ROLE` | Can grant/revoke all roles, deactivate contract |
+| `DEFAULT_ADMIN_ROLE` | Can grant/revoke all roles, deactivate contract, set total supply observer cap (`setMaxSupplyObservers`) |
 | `MINTER_ROLE` | Can mint new tokens |
 | `BURNER_ROLE` | Can burn tokens |
 | `PAUSER_ROLE` | Can pause/unpause all transfers |
-| `ENFORCER_ROLE` | Can freeze and unfreeze addresses |
+| `ENFORCER_ROLE` | Can freeze and unfreeze addresses — **must not freeze `address(0)`** (see warning below) |
 | `FORCED_OPS_ROLE` | Can execute forced transfers and forced burns on frozen addresses |
 | `OBSERVER_ROLE` | Can assign per-account balance observers via `setRoleObserver` |
-| `SUPPLY_OBSERVER_ROLE` | Can manage total supply observers |
+| `SUPPLY_OBSERVER_ROLE` | Can manage total supply observers (`addTotalSupplyObserver`, `removeTotalSupplyObserver`) |
 | `SUPPLY_PUBLISHER_ROLE` | Can call `publishTotalSupply` |
 
 ## Contract Functions
@@ -349,14 +392,18 @@ await token.grantRole(SUPPLY_OBSERVER_ROLE, complianceManager.address);
 // Grant SUPPLY_PUBLISHER_ROLE to the compliance manager (separate permission)
 await token.grantRole(SUPPLY_PUBLISHER_ROLE, complianceManager.address);
 
-// Register a regulator as a total supply observer
+// Register a regulator as a total supply observer (capped by maxSupplyObservers, default 10)
 await token.connect(complianceManager).addTotalSupplyObserver(regulatorAddress);
 
 // Remove an observer (stops future grants; past ACL grants are irrevocable)
 await token.connect(complianceManager).removeTotalSupplyObserver(regulatorAddress);
 
-// Inspect the current observer list
+// Inspect the current observer list and cap
 const observers = await token.totalSupplyObservers();
+const cap = await token.maxSupplyObservers(); // default 10
+
+// Adjust the cap (DEFAULT_ADMIN_ROLE only; cannot go below current observer count)
+await token.connect(admin).setMaxSupplyObservers(20);
 ```
 
 Once registered, the observer can decrypt off-chain using the standard user-decryption flow:
@@ -398,6 +445,11 @@ Freeze specific addresses (requires `ENFORCER_ROLE`):
 function setAddressFrozen(address account, bool freeze) public onlyRole(ENFORCER_ROLE);
 function isFrozen(address account) public view returns (bool);
 ```
+
+> **Warning:** `ENFORCER_ROLE` holders must never freeze `address(0)`. The upstream CMTAT
+> `EnforcementModule` does not guard against it. Direct holder transfers (`confidentialTransfer`, `confidentialTransferAndCall`) use `address(0)` as a synthetic spender in the freeze check, so freezing it would block **all** holder-initiated transfers,
+> effectively acting as a global pause without holding `PAUSER_ROLE`. See
+> [`CMTAT`](https://github.com/CMTA/CMTAT/issues/372) for a detailed analysis and the upstream fix proposal.
 
 ### Deactivate Contract
 
@@ -510,12 +562,13 @@ Decimals are configurable at deployment for both `CMTATConfidential` and `CMTATC
 
 | Package | Version |
 |---------|---------|
-| `@fhevm/solidity` | 0.9.1 |
-| `@fhevm/hardhat-plugin` | 0.3.0-1 |
-| `@openzeppelin/contracts` | 5.5.0 |
-| `@openzeppelin/contracts-upgradeable` | 5.5.0 |
+| `@fhevm/solidity` | 0.11.1 |
+| `@fhevm/hardhat-plugin` | 0.4.2 |
+| `@zama-fhe/relayer-sdk` | 0.4.1 |
+| `@openzeppelin/contracts` | 5.6.1 |
+| `@openzeppelin/contracts-upgradeable` | 5.6.1 |
 | **Submodule** |  |
-| [OpenZeppelin Confidential Contracts](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts) | [v0.3.1](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts/releases/tag/v0.3.1) |
+| [OpenZeppelin Confidential Contracts](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts) | [v0.4.0](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts/releases/tag/v0.4.0) |
 | [CMTAT](https://github.com/CMTA/CMTAT/) | [v3.2.0](https://github.com/CMTA/CMTAT/releases/tag/v3.2.0) |
 
 ## Project Structure
@@ -531,7 +584,7 @@ CMTAT-Confidential/
 │       ├── ERC7984BurnModule.sol                  # Burn with authorization hook
 │       ├── ERC7984EnforcementModule.sol           # Forced transfer and forced burn
 │       ├── ERC7984BalanceViewModule.sol           # Per-account balance observers
-│       ├── CMTATConfidentialVersionModule.sol              # CMTAT Confidential version override (0.1.0)
+│       ├── CMTATConfidentialVersionModule.sol              # CMTAT Confidential version override (0.2.0)
 │       ├── ERC7984PublishTotalSupplyModule.sol    # Public total supply disclosure
 │       └── ERC7984TotalSupplyViewModule.sol       # Total supply observer list (auto ACL)
 ├── CMTAT/                                    # CMTAT submodule (compliance modules)
@@ -690,7 +743,10 @@ Ethereum mainnet does not natively support FHE operations. The Zama Protocol use
 
 ### 4. Is it possible to also provide privacy for addresses?
 
-**Answer:** Yes, it is technically possible using **encrypted addresses** (`eaddress` type in fhEVM).
+**Answer:** **Not in this implementation.** CMTAT Confidential does **not** provide encrypted addresses.  
+This project keeps Ethereum addresses public and only encrypts amounts/balances (`euint64`).
+
+Encrypted addresses are technically possible in fhEVM using the `eaddress` type.
 
 #### How it works
 

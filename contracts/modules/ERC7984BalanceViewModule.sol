@@ -39,9 +39,13 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
     );
 
     /* ============ Errors ============ */
-    error ERC7984BalanceViewModule_SameRoleObserver(address account, address observer);
+    error ERC7984BalanceViewModule_SameRoleObserver(
+        address account,
+        address observer
+    );
     error ERC7984BalanceViewModule_NoRoleObserver(address account);
     error ERC7984BalanceViewModule_ZeroAccount();
+    error ERC7984BalanceViewModule_ZeroObserver();
 
     /* ============ Modifier ============ */
     /**
@@ -64,6 +68,9 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
      * initialized), ACL access is granted immediately. For future balance
      * changes, `_update` re-grants access automatically.
      *
+     * To remove a role observer use `removeRoleObserver` — passing `address(0)`
+     * here is rejected to avoid ambiguity between the two operations.
+     *
      * @param account The account whose balance the observer can view
      * @param newObserver The address that will have ACL access to the balance
      */
@@ -74,19 +81,22 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
         if (account == address(0)) {
             revert ERC7984BalanceViewModule_ZeroAccount();
         }
+        if (newObserver == address(0)) {
+            revert ERC7984BalanceViewModule_ZeroObserver();
+        }
         address oldObserver = _roleObservers[account];
         if (oldObserver == newObserver) {
-            revert ERC7984BalanceViewModule_SameRoleObserver(account, newObserver);
+            revert ERC7984BalanceViewModule_SameRoleObserver(
+                account,
+                newObserver
+            );
         }
 
         _roleObservers[account] = newObserver;
 
-        // Grant ACL access to the current balance handle if it exists
-        if (newObserver != address(0)) {
-            euint64 balanceHandle = confidentialBalanceOf(account);
-            if (FHE.isInitialized(balanceHandle)) {
-                FHE.allow(balanceHandle, newObserver);
-            }
+        euint64 balanceHandle = confidentialBalanceOf(account);
+        if (FHE.isInitialized(balanceHandle)) {
+            FHE.allow(balanceHandle, newObserver);
         }
 
         emit RoleObserverSet(account, oldObserver, newObserver, msg.sender);
@@ -99,7 +109,9 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
      * receive access to future balance handles after updates.
      * @param account The account to remove the role observer from
      */
-    function removeRoleObserver(address account) public virtual onlyObserverManager {
+    function removeRoleObserver(
+        address account
+    ) public virtual onlyObserverManager {
         if (account == address(0)) {
             revert ERC7984BalanceViewModule_ZeroAccount();
         }
@@ -118,7 +130,9 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
      * @param account The account to query
      * @return The role observer address, or address(0) if none is set
      */
-    function roleObserver(address account) public view virtual returns (address) {
+    function roleObserver(
+        address account
+    ) public view virtual returns (address) {
         return _roleObservers[account];
     }
 

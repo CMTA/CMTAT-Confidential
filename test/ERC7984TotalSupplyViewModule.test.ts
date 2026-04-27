@@ -57,6 +57,66 @@ describe('ERC7984TotalSupplyViewModule', function () {
       ).to.be.revertedWithCustomError(this.token, 'ERC7984TotalSupplyViewModule_ZeroAddressObserver');
     });
 
+    it('default maxSupplyObservers is 10', async function () {
+      expect(await this.token.maxSupplyObservers()).to.equal(10);
+    });
+
+    it('reverts ObserverCapReached when cap is reached', async function () {
+      const cap = Number(await this.token.maxSupplyObservers());
+      for (let i = 0; i < cap; i++) {
+        await this.token.connect(this.supplyManager).addTotalSupplyObserver(ethers.Wallet.createRandom().address);
+      }
+      await expect(
+        this.token.connect(this.supplyManager).addTotalSupplyObserver(ethers.Wallet.createRandom().address)
+      ).to.be.revertedWithCustomError(this.token, 'ERC7984TotalSupplyViewModule_ObserverCapReached');
+    });
+  });
+
+  // ─── setMaxSupplyObservers ──────────────────────────────────────────────────
+
+  describe('setMaxSupplyObservers', function () {
+    it('admin can increase the cap', async function () {
+      await this.token.connect(this.admin).setMaxSupplyObservers(20);
+      expect(await this.token.maxSupplyObservers()).to.equal(20);
+    });
+
+    it('emits MaxSupplyObserversUpdated', async function () {
+      await expect(this.token.connect(this.admin).setMaxSupplyObservers(20))
+        .to.emit(this.token, 'MaxSupplyObserversUpdated')
+        .withArgs(10, 20, this.admin.address);
+    });
+
+    it('admin can lower the cap down to the current observer count', async function () {
+      await this.token.connect(this.supplyManager).addTotalSupplyObserver(this.observer.address);
+      await this.token.connect(this.admin).setMaxSupplyObservers(1);
+      expect(await this.token.maxSupplyObservers()).to.equal(1);
+    });
+
+    it('reverts MaxBelowCurrentCount when new cap is below current observer count', async function () {
+      await this.token.connect(this.supplyManager).addTotalSupplyObserver(this.observer.address);
+      await this.token.connect(this.supplyManager).addTotalSupplyObserver(this.observer2.address);
+      await expect(
+        this.token.connect(this.admin).setMaxSupplyObservers(1)
+      ).to.be.revertedWithCustomError(this.token, 'ERC7984TotalSupplyViewModule_MaxBelowCurrentCount');
+    });
+
+    it('unauthorized caller cannot set the cap', async function () {
+      await expect(
+        this.token.connect(this.other).setMaxSupplyObservers(20)
+      ).to.be.reverted;
+    });
+
+    it('new cap is enforced on the next addTotalSupplyObserver', async function () {
+      await this.token.connect(this.admin).setMaxSupplyObservers(1);
+      await this.token.connect(this.supplyManager).addTotalSupplyObserver(this.observer.address);
+      await expect(
+        this.token.connect(this.supplyManager).addTotalSupplyObserver(this.observer2.address)
+      ).to.be.revertedWithCustomError(this.token, 'ERC7984TotalSupplyViewModule_ObserverCapReached');
+    });
+  });
+
+  describe('addTotalSupplyObserver (continued)', function () {
+
     it('grants ACL immediately on existing total supply handle', async function () {
       await mint(this.token, this.minter, this.holder, 1000);
       await this.token.connect(this.supplyManager).addTotalSupplyObserver(this.observer.address);

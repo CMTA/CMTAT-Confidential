@@ -97,23 +97,72 @@ abstract contract CMTATConfidentialBase is
 
     function _authorizeBurn() internal virtual override onlyRole(BURNER_ROLE) {}
 
-    function _authorizeForcedTransfer() internal virtual override onlyRole(FORCED_OPS_ROLE) {}
+    function _authorizeForcedTransfer()
+        internal
+        virtual
+        override
+        onlyRole(FORCED_OPS_ROLE)
+    {}
 
-    function _authorizeForcedBurn() internal virtual override onlyRole(FORCED_OPS_ROLE) {}
+    function _authorizeForcedBurn()
+        internal
+        virtual
+        override
+        onlyRole(FORCED_OPS_ROLE)
+    {}
 
-    function _authorizePause() internal virtual override onlyRole(PAUSER_ROLE) {}
+    function _authorizePause()
+        internal
+        virtual
+        override
+        onlyRole(PAUSER_ROLE)
+    {}
 
-    function _authorizeDeactivate() internal virtual override onlyRole(DEFAULT_ADMIN_ROLE) {}
+    function _authorizeDeactivate()
+        internal
+        virtual
+        override
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {}
 
-    function _authorizeFreeze() internal virtual override onlyRole(ENFORCER_ROLE) {}
+    function _authorizeFreeze()
+        internal
+        virtual
+        override
+        onlyRole(ENFORCER_ROLE)
+    {}
 
-    function _authorizeObserverManagement() internal virtual override onlyRole(OBSERVER_ROLE) {}
+    function _authorizeObserverManagement()
+        internal
+        virtual
+        override
+        onlyRole(OBSERVER_ROLE)
+    {}
 
-    function _authorizePublishTotalSupply() internal virtual override onlyRole(SUPPLY_PUBLISHER_ROLE) {}
+    function _authorizePublishTotalSupply()
+        internal
+        virtual
+        override
+        onlyRole(SUPPLY_PUBLISHER_ROLE)
+    {}
 
     /// @inheritdoc ERC7984
     function decimals() public view virtual override returns (uint8) {
         return _TOKEN_DECIMALS;
+    }
+
+    /* ============ _afterBurn Diamond Resolution ============ */
+    /**
+     * @dev Explicit override resolving the diamond between ERC7984BurnModule and
+     * ERC7984EnforcementModule, both of which declare a virtual `_afterBurn` hook.
+     * Delegates to super so the full hook chain is preserved.
+     * CMTATConfidential further overrides this to call _updateTotalSupplyObserversAcl.
+     */
+    function _afterBurn(
+        address from,
+        euint64 burned
+    ) internal virtual override(ERC7984BurnModule, ERC7984EnforcementModule) {
+        super._afterBurn(from, burned);
     }
 
     /* ============ _update Override ============ */
@@ -128,8 +177,14 @@ abstract contract CMTATConfidentialBase is
      * via its `_afterMint`/`_afterBurn` hooks, iterating over all registered supply
      * observers. Each FHE.allow() call adds gas. Keep observer lists small.
      */
-    function _update(address from, address to, euint64 amount)
-        internal virtual override(ERC7984, ERC7984BalanceViewModule)
+    function _update(
+        address from,
+        address to,
+        euint64 amount
+    )
+        internal
+        virtual
+        override(ERC7984, ERC7984BalanceViewModule)
         returns (euint64 transferred)
     {
         return super._update(from, to, amount);
@@ -149,7 +204,10 @@ abstract contract CMTATConfidentialBase is
         }
     }
 
-    function _validateForcedTransfer(address from, address to) internal virtual override {
+    function _validateForcedTransfer(
+        address from,
+        address to
+    ) internal virtual override {
         if (to == address(0)) {
             revert CMTAT_AddressZeroNotAllowed();
         }
@@ -160,7 +218,11 @@ abstract contract CMTATConfidentialBase is
 
     function _validateForcedBurn(address from) internal virtual override {
         if (!isFrozen(from)) {
-            revert CMTAT_InvalidTransfer(from, address(0), "Address not frozen");
+            revert CMTAT_InvalidTransfer(
+                from,
+                address(0),
+                "Address not frozen"
+            );
         }
     }
 
@@ -180,7 +242,10 @@ abstract contract CMTATConfidentialBase is
     }
 
     /// @inheritdoc ERC7984
-    function confidentialTransfer(address to, euint64 amount) public virtual override returns (euint64) {
+    function confidentialTransfer(
+        address to,
+        euint64 amount
+    ) public virtual override returns (euint64) {
         address from = _msgSender();
         if (!_canTransferGenericByModule(address(0), from, to)) {
             revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
@@ -198,7 +263,13 @@ abstract contract CMTATConfidentialBase is
         if (!_canTransferGenericByModule(_msgSender(), from, to)) {
             revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
         }
-        return ERC7984.confidentialTransferFrom(from, to, encryptedAmount, inputProof);
+        return
+            ERC7984.confidentialTransferFrom(
+                from,
+                to,
+                encryptedAmount,
+                inputProof
+            );
     }
 
     /// @inheritdoc ERC7984
@@ -213,7 +284,19 @@ abstract contract CMTATConfidentialBase is
         return ERC7984.confidentialTransferFrom(from, to, amount);
     }
 
-    /// @inheritdoc ERC7984
+    /**
+     * @inheritdoc ERC7984
+     * @dev **Non-atomic refund warning.** The receiver's `onConfidentialTransferReceived`
+     * callback fires while the receiver already holds the tokens (Step 1 credits the
+     * receiver before Step 2 calls the hook). If the callback returns `false`, Step 3
+     * attempts a best-effort reverse transfer — but this is NOT an EVM revert: it only
+     * succeeds if the receiver still holds the tokens at that point. A malicious or
+     * re-entrant receiver can drain its balance before returning `false`, causing the
+     * refund to silently produce 0. This is a structural limitation of FHE arithmetic
+     * (`FHESafeMath.tryDecrease` cannot revert on an encrypted condition) and an
+     * intentional design choice in the upstream ERC-7984 library.
+     * **Only call this function with trusted, audited receiver contracts.**
+     */
     function confidentialTransferAndCall(
         address to,
         externalEuint64 encryptedAmount,
@@ -224,10 +307,21 @@ abstract contract CMTATConfidentialBase is
         if (!_canTransferGenericByModule(address(0), from, to)) {
             revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
         }
-        return ERC7984.confidentialTransferAndCall(to, encryptedAmount, inputProof, data);
+        return
+            ERC7984.confidentialTransferAndCall(
+                to,
+                encryptedAmount,
+                inputProof,
+                data
+            );
     }
 
-    /// @inheritdoc ERC7984
+    /**
+     * @inheritdoc ERC7984
+     * @dev **Non-atomic refund warning.** See the `externalEuint64` overload above for a
+     * full description of the non-atomic refund risk. The same limitation applies here.
+     * **Only call this function with trusted, audited receiver contracts.**
+     */
     function confidentialTransferAndCall(
         address to,
         euint64 amount,
@@ -251,7 +345,14 @@ abstract contract CMTATConfidentialBase is
         if (!_canTransferGenericByModule(_msgSender(), from, to)) {
             revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
         }
-        return ERC7984.confidentialTransferFromAndCall(from, to, encryptedAmount, inputProof, data);
+        return
+            ERC7984.confidentialTransferFromAndCall(
+                from,
+                to,
+                encryptedAmount,
+                inputProof,
+                data
+            );
     }
 
     /// @inheritdoc ERC7984
@@ -269,14 +370,18 @@ abstract contract CMTATConfidentialBase is
 
     /* ============ ERC165 Support ============ */
 
-    function supportsInterface(bytes4 interfaceId)
+    function supportsInterface(
+        bytes4 interfaceId
+    )
         public
         view
         virtual
         override(ERC7984, AccessControlUpgradeable)
         returns (bool)
     {
-        return ERC7984.supportsInterface(interfaceId) || AccessControlUpgradeable.supportsInterface(interfaceId);
+        return
+            ERC7984.supportsInterface(interfaceId) ||
+            AccessControlUpgradeable.supportsInterface(interfaceId);
     }
 
     /* ============ Version Override ============ */
