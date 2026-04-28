@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./modules/ERC7984TotalSupplyViewModule.sol | 8c7dfa8a76d5270ce5c82455b774a6cce6c34551 |
+| ./modules/ERC7984TotalSupplyViewModule.sol | aecbcb94419a7bbc80ab79feb865c3480564b9d1 |
 
 
 ### Contracts Description Table
@@ -16,11 +16,14 @@
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
 | **ERC7984TotalSupplyViewModule** | Implementation | ERC7984 |||
+| └ | maxSupplyObservers | Public ❗️ |   |NO❗️ |
+| └ | setMaxSupplyObservers | Public ❗️ | 🛑  | onlyMaxObserversAdmin |
 | └ | addTotalSupplyObserver | Public ❗️ | 🛑  | onlySupplyObserverManager |
 | └ | removeTotalSupplyObserver | Public ❗️ | 🛑  | onlySupplyObserverManager |
 | └ | totalSupplyObservers | Public ❗️ |   |NO❗️ |
 | └ | _updateTotalSupplyObserversAcl | Internal 🔒 | 🛑  | |
 | └ | _authorizeTotalSupplyObserverManagement | Internal 🔒 | 🛑  | |
+| └ | _authorizeSetMaxSupplyObservers | Internal 🔒 | 🛑  | |
 
 
 ### Legend

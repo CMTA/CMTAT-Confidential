@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./CMTATConfidentialBase.sol | 0717e6dcdb1e3be76779718e7ffd67ab868f9341 |
+| ./CMTATConfidentialBase.sol | 63dcaea000e45880deeef0343d40e6180b236060 |
 
 
 ### Contracts Description Table
@@ -28,6 +28,7 @@
 | └ | _authorizeObserverManagement | Internal 🔒 | 🛑  | onlyRole |
 | └ | _authorizePublishTotalSupply | Internal 🔒 | 🛑  | onlyRole |
 | └ | decimals | Public ❗️ |   |NO❗️ |
+| └ | _afterBurn | Internal 🔒 | 🛑  | |
 | └ | _update | Internal 🔒 | 🛑  | |
 | └ | _validateMint | Internal 🔒 | 🛑  | |
 | └ | _validateBurn | Internal 🔒 | 🛑  | |

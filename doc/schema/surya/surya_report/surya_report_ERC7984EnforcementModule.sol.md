@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./modules/ERC7984EnforcementModule.sol | 23bd8af06e2d64ebda8434e97a250190c6088e55 |
+| ./modules/ERC7984EnforcementModule.sol | bb86a05e3b14cd936c5dce58aa11337ea7356de6 |
 
 
 ### Contracts Description Table
@@ -23,6 +23,7 @@
 | └ | _validateForcedTransfer | Internal 🔒 | 🛑  | |
 | └ | _validateForcedBurn | Internal 🔒 | 🛑  | |
 | └ | _authorizeForcedTransfer | Internal 🔒 | 🛑  | |
+| └ | _afterBurn | Internal 🔒 | 🛑  | |
 | └ | _authorizeForcedBurn | Internal 🔒 | 🛑  | |
 
 

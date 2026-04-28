@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./CMTATConfidentialLite.sol | 1096a9d3d91bc504e418351fba8bc78237b0ecb9 |
+| ./CMTATConfidentialLite.sol | 7f7bf03517a6fd6b3980060947d25993fdb3decb |
 
 
 ### Contracts Description Table

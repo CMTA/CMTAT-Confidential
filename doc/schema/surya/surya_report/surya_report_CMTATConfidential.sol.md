@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./CMTATConfidential.sol | f0d39b29dee5f05dedd8b925b3bc0a9a5102791e |
+| ./CMTATConfidential.sol | a7ebba5a0ad3584a18a063774eba1cafdfa96b62 |
 
 
 ### Contracts Description Table
@@ -18,6 +18,7 @@
 | **CMTATConfidential** | Implementation | CMTATConfidentialBase, ERC7984TotalSupplyViewModule |||
 | └ | <Constructor> | Public ❗️ | 🛑  | CMTATConfidentialBase |
 | └ | _authorizeTotalSupplyObserverManagement | Internal 🔒 | 🛑  | onlyRole |
+| └ | _authorizeSetMaxSupplyObservers | Internal 🔒 | 🛑  | onlyRole |
 | └ | _afterMint | Internal 🔒 | 🛑  | |
 | └ | _afterBurn | Internal 🔒 | 🛑  | |
 | └ | _update | Internal 🔒 | 🛑  | |
