@@ -5,6 +5,7 @@ import {ICMTATConstructor} from "../CMTAT/contracts/interfaces/technical/ICMTATC
 import {externalEuint64, euint64} from "@fhevm/solidity/lib/FHE.sol";
 import {CMTATConfidential} from "./CMTATConfidential.sol";
 import {AllowlistModule} from "../CMTAT/contracts/modules/wrapper/options/AllowlistModule.sol";
+import {ValidationModule} from "../CMTAT/contracts/modules/wrapper/controllers/ValidationModule.sol";
 
 /**
  * @title CMTATConfidentialWhitelist
@@ -17,8 +18,8 @@ import {AllowlistModule} from "../CMTAT/contracts/modules/wrapper/options/Allowl
  * Forced operations (forced transfer / forced burn) are unchanged.
  */
 contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
-    error ERC7943CannotSend(address account);
-    error ERC7943CannotReceive(address account);
+    bytes4 private constant _INTERFACE_ID_ERC7943_FUNGIBLE = 0x3edbb4c4;
+
     error ERC7943CannotTransfer(address from, address to, uint256 amount);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -51,7 +52,7 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
     function canTransact(
         address account
     ) public view virtual override returns (bool allowed) {
-        if (!super.canTransact(account)) {
+        if (!ValidationModule.canTransact(account)) {
             return false;
         }
         if (!isAllowlistEnabled()) {
@@ -60,6 +61,15 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
         return isAllowlisted(account);
     }
 
+    /**
+     * @notice Checks whether a confidential transfer is currently allowed by
+     * account-level and allowlist policy checks.
+     * @dev ERC-7943 includes `amount` for fungible tokens. In this confidential
+     * variant the transfer amount is encrypted, so the public view cannot
+     * evaluate amount-specific balance or frozen-amount rules. The public
+     * `amount` parameter is therefore intentionally ignored and this function
+     * only reflects permissioned transfer rules that are public in this model.
+     */
     function canTransfer(
         address from,
         address to,
@@ -77,7 +87,11 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
         bytes calldata inputProof
     ) public virtual override returns (euint64) {
         _enforceWhitelistAndRevert(_msgSender(), to);
-        return super.confidentialTransfer(to, encryptedAmount, inputProof);
+        return CMTATConfidential.confidentialTransfer(
+            to,
+            encryptedAmount,
+            inputProof
+        );
     }
 
     function confidentialTransfer(
@@ -85,7 +99,7 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
         euint64 amount
     ) public virtual override returns (euint64) {
         _enforceWhitelistAndRevert(_msgSender(), to);
-        return super.confidentialTransfer(to, amount);
+        return CMTATConfidential.confidentialTransfer(to, amount);
     }
 
     function confidentialTransferFrom(
@@ -96,7 +110,12 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
     ) public virtual override returns (euint64 transferred) {
         _enforceWhitelistAndRevert(from, to);
         return
-            super.confidentialTransferFrom(from, to, encryptedAmount, inputProof);
+            CMTATConfidential.confidentialTransferFrom(
+                from,
+                to,
+                encryptedAmount,
+                inputProof
+            );
     }
 
     function confidentialTransferFrom(
@@ -105,7 +124,7 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
         euint64 amount
     ) public virtual override returns (euint64 transferred) {
         _enforceWhitelistAndRevert(from, to);
-        return super.confidentialTransferFrom(from, to, amount);
+        return CMTATConfidential.confidentialTransferFrom(from, to, amount);
     }
 
     function confidentialTransferAndCall(
@@ -116,7 +135,7 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
     ) public virtual override returns (euint64 transferred) {
         _enforceWhitelistAndRevert(_msgSender(), to);
         return
-            super.confidentialTransferAndCall(
+            CMTATConfidential.confidentialTransferAndCall(
                 to,
                 encryptedAmount,
                 inputProof,
@@ -130,7 +149,7 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
         bytes calldata data
     ) public virtual override returns (euint64 transferred) {
         _enforceWhitelistAndRevert(_msgSender(), to);
-        return super.confidentialTransferAndCall(to, amount, data);
+        return CMTATConfidential.confidentialTransferAndCall(to, amount, data);
     }
 
     function confidentialTransferFromAndCall(
@@ -142,7 +161,7 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
     ) public virtual override returns (euint64 transferred) {
         _enforceWhitelistAndRevert(from, to);
         return
-            super.confidentialTransferFromAndCall(
+            CMTATConfidential.confidentialTransferFromAndCall(
                 from,
                 to,
                 encryptedAmount,
@@ -158,7 +177,13 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
         bytes calldata data
     ) public virtual override returns (euint64 transferred) {
         _enforceWhitelistAndRevert(from, to);
-        return super.confidentialTransferFromAndCall(from, to, amount, data);
+        return
+            CMTATConfidential.confidentialTransferFromAndCall(
+                from,
+                to,
+                amount,
+                data
+            );
     }
 
     function _canTransferByWhitelistPolicy(
@@ -175,6 +200,14 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
         if (!_canTransferByWhitelistPolicy(from, to)) {
             revert ERC7943CannotTransfer(from, to, 0);
         }
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override returns (bool) {
+        return
+            interfaceId == _INTERFACE_ID_ERC7943_FUNGIBLE ||
+            CMTATConfidential.supportsInterface(interfaceId);
     }
 
     function _authorizeAllowlistManagement()

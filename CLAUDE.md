@@ -105,6 +105,24 @@ function _validateXxx(...) internal virtual override {
 
 ---
 
+## Inheritance Delegation Guideline
+
+When an override must delegate to a parent implementation, call the inherited contract explicitly instead of using `super`.
+
+```solidity
+return CMTATConfidential.supportsInterface(interfaceId);
+```
+
+Avoid:
+
+```solidity
+return super.supportsInterface(interfaceId);
+```
+
+This keeps the intended parent implementation clear in contracts with multiple inheritance.
+
+---
+
 ## Writing Tests
 
 ### File naming
@@ -264,3 +282,7 @@ describe('ERC7984XxxModule', function () {
 | `DEFAULT_ADMIN_ROLE` | `AccessControlModule` (CMTAT) | `_authorizeDeactivate()` |
 | `ENFORCER_ROLE` | `EnforcementModule` (CMTAT) | `_authorizeFreeze()` |
 | `OBSERVER_ROLE` | `ERC7984BalanceViewModule` | `_authorizeObserverManagement()` |
+
+## Note
+
+After each implemented feature or fix, provide a one-line GitHub commit message for all changes since the last commit.
