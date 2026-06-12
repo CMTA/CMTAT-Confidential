@@ -2,8 +2,8 @@
 pragma solidity ^0.8.27;
 
 /* ==== CMTAT Modules === */
-import {CMTATBaseGeneric} from "../CMTAT/contracts/modules/0_CMTATBaseGeneric.sol";
-import {ICMTATConstructor} from "../CMTAT/contracts/interfaces/technical/ICMTATConstructor.sol";
+import {CMTATBaseGeneric} from "../lib/CMTAT/contracts/modules/0_CMTATBaseGeneric.sol";
+import {ICMTATConstructor} from "../lib/CMTAT/contracts/interfaces/technical/ICMTATConstructor.sol";
 
 /* ==== OpenZeppelin === */
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
@@ -20,7 +20,7 @@ import {ERC7984EnforcementModule} from "./modules/ERC7984EnforcementModule.sol";
 import {ERC7984BalanceViewModule} from "./modules/ERC7984BalanceViewModule.sol";
 import {ERC7984PublishTotalSupplyModule} from "./modules/ERC7984PublishTotalSupplyModule.sol";
 import {CMTATConfidentialVersionModule} from "./modules/CMTATConfidentialVersionModule.sol";
-import {VersionModule} from "../CMTAT/contracts/modules/wrapper/core/VersionModule.sol";
+import {VersionModule} from "../lib/CMTAT/contracts/modules/wrapper/core/VersionModule.sol";
 
 /**
  * @title CMTATConfidentialBase

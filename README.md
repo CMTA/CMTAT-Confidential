@@ -67,7 +67,8 @@ CMTAT-Confidential
 │   ├── ERC7984EnforcementModule - Forced transfer and forced burn
 │   ├── ERC7984BalanceViewModule - Per-account balance observers (holder + role slots)
 │   ├── ERC7984PublishTotalSupplyModule - Public total supply disclosure (in CMTATConfidentialBase)
-│   └── ERC7984TotalSupplyViewModule - Total supply observer list with auto ACL re-grant (CMTATConfidential only)
+│   ├── ERC7984TotalSupplyViewModule - Total supply observer list with auto ACL re-grant (CMTATConfidential only)
+│   └── ERC7984RuleEngineModule - RuleEngine transfer restrictions with public value = 0
 │
 └── Zama Protocol Infrastructure (configured via ZamaEthereumConfig)
     ├── ACL - Access Control List for encrypted data permissions
@@ -116,7 +117,7 @@ This section maps the CMTAT framework features to the CMTAT Confidential impleme
 | On-chain snapshot | Not implemented | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
 | Freeze partial tokens | Not implemented (all balances are encrypted) | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
 | Integrated allowlisting | Not implemented | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
-| RuleEngine / transfer hook | Not implemented | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
+| RuleEngine / transfer hook | `CMTATConfidentialRuleEngine` (`value = 0` because amounts are encrypted) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
 | Upgradability | Not implemented (standalone only) | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
 
 ### Implementation Details
@@ -157,21 +158,24 @@ To decrypt encrypted values (balances, amounts, total supply), the requesting pa
 
 ## Deployment Variants
 
-Two deployment-ready contracts are provided. Both share the same abstract base (`CMTATConfidentialBase`) and are functionally identical except for total supply visibility.
+Three deployment-ready contracts are provided. They share the same abstract base (`CMTATConfidentialBase`) except for optional total supply visibility and optional RuleEngine transfer restrictions.
 
-| | `CMTATConfidential` | `CMTATConfidentialLite` |
-|---|---|---|
-| Confidential balances & transfers | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| Mint / Burn / Forced ops | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| Pause / Freeze | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| Per-account balance observers | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| `publishTotalSupply` (public disclosure) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| Total supply observer list (auto ACL) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
-| `SUPPLY_OBSERVER_ROLE` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| `SUPPLY_PUBLISHER_ROLE` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| Contract size | ~20.5 KB | ~19.2 KB |
+| | `CMTATConfidential` | `CMTATConfidentialLite` | `CMTATConfidentialRuleEngine` |
+|---|---|---|---|
+| Confidential balances & transfers | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Mint / Burn / Forced ops | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Pause / Freeze | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Per-account balance observers | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| `publishTotalSupply` (public disclosure) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Total supply observer list (auto ACL) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| RuleEngine transfer restriction | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| `SUPPLY_OBSERVER_ROLE` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| `SUPPLY_PUBLISHER_ROLE` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| `RULE_ENGINE_ROLE` | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Contract size | ~20.5 KB | ~19.2 KB | ~21.6 KB |
 
-Choose `CMTATConfidentialLite` when automatic per-observer ACL re-grant on every mint/burn is not required and you want to minimize deployment cost. `publishTotalSupply` (one-shot public disclosure) is available in both variants.
+Choose `CMTATConfidentialLite` when automatic per-observer ACL re-grant on every mint/burn is not required and you want to minimize deployment cost. `publishTotalSupply` (one-shot public disclosure) is available in all deployment variants.
+Choose `CMTATConfidentialRuleEngine` when public transfer-policy rules such as whitelists, blacklists, jurisdiction checks, or other CMTA RuleEngine rules must restrict confidential transfers. Since amounts are encrypted, the token passes `0` as the RuleEngine `value` for validation and transfer notifications.
 
 ## Installation
 
@@ -273,6 +277,7 @@ At this stage, no Slither findings are available for this release due to this to
 | `OBSERVER_ROLE` | Can assign per-account balance observers via `setRoleObserver` |
 | `SUPPLY_OBSERVER_ROLE` | Can manage total supply observers (`addTotalSupplyObserver`, `removeTotalSupplyObserver`) |
 | `SUPPLY_PUBLISHER_ROLE` | Can call `publishTotalSupply` |
+| `RULE_ENGINE_ROLE` | Can update the RuleEngine in `CMTATConfidentialRuleEngine` |
 
 ## Contract Functions
 
@@ -319,6 +324,24 @@ ERC-7984 exposes eight transfer function variants:
 | `confidentialTransferFrom(from, to, amount, proof)` | Operator transfer with proof |
 | `confidentialTransferAndCall(...)` | Transfer with ERC-1363 callback |
 | `confidentialTransferFromAndCall(...)` | Operator transfer with callback |
+
+### RuleEngine Variant
+
+`CMTATConfidentialRuleEngine` adds CMTA RuleEngine checks to holder and operator transfers. It exposes:
+
+```solidity
+function ruleEngine() public view returns (IRuleEngine);
+function setRuleEngine(IRuleEngine newRuleEngine) public onlyRole(RULE_ENGINE_ROLE);
+function canTransfer(address from, address to, uint256 amount) public view returns (bool);
+function canTransferFrom(address spender, address from, address to, uint256 amount) public view returns (bool);
+```
+
+The public `amount` parameter is intentionally ignored. Confidential balances use encrypted `euint64` amounts, so RuleEngine calls receive `value = 0`:
+
+- holder transfer validation: `ruleEngine.canTransfer(from, to, 0)`
+- operator transfer validation: `ruleEngine.canTransferFrom(spender, from, to, 0)`
+- holder transfer notification: `ruleEngine.transferred(from, to, 0)`
+- operator transfer notification: `ruleEngine.transferred(spender, from, to, 0)`
 
 Example transfer:
 
@@ -570,6 +593,7 @@ Decimals are configurable at deployment for both `CMTATConfidential` and `CMTATC
 | **Submodule** |  |
 | [OpenZeppelin Confidential Contracts](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts) | [v0.4.0](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts/releases/tag/v0.4.0) |
 | [CMTAT](https://github.com/CMTA/CMTAT/) | [v3.2.0](https://github.com/CMTA/CMTAT/releases/tag/v3.2.0) |
+| [RuleEngine](https://github.com/CMTA/RuleEngine/) | v3.0.0-rc4 |
 
 ## Project Structure
 
@@ -579,6 +603,7 @@ CMTAT-Confidential/
 │   ├── CMTATConfidentialBase.sol                      # Abstract base (all shared logic)
 │   ├── CMTATConfidential.sol                          # Full variant (+ total supply visibility)
 │   ├── CMTATConfidentialLite.sol                      # Lite variant (smaller, no total supply module)
+│   ├── CMTATConfidentialRuleEngine.sol                # Full variant + RuleEngine transfer restrictions
 │   └── modules/
 │       ├── ERC7984MintModule.sol                  # Mint with authorization hook
 │       ├── ERC7984BurnModule.sol                  # Burn with authorization hook
@@ -586,8 +611,11 @@ CMTAT-Confidential/
 │       ├── ERC7984BalanceViewModule.sol           # Per-account balance observers
 │       ├── CMTATConfidentialVersionModule.sol              # CMTAT Confidential version override (0.2.0)
 │       ├── ERC7984PublishTotalSupplyModule.sol    # Public total supply disclosure
+│       ├── ERC7984RuleEngineModule.sol            # RuleEngine storage, checks, and notifications
 │       └── ERC7984TotalSupplyViewModule.sol       # Total supply observer list (auto ACL)
-├── CMTAT/                                    # CMTAT submodule (compliance modules)
+├── lib/
+│   ├── CMTAT/                                # CMTAT submodule (compliance modules)
+│   └── RuleEngine/                           # CMTA RuleEngine submodule
 ├── openzeppelin-confidential-contracts/      # OZ submodule (ERC7984)
 ├── docs/
 │   ├── fhe/                                  # Zama FHE documentation
@@ -595,6 +623,7 @@ CMTAT-Confidential/
 ├── test/
 │   ├── CMTATConfidential.test.ts                           # Full variant core tests
 │   ├── CMTATConfidentialLite.test.ts                       # Lite variant core tests (shared suite)
+│   ├── CMTATConfidentialRuleEngine.test.ts                 # RuleEngine variant tests
 │   ├── ERC7984BalanceViewModule.test.ts           # Balance observer module tests
 │   ├── ERC7984PublishTotalSupplyModule.test.ts    # Public disclosure module tests
 │   ├── ERC7984TotalSupplyViewModule.test.ts       # Total supply observer module tests

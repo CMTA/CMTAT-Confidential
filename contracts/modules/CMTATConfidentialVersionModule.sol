@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {VersionModule} from "../../CMTAT/contracts/modules/wrapper/core/VersionModule.sol";
+import {VersionModule} from "../../lib/CMTAT/contracts/modules/wrapper/core/VersionModule.sol";
 
 /**
  * @title CMTATConfidentialVersionModule

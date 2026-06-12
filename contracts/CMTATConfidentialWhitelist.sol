@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {ICMTATConstructor} from "../CMTAT/contracts/interfaces/technical/ICMTATConstructor.sol";
+import {ICMTATConstructor} from "../lib/CMTAT/contracts/interfaces/technical/ICMTATConstructor.sol";
 import {externalEuint64, euint64} from "@fhevm/solidity/lib/FHE.sol";
 import {CMTATConfidential} from "./CMTATConfidential.sol";
-import {AllowlistModule} from "../CMTAT/contracts/modules/wrapper/options/AllowlistModule.sol";
-import {ValidationModule} from "../CMTAT/contracts/modules/wrapper/controllers/ValidationModule.sol";
+import {AllowlistModule} from "../lib/CMTAT/contracts/modules/wrapper/options/AllowlistModule.sol";
+import {ValidationModule} from "../lib/CMTAT/contracts/modules/wrapper/controllers/ValidationModule.sol";
 
 /**
  * @title CMTATConfidentialWhitelist
