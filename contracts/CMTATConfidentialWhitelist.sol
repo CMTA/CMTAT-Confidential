@@ -41,18 +41,22 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
         )
     {}
 
-    function canSend(address account) public view returns (bool allowed) {
-        return canTransact(account);
-    }
-
-    function canReceive(address account) public view returns (bool allowed) {
-        return canTransact(account);
-    }
-
-    function canTransact(
+    function canSend(
         address account
     ) public view virtual override returns (bool allowed) {
-        if (!ValidationModule.canTransact(account)) {
+        if (!ValidationModule.canSend(account)) {
+            return false;
+        }
+        if (!isAllowlistEnabled()) {
+            return true;
+        }
+        return isAllowlisted(account);
+    }
+
+    function canReceive(
+        address account
+    ) public view virtual override returns (bool allowed) {
+        if (!ValidationModule.canReceive(account)) {
             return false;
         }
         if (!isAllowlistEnabled()) {
