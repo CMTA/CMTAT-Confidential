@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 import {ERC7984} from "../../openzeppelin-confidential-contracts/contracts/token/ERC7984/ERC7984.sol";
 import {FHE, euint64} from "@fhevm/solidity/lib/FHE.sol";
+import {IERC7984TotalSupplyViewModule} from "../interfaces/IERC7984TotalSupplyViewModule.sol";
 
 /**
  * @title ERC7984TotalSupplyViewModule
@@ -20,7 +21,7 @@ import {FHE, euint64} from "@fhevm/solidity/lib/FHE.sol";
  * The authorization function `_authorizeTotalSupplyObserverManagement()` must be
  * overridden in the inheriting contract to implement the desired access control.
  */
-abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
+abstract contract ERC7984TotalSupplyViewModule is ERC7984, IERC7984TotalSupplyViewModule {
     /* ============ State Variables ============ */
     bytes32 public constant SUPPLY_OBSERVER_ROLE = keccak256(
         "SUPPLY_OBSERVER_ROLE"
@@ -38,31 +39,6 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
     /// @dev 1-based index into _supplyObservers. 0 means not registered.
     mapping(address => uint256) private _supplyObserverIndex;
 
-    /* ============ Events ============ */
-    event TotalSupplyObserverAdded(
-        address indexed observer,
-        address indexed addedBy
-    );
-    event TotalSupplyObserverRemoved(
-        address indexed observer,
-        address indexed removedBy
-    );
-    event MaxSupplyObserversUpdated(
-        uint256 oldMax,
-        uint256 newMax,
-        address updatedBy
-    );
-
-    /* ============ Errors ============ */
-    error ERC7984TotalSupplyViewModule_AlreadyObserver(address observer);
-    error ERC7984TotalSupplyViewModule_NotObserver(address observer);
-    error ERC7984TotalSupplyViewModule_ZeroAddressObserver();
-    error ERC7984TotalSupplyViewModule_ObserverCapReached();
-    error ERC7984TotalSupplyViewModule_MaxBelowCurrentCount(
-        uint256 newMax,
-        uint256 currentCount
-    );
-
     /* ============ Modifier ============ */
     modifier onlySupplyObserverManager() {
         _authorizeTotalSupplyObserverManagement();
@@ -76,18 +52,12 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
 
     /* ============ Public Functions ============ */
 
-    /**
-     * @dev Returns the current maximum number of supply observers allowed.
-     */
+    /// @inheritdoc IERC7984TotalSupplyViewModule
     function maxSupplyObservers() public view virtual returns (uint256) {
         return _maxSupplyObservers;
     }
 
-    /**
-     * @dev Sets the maximum number of supply observers. Cannot be set below
-     * the current observer count. Gated by `_authorizeSetMaxSupplyObservers`.
-     * @param newMax New maximum value
-     */
+    /// @inheritdoc IERC7984TotalSupplyViewModule
     function setMaxSupplyObservers(
         uint256 newMax
     ) public virtual onlyMaxObserversAdmin {
@@ -103,12 +73,7 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
         emit MaxSupplyObserversUpdated(oldMax, newMax, msg.sender);
     }
 
-    /**
-     * @dev Registers an observer that will automatically receive ACL access to
-     * the total supply handle after every mint or burn. If the total supply
-     * handle is already initialized, ACL access is granted immediately.
-     * @param observer The address to grant total supply read access to
-     */
+    /// @inheritdoc IERC7984TotalSupplyViewModule
     function addTotalSupplyObserver(
         address observer
     ) public virtual onlySupplyObserverManager {
@@ -132,12 +97,7 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
         emit TotalSupplyObserverAdded(observer, msg.sender);
     }
 
-    /**
-     * @dev Removes a registered total supply observer. The observer will no longer
-     * receive ACL access on future total supply handles. Existing ACL grants on
-     * previous handles cannot be revoked (FHE ACL is irrevocable).
-     * @param observer The address to remove
-     */
+    /// @inheritdoc IERC7984TotalSupplyViewModule
     function removeTotalSupplyObserver(
         address observer
     ) public virtual onlySupplyObserverManager {
@@ -159,9 +119,7 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984 {
         emit TotalSupplyObserverRemoved(observer, msg.sender);
     }
 
-    /**
-     * @dev Returns the list of registered total supply observers.
-     */
+    /// @inheritdoc IERC7984TotalSupplyViewModule
     function totalSupplyObservers()
         public
         view

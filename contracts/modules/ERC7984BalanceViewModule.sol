@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 import {ERC7984ObserverAccess} from "../../openzeppelin-confidential-contracts/contracts/token/ERC7984/extensions/ERC7984ObserverAccess.sol";
 import {FHE, euint64} from "@fhevm/solidity/lib/FHE.sol";
+import {IERC7984BalanceViewModule} from "../interfaces/IERC7984BalanceViewModule.sol";
 
 /**
  * @title ERC7984BalanceViewModule
@@ -24,28 +25,11 @@ import {FHE, euint64} from "@fhevm/solidity/lib/FHE.sol";
  * The authorization function `_authorizeObserverManagement()` must be overridden
  * in the inheriting contract to implement the desired access control.
  */
-abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
+abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess, IERC7984BalanceViewModule {
     /* ============ State Variables ============ */
     bytes32 public constant OBSERVER_ROLE = keccak256("OBSERVER_ROLE");
 
     mapping(address account => address observer) private _roleObservers;
-
-    /* ============ Events ============ */
-    event RoleObserverSet(
-        address indexed account,
-        address indexed oldObserver,
-        address indexed newObserver,
-        address setBy
-    );
-
-    /* ============ Errors ============ */
-    error ERC7984BalanceViewModule_SameRoleObserver(
-        address account,
-        address observer
-    );
-    error ERC7984BalanceViewModule_NoRoleObserver(address account);
-    error ERC7984BalanceViewModule_ZeroAccount();
-    error ERC7984BalanceViewModule_ZeroObserver();
 
     /* ============ Modifier ============ */
     /**
@@ -59,21 +43,7 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
 
     /* ============ Public Functions ============ */
 
-    /**
-     * @dev Sets a role observer for a given account. The observer will be
-     * granted ACL access to the account's encrypted balance, allowing
-     * off-chain decryption.
-     *
-     * If the account already has a balance (i.e., the balance handle is
-     * initialized), ACL access is granted immediately. For future balance
-     * changes, `_update` re-grants access automatically.
-     *
-     * To remove a role observer use `removeRoleObserver` — passing `address(0)`
-     * here is rejected to avoid ambiguity between the two operations.
-     *
-     * @param account The account whose balance the observer can view
-     * @param newObserver The address that will have ACL access to the balance
-     */
+    /// @inheritdoc IERC7984BalanceViewModule
     function setRoleObserver(
         address account,
         address newObserver
@@ -102,13 +72,7 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
         emit RoleObserverSet(account, oldObserver, newObserver, msg.sender);
     }
 
-    /**
-     * @dev Removes the role observer for a given account.
-     * Note: This does not revoke existing ACL access on the current handle
-     * (FHE ACL does not support revocation), but the observer will not
-     * receive access to future balance handles after updates.
-     * @param account The account to remove the role observer from
-     */
+    /// @inheritdoc IERC7984BalanceViewModule
     function removeRoleObserver(
         address account
     ) public virtual onlyObserverManager {
@@ -125,11 +89,7 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess {
         emit RoleObserverSet(account, oldObserver, address(0), msg.sender);
     }
 
-    /**
-     * @dev Returns the role observer for a given account.
-     * @param account The account to query
-     * @return The role observer address, or address(0) if none is set
-     */
+    /// @inheritdoc IERC7984BalanceViewModule
     function roleObserver(
         address account
     ) public view virtual returns (address) {

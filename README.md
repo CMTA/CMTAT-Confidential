@@ -41,6 +41,7 @@ Fully Homomorphic Encryption (FHE) enables computing directly on encrypted data 
 - **Role-Based Access Control**: Granular permissions for minting, burning, pausing, and enforcement
 - **Document Management**: Attach terms, documents, and metadata to tokens
 - **ERC-7984 Standard**: Based on OpenZeppelin's confidential token implementation
+- **ERC-7943 Compliance**: Standard errors (`ERC7943CannotSend`, `ERC7943CannotReceive`, `ERC7943CannotTransfer`) and view checks (`canSend`, `canReceive`, `canTransfer`) in `CMTATConfidentialWhitelist`
 
 
 
@@ -116,7 +117,7 @@ This section maps the CMTAT framework features to the CMTAT Confidential impleme
 | Public Disclosure | `requestDiscloseEncryptedAmount()` / `discloseEncryptedAmount()` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
 | On-chain snapshot | Not implemented | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
 | Freeze partial tokens | Not implemented (all balances are encrypted) | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
-| Integrated allowlisting | Not implemented | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
+| Integrated allowlisting | `CMTATConfidentialWhitelist` (ERC-7943 `canSend`/`canReceive`/`canTransfer`) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
 | RuleEngine / transfer hook | `CMTATConfidentialRuleEngine` (`value = 0` because amounts are encrypted) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
 | Upgradability | Not implemented (standalone only) | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
 
@@ -158,24 +159,27 @@ To decrypt encrypted values (balances, amounts, total supply), the requesting pa
 
 ## Deployment Variants
 
-Three deployment-ready contracts are provided. They share the same abstract base (`CMTATConfidentialBase`) except for optional total supply visibility and optional RuleEngine transfer restrictions.
+Four deployment-ready contracts are provided. They share the same abstract base (`CMTATConfidentialBase`) except for optional total supply visibility, optional RuleEngine transfer restrictions, and optional allowlist enforcement.
 
-| | `CMTATConfidential` | `CMTATConfidentialLite` | `CMTATConfidentialRuleEngine` |
-|---|---|---|---|
-| Confidential balances & transfers | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| Mint / Burn / Forced ops | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| Pause / Freeze | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| Per-account balance observers | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| `publishTotalSupply` (public disclosure) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| Total supply observer list (auto ACL) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| RuleEngine transfer restriction | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| `SUPPLY_OBSERVER_ROLE` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| `SUPPLY_PUBLISHER_ROLE` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| `RULE_ENGINE_ROLE` | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| Contract size | ~20.5 KB | ~19.2 KB | ~21.6 KB |
+| | `CMTATConfidential` | `CMTATConfidentialLite` | `CMTATConfidentialRuleEngine` | `CMTATConfidentialWhitelist` |
+|---|---|---|---|---|
+| Confidential balances & transfers | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Mint / Burn / Forced ops | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Pause / Freeze | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Per-account balance observers | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| `publishTotalSupply` (public disclosure) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Total supply observer list (auto ACL) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| RuleEngine transfer restriction | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
+| Allowlist enforcement (ERC-7943) | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| `SUPPLY_OBSERVER_ROLE` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| `SUPPLY_PUBLISHER_ROLE` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| `RULE_ENGINE_ROLE` | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
+| `ALLOWLIST_ROLE` | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Contract size | ~20.7 KB | ~19.2 KB | ~21.9 KB | ~21.9 KB |
 
 Choose `CMTATConfidentialLite` when automatic per-observer ACL re-grant on every mint/burn is not required and you want to minimize deployment cost. `publishTotalSupply` (one-shot public disclosure) is available in all deployment variants.
 Choose `CMTATConfidentialRuleEngine` when public transfer-policy rules such as whitelists, blacklists, jurisdiction checks, or other CMTA RuleEngine rules must restrict confidential transfers. Since amounts are encrypted, the token passes `0` as the RuleEngine `value` for validation and transfer notifications.
+Choose `CMTATConfidentialWhitelist` when a simple on/off allowlist is sufficient: both sender and recipient must be allowlisted when enforcement is enabled. Implements the ERC-7943 fungible interface (`canSend`, `canReceive`, `canTransfer`) and advertises it via ERC-165.
 
 ## Installation
 
@@ -202,7 +206,7 @@ npm run test
 
 ## Versioning
 
-The contract-level `version()` string is pinned to `0.2.0` via `CMTATConfidentialVersionModule`.
+The contract-level `version()` string is pinned to `0.3.0` via `CMTATConfidentialVersionModule`.
 
 ## Security
 
@@ -223,7 +227,11 @@ Nethermind AuditAgent automated scan (March 18, 2026, commit `51f9d7aa`) reporte
 | 7 | Info | Unbounded observer list can cause DoS on `mint` and `burn` | Duplicate of #4 — resolved together | `12249c1` |
 | 8 | Best Practice | Duplicate observer removal via `setRoleObserver(account, address(0))` | Fixed — `setRoleObserver` now rejects `address(0)` | `a74314e` |
 
-### Static Analysis — Aderyn
+### Static Analysis — Aderyn (v0.3.0)
+
+Aderyn static analysis (v0.3.0) reported **0 high** and **8 low** severity findings across the updated contracts. All findings are accepted or not applicable. Full rationale in [`aderyn-report-feedback.md`](./doc/audit/v0.3.0/aderyn-report-feedback.md).
+
+### Static Analysis — Aderyn (v0.2.0)
 
 Aderyn static analysis (v0.2.0) reported **0 high** and **8 low** severity findings across 12 contracts (663 nSLOC). All findings are accepted or not applicable for this codebase. Full rationale in [`aderyn-report-feedback.md`](./doc/audit/v0.2.0/aderyn-report-feedback.md), source report in [`aderyn-report.md`](./doc/audit/v0.2.0/aderyn-report.md).
 
@@ -278,6 +286,7 @@ At this stage, no Slither findings are available for this release due to this to
 | `SUPPLY_OBSERVER_ROLE` | Can manage total supply observers (`addTotalSupplyObserver`, `removeTotalSupplyObserver`) |
 | `SUPPLY_PUBLISHER_ROLE` | Can call `publishTotalSupply` |
 | `RULE_ENGINE_ROLE` | Can update the RuleEngine in `CMTATConfidentialRuleEngine` |
+| `ALLOWLIST_ROLE` | Can manage the allowlist in `CMTATConfidentialWhitelist` (`setAddressAllowlist`, `enableAllowlist`) |
 
 ## Contract Functions
 
@@ -361,6 +370,27 @@ await token.connect(sender)['confidentialTransfer(address,bytes32,bytes)'](
   encryptedInput.inputProof
 );
 ```
+
+### Whitelist Variant
+
+`CMTATConfidentialWhitelist` adds on/off allowlist enforcement to all holder and operator transfers. It implements the [ERC-7943](./doc/ERCSpecification/erc-7943-uRWA.md) fungible interface.
+
+```solidity
+// Enable or disable allowlist enforcement (ALLOWLIST_ROLE)
+function enableAllowlist(bool enabled) public onlyRole(ALLOWLIST_ROLE);
+
+// Add or remove an address from the allowlist (ALLOWLIST_ROLE)
+function setAddressAllowlist(address account, bool allowlisted) public onlyRole(ALLOWLIST_ROLE);
+
+// ERC-7943 view checks (return false when allowlist is enabled and address is not allowlisted)
+function canSend(address account) public view returns (bool);
+function canReceive(address account) public view returns (bool);
+function canTransfer(address from, address to, uint256 amount) public view returns (bool);
+```
+
+When the allowlist is enabled, any transfer where either party is not allowlisted reverts with `ERC7943CannotTransfer(from, to, 0)` (amount is always `0` since the actual amount is encrypted). The contract also reverts `ERC7943CannotReceive(to)` on mint and `ERC7943CannotSend(from)` on burn when the respective party is not allowlisted.
+
+When the allowlist is disabled, all these checks are bypassed and the contract behaves identically to `CMTATConfidential`.
 
 ### Forced Transfer
 
@@ -604,12 +634,13 @@ CMTAT-Confidential/
 │   ├── CMTATConfidential.sol                          # Full variant (+ total supply visibility)
 │   ├── CMTATConfidentialLite.sol                      # Lite variant (smaller, no total supply module)
 │   ├── CMTATConfidentialRuleEngine.sol                # Full variant + RuleEngine transfer restrictions
+│   ├── CMTATConfidentialWhitelist.sol                 # Full variant + ERC-7943 allowlist enforcement
 │   └── modules/
 │       ├── ERC7984MintModule.sol                  # Mint with authorization hook
 │       ├── ERC7984BurnModule.sol                  # Burn with authorization hook
 │       ├── ERC7984EnforcementModule.sol           # Forced transfer and forced burn
 │       ├── ERC7984BalanceViewModule.sol           # Per-account balance observers
-│       ├── CMTATConfidentialVersionModule.sol              # CMTAT Confidential version override (0.2.0)
+│       ├── CMTATConfidentialVersionModule.sol     # CMTAT Confidential version override (0.3.0)
 │       ├── ERC7984PublishTotalSupplyModule.sol    # Public total supply disclosure
 │       ├── ERC7984RuleEngineModule.sol            # RuleEngine storage, checks, and notifications
 │       └── ERC7984TotalSupplyViewModule.sol       # Total supply observer list (auto ACL)
@@ -624,6 +655,7 @@ CMTAT-Confidential/
 │   ├── CMTATConfidential.test.ts                           # Full variant core tests
 │   ├── CMTATConfidentialLite.test.ts                       # Lite variant core tests (shared suite)
 │   ├── CMTATConfidentialRuleEngine.test.ts                 # RuleEngine variant tests
+│   ├── CMTATConfidentialWhitelist.test.ts                  # Whitelist variant tests
 │   ├── ERC7984BalanceViewModule.test.ts           # Balance observer module tests
 │   ├── ERC7984PublishTotalSupplyModule.test.ts    # Public disclosure module tests
 │   ├── ERC7984TotalSupplyViewModule.test.ts       # Total supply observer module tests

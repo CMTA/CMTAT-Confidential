@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 import {ERC7984} from "../../openzeppelin-confidential-contracts/contracts/token/ERC7984/ERC7984.sol";
 import {FHE, externalEuint64, euint64} from "@fhevm/solidity/lib/FHE.sol";
+import {IERC7984MintModule} from "../interfaces/IERC7984MintModule.sol";
 
 /**
  * @title ERC7984MintModule
@@ -15,19 +16,9 @@ import {FHE, externalEuint64, euint64} from "@fhevm/solidity/lib/FHE.sol";
  * The authorization function `_authorizeMint()` must be overridden
  * in the inheriting contract to implement the desired access control.
  */
-abstract contract ERC7984MintModule is ERC7984 {
+abstract contract ERC7984MintModule is ERC7984, IERC7984MintModule {
     /* ============ State Variables ============ */
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-
-    /* ============ Events ============ */
-    event Mint(
-        address indexed minter,
-        address indexed to,
-        euint64 encryptedAmount
-    );
-
-    /* ============ Errors ============ */
-    error ERC7984MintModule_UnauthorizedHandle();
 
     /* ============ Modifier ============ */
     /**
@@ -40,13 +31,7 @@ abstract contract ERC7984MintModule is ERC7984 {
     }
 
     /* ============ Public Functions ============ */
-    /**
-     * @dev Mints tokens to an address using an encrypted amount with input proof.
-     * @param to Recipient address
-     * @param encryptedAmount Encrypted amount to mint
-     * @param inputProof Zero-knowledge proof for the encrypted input
-     * @return transferred The encrypted amount actually minted
-     */
+    /// @inheritdoc IERC7984MintModule
     function mint(
         address to,
         externalEuint64 encryptedAmount,
@@ -58,12 +43,7 @@ abstract contract ERC7984MintModule is ERC7984 {
         emit Mint(msg.sender, to, transferred);
     }
 
-    /**
-     * @dev Mints tokens to an address using an already-encrypted amount.
-     * @param to Recipient address
-     * @param amount Encrypted amount to mint (caller must have ACL access)
-     * @return transferred The encrypted amount actually minted
-     */
+    /// @inheritdoc IERC7984MintModule
     function mint(
         address to,
         euint64 amount

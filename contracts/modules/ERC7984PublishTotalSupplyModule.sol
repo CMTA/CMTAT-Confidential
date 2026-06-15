@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 import {ERC7984} from "../../openzeppelin-confidential-contracts/contracts/token/ERC7984/ERC7984.sol";
 import {FHE, euint64} from "@fhevm/solidity/lib/FHE.sol";
+import {IERC7984PublishTotalSupplyModule} from "../interfaces/IERC7984PublishTotalSupplyModule.sol";
 
 /**
  * @title ERC7984PublishTotalSupplyModule
@@ -20,17 +21,11 @@ import {FHE, euint64} from "@fhevm/solidity/lib/FHE.sol";
  * The authorization function `_authorizePublishTotalSupply()` must be overridden
  * in the inheriting contract to implement the desired access control.
  */
-abstract contract ERC7984PublishTotalSupplyModule is ERC7984 {
+abstract contract ERC7984PublishTotalSupplyModule is ERC7984, IERC7984PublishTotalSupplyModule {
     /* ============ Constants ============ */
     bytes32 public constant SUPPLY_PUBLISHER_ROLE = keccak256(
         "SUPPLY_PUBLISHER_ROLE"
     );
-
-    /* ============ Events ============ */
-    event TotalSupplyPublished(address indexed publishedBy);
-
-    /* ============ Errors ============ */
-    error ERC7984PublishTotalSupplyModule_TotalSupplyNotInitialized();
 
     /* ============ Modifier ============ */
     modifier onlySupplyPublisher() {
@@ -40,13 +35,7 @@ abstract contract ERC7984PublishTotalSupplyModule is ERC7984 {
 
     /* ============ Public Functions ============ */
 
-    /**
-     * @dev Marks the current total supply handle as publicly decryptable.
-     * Any off-chain party can then request decryption via the Zama Relayer SDK
-     * without ACL access. This action is irrevocable for the current handle.
-     * After the next mint or burn the new handle will not be publicly decryptable
-     * — call this function again if needed.
-     */
+    /// @inheritdoc IERC7984PublishTotalSupplyModule
     function publishTotalSupply() public virtual onlySupplyPublisher {
         euint64 ts = confidentialTotalSupply();
         if (!FHE.isInitialized(ts)) {
