@@ -62,7 +62,7 @@ export function runCoreTests() {
     });
 
     it('exposes the CMTAT Confidential version', async function () {
-      expect(await this.token.version()).to.equal('0.2.0');
+      expect(await this.token.version()).to.equal('0.3.0');
     });
   });
 
@@ -123,7 +123,7 @@ export function runCoreTests() {
         this.token.connect(this.minter)['mint(address,bytes32,bytes)'](
           this.holder.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotReceive');
     });
 
     it('cannot mint when contract is deactivated', async function () {
@@ -134,7 +134,7 @@ export function runCoreTests() {
         this.token.connect(this.minter)['mint(address,bytes32,bytes)'](
           this.holder.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotReceive');
     });
   });
 
@@ -184,7 +184,7 @@ export function runCoreTests() {
         this.token.connect(this.burner)['burn(address,bytes32,bytes)'](
           this.holder.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotSend');
     });
   });
 
@@ -217,7 +217,7 @@ export function runCoreTests() {
         this.token.connect(this.holder)['confidentialTransfer(address,bytes32,bytes)'](
           this.recipient.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
     });
 
     it('mint is allowed when paused', async function () {
@@ -246,7 +246,7 @@ export function runCoreTests() {
         this.token.connect(this.accounts[0])['confidentialTransferFrom(address,address,bytes32,bytes)'](
           this.holder.address, this.recipient.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
     });
   });
 
@@ -281,7 +281,7 @@ export function runCoreTests() {
         this.token.connect(this.holder)['confidentialTransfer(address,bytes32,bytes)'](
           this.recipient.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
     });
 
     it('cannot transfer to frozen address', async function () {
@@ -291,7 +291,7 @@ export function runCoreTests() {
         this.token.connect(this.holder)['confidentialTransfer(address,bytes32,bytes)'](
           this.recipient.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
     });
   });
 
@@ -333,7 +333,7 @@ export function runCoreTests() {
         this.token.connect(this.enforcer)['forcedTransfer(address,address,bytes32,bytes)'](
           this.holder.address, this.recipient.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'CMTAT_AddressNotFrozen');
     });
 
     it('non-enforcer cannot force transfer', async function () {
@@ -353,7 +353,7 @@ export function runCoreTests() {
         this.token.connect(this.enforcer)['forcedTransfer(address,address,bytes32,bytes)'](
           this.holder.address, ethers.ZeroAddress, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_AddressZeroNotAllowed');
+      ).to.be.revertedWithCustomError(this.token, 'CMTAT_Enforcement_ZeroAddressNotAllowed');
     });
 
     it('enforcer can force transfer even when contract is deactivated', async function () {
@@ -420,7 +420,7 @@ export function runCoreTests() {
         this.token.connect(this.enforcer)['forcedBurn(address,bytes32,bytes)'](
           this.holder.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'CMTAT_AddressNotFrozen');
     });
 
     it('non-enforcer cannot force burn', async function () {

@@ -5,6 +5,8 @@ import {
   mint,
   encryptAmount,
   decryptBalance,
+  PAUSER_ROLE,
+  ENFORCER_ROLE,
   TOKEN_NAME,
   TOKEN_SYMBOL,
   CONTRACT_URI,
@@ -205,6 +207,48 @@ describe('CMTATConfidentialRuleEngine', function () {
       expect(
         await decryptBalance(this.token.target, recipientHandle, this.recipient)
       ).to.equal(100n);
+    });
+
+    it('blocks transfer when paused even if rule engine allows it', async function () {
+      await this.token.connect(this.pauser).pause();
+      const enc = await encryptAmount(this.token.target, this.holder.address, 100);
+      await expect(
+        this.token.connect(this.holder)['confidentialTransfer(address,bytes32,bytes)'](
+          this.recipient.address, enc.handles[0], enc.inputProof
+        )
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
+    });
+
+    it('blocks transfer when sender is frozen even if rule engine allows it', async function () {
+      await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
+      const enc = await encryptAmount(this.token.target, this.holder.address, 100);
+      await expect(
+        this.token.connect(this.holder)['confidentialTransfer(address,bytes32,bytes)'](
+          this.recipient.address, enc.handles[0], enc.inputProof
+        )
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
+    });
+
+    it('confidentialTransferAndCall is blocked by rule engine for unauthorized operator', async function () {
+      const receiver = await ethers.deployContract('ConfidentialReceiverMock', [true]);
+      const exp = BigInt((await ethers.provider.getBlock('latest'))!.timestamp + 3600);
+      await this.token.connect(this.holder).setOperator(this.unauthorizedOperator.address, exp);
+      const enc = await encryptAmount(this.token.target, this.unauthorizedOperator.address, 100);
+      await expect(
+        this.token.connect(this.unauthorizedOperator)['confidentialTransferFromAndCall(address,address,bytes32,bytes,bytes)'](
+          this.holder.address, receiver.target, enc.handles[0], enc.inputProof, '0x'
+        )
+      ).to.be.revertedWithCustomError(this.ruleEngine, 'RuleEngine_InvalidTransfer');
+    });
+
+    it('confidentialTransferAndCall succeeds when rule engine allows it', async function () {
+      const receiver = await ethers.deployContract('ConfidentialReceiverMock', [true]);
+      const enc = await encryptAmount(this.token.target, this.holder.address, 100);
+      await this.token.connect(this.holder)['confidentialTransferAndCall(address,bytes32,bytes,bytes)'](
+        receiver.target, enc.handles[0], enc.inputProof, '0x'
+      );
+      const holderHandle = await this.token.confidentialBalanceOf(this.holder.address);
+      expect(await decryptBalance(this.token.target, holderHandle, this.holder)).to.equal(900n);
     });
   });
 

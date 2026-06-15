@@ -40,7 +40,34 @@ npx prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'
    - `doc/audit/vX.Y.Z/aderyn-report.md`
    - `doc/audit/vX.Y.Z/aderyn-report-feedback.md`
 
+## 0.3.0
+
+### Added
+
+- **`CMTATConfidentialRuleEngine`** (`0ab6137`): New deployment variant that gates all confidential transfers through a CMTA `IRuleEngine`. Because transfer amounts are encrypted, the RuleEngine always receives `value = 0`; rules can still enforce public restrictions (allowlists, blacklists, spender authorization, timestamps, etc.). Includes `canTransfer` / `canTransferFrom` view functions for ERC-7943 pre-flight checks.
+- **`ERC7984RuleEngineModule`** (`0ab6137`): Abstract module encapsulating RuleEngine integration — `setRuleEngine`, `_canTransferByRuleEngine`, `_canTransferFromByRuleEngine`, `_transferredByRuleEngine`, `_transferredFromByRuleEngine`. Gated by `RULE_ENGINE_ROLE`.
+- **`CMTATConfidentialWhitelist`** (`e237fea`, `f40068f`, `b08c62d`): New deployment variant enforcing an on-chain allowlist for confidential transfers. When `isAllowlistEnabled()` is true, both sender and recipient must be allowlisted. Overrides `canSend` / `canReceive` to compose CMTAT freeze/pause checks with allowlist policy. Exposes `canTransfer` and advertises `0x3edbb4c4` (ERC-7943 fungible) via ERC-165. Gated by `ALLOWLIST_ROLE`.
+- **`lib/RuleEngine`** (`0ab6137`): Added CMTA RuleEngine submodule under `lib/`.
+- **ERC-7943 specification** (`e237fea`): Added `doc/ERCSpecification/erc-7943-uRWA.md`.
+
+### Changed
+
+- **CMTAT submodule relocated** (`0ab6137`): Moved from `CMTAT/` to `lib/CMTAT/` to align all submodules under `lib/`.
+- **CMTAT updated to v3.3.0-rc1** (`b08c62d`): Picks up native `canSend` / `canReceive` hooks used by `CMTATConfidentialWhitelist`.
+- **`CMTATConfidentialVersionModule`**: version string updated to `"0.3.0"`.
+
+### Documentation
+
+- Added explicit inheritance delegation guideline to `CLAUDE.md` / `AGENTS.md` (`0ab6137`): prefer explicit parent calls (`CMTATConfidential.supportsInterface(...)`) over `super` in multi-inheritance contexts.
+
+### Testing
+
+- Added `test/CMTATConfidentialRuleEngine.test.ts` (`0ab6137`): covers rule engine allow/block paths, `setRuleEngine`, `canTransfer` / `canTransferFrom` semantics, and full `runCoreTests()` suite.
+- Added `test/CMTATConfidentialWhitelist.test.ts` (`f40068f`): covers allowlist enable/disable, per-address allowlisting, operator path, ERC-7943 view functions, ERC-165 interface advertisement, and full `runCoreTests()` suite.
+
 ## 0.2.0
+
+Commit: `99fb89bc1331edaeaf662546dcb81f3acfe7be2e`
 
 Nethermind AuditAgent findings (March 18, 2026) — all addressed.
 

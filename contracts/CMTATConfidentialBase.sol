@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 /* ==== CMTAT Modules === */
 import {CMTATBaseGeneric} from "../lib/CMTAT/contracts/modules/0_CMTATBaseGeneric.sol";
 import {ICMTATConstructor} from "../lib/CMTAT/contracts/interfaces/technical/ICMTATConstructor.sol";
+import {IERC7943FungibleTransferError} from "../lib/CMTAT/contracts/interfaces/tokenization/draft-IERC7943.sol";
 
 /* ==== OpenZeppelin === */
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
@@ -44,6 +45,7 @@ import {VersionModule} from "../lib/CMTAT/contracts/modules/wrapper/core/Version
 abstract contract CMTATConfidentialBase is
     ERC7984,
     CMTATBaseGeneric,
+    IERC7943FungibleTransferError,
     ZamaEthereumConfig,
     ERC7984MintModule,
     ERC7984BurnModule,
@@ -55,9 +57,12 @@ abstract contract CMTATConfidentialBase is
     uint8 private immutable _TOKEN_DECIMALS;
 
     /* ============ Errors ============ */
-    /// @dev Since the amount is encrypted, we use a string reason instead of amount
-    error CMTAT_InvalidTransfer(address from, address to, string reason);
-    error CMTAT_AddressZeroNotAllowed();
+    /// @dev CMTAT defines `CMTAT_BurnEnforcement_AddressIsNotFrozen()` (no args, burn-only) in
+    /// CMTATBaseCore, which is outside our inheritance chain. We define our own with the address
+    /// parameter so callers can identify which account failed the frozen precondition, and we reuse
+    /// it for both forcedTransfer and forcedBurn.
+    error CMTAT_AddressNotFrozen(address from);
+    // CMTAT_Enforcement_ZeroAddressNotAllowed() (no-arg) is already in scope via EnforcementModuleInternal.
     /// @dev Reverted when `decimals_` exceeds 18. ERC-7984 balances use `euint64`
     /// (max 18_446_744_073_709_551_615 raw units); above 18 decimals the type cannot
     /// represent even a single human-readable token.
@@ -194,13 +199,13 @@ abstract contract CMTATConfidentialBase is
 
     function _validateMint(address to) internal virtual override {
         if (!_canMintBurnByModule(to)) {
-            revert CMTAT_InvalidTransfer(address(0), to, "Mint blocked");
+            revert ERC7943CannotReceive(to);
         }
     }
 
     function _validateBurn(address from) internal virtual override {
         if (!_canMintBurnByModule(from)) {
-            revert CMTAT_InvalidTransfer(from, address(0), "Burn blocked");
+            revert ERC7943CannotSend(from);
         }
     }
 
@@ -209,20 +214,16 @@ abstract contract CMTATConfidentialBase is
         address to
     ) internal virtual override {
         if (to == address(0)) {
-            revert CMTAT_AddressZeroNotAllowed();
+            revert CMTAT_Enforcement_ZeroAddressNotAllowed();
         }
         if (!isFrozen(from)) {
-            revert CMTAT_InvalidTransfer(from, to, "Address not frozen");
+            revert CMTAT_AddressNotFrozen(from);
         }
     }
 
     function _validateForcedBurn(address from) internal virtual override {
         if (!isFrozen(from)) {
-            revert CMTAT_InvalidTransfer(
-                from,
-                address(0),
-                "Address not frozen"
-            );
+            revert CMTAT_AddressNotFrozen(from);
         }
     }
 
@@ -236,7 +237,7 @@ abstract contract CMTATConfidentialBase is
     ) public virtual override returns (euint64) {
         address from = _msgSender();
         if (!_canTransferGenericByModule(address(0), from, to)) {
-            revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
+            revert ERC7943CannotTransfer(from, to, 0);
         }
         return ERC7984.confidentialTransfer(to, encryptedAmount, inputProof);
     }
@@ -248,7 +249,7 @@ abstract contract CMTATConfidentialBase is
     ) public virtual override returns (euint64) {
         address from = _msgSender();
         if (!_canTransferGenericByModule(address(0), from, to)) {
-            revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
+            revert ERC7943CannotTransfer(from, to, 0);
         }
         return ERC7984.confidentialTransfer(to, amount);
     }
@@ -261,7 +262,7 @@ abstract contract CMTATConfidentialBase is
         bytes calldata inputProof
     ) public virtual override returns (euint64 transferred) {
         if (!_canTransferGenericByModule(_msgSender(), from, to)) {
-            revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
+            revert ERC7943CannotTransfer(from, to, 0);
         }
         return
             ERC7984.confidentialTransferFrom(
@@ -279,7 +280,7 @@ abstract contract CMTATConfidentialBase is
         euint64 amount
     ) public virtual override returns (euint64 transferred) {
         if (!_canTransferGenericByModule(_msgSender(), from, to)) {
-            revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
+            revert ERC7943CannotTransfer(from, to, 0);
         }
         return ERC7984.confidentialTransferFrom(from, to, amount);
     }
@@ -305,7 +306,7 @@ abstract contract CMTATConfidentialBase is
     ) public virtual override returns (euint64 transferred) {
         address from = _msgSender();
         if (!_canTransferGenericByModule(address(0), from, to)) {
-            revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
+            revert ERC7943CannotTransfer(from, to, 0);
         }
         return
             ERC7984.confidentialTransferAndCall(
@@ -329,7 +330,7 @@ abstract contract CMTATConfidentialBase is
     ) public virtual override returns (euint64 transferred) {
         address from = _msgSender();
         if (!_canTransferGenericByModule(address(0), from, to)) {
-            revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
+            revert ERC7943CannotTransfer(from, to, 0);
         }
         return ERC7984.confidentialTransferAndCall(to, amount, data);
     }
@@ -343,7 +344,7 @@ abstract contract CMTATConfidentialBase is
         bytes calldata data
     ) public virtual override returns (euint64 transferred) {
         if (!_canTransferGenericByModule(_msgSender(), from, to)) {
-            revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
+            revert ERC7943CannotTransfer(from, to, 0);
         }
         return
             ERC7984.confidentialTransferFromAndCall(
@@ -363,7 +364,7 @@ abstract contract CMTATConfidentialBase is
         bytes calldata data
     ) public virtual override returns (euint64 transferred) {
         if (!_canTransferGenericByModule(_msgSender(), from, to)) {
-            revert CMTAT_InvalidTransfer(from, to, "Transfer blocked");
+            revert ERC7943CannotTransfer(from, to, 0);
         }
         return ERC7984.confidentialTransferFromAndCall(from, to, amount, data);
     }

@@ -5,16 +5,13 @@ import {
   mint,
   encryptAmount,
   decryptBalance,
+  ALLOWLIST_ROLE,
   TOKEN_NAME,
   TOKEN_SYMBOL,
   CONTRACT_URI,
   EXTRA_INFO,
 } from './helpers/deploy';
 import { runCoreTests } from './helpers/core-tests';
-
-const ALLOWLIST_ROLE = ethers.keccak256(
-  ethers.toUtf8Bytes('ALLOWLIST_ROLE')
-);
 const ERC7943_FUNGIBLE_INTERFACE_ID = '0x3edbb4c4';
 
 describe('CMTATConfidentialWhitelist', function () {
@@ -223,6 +220,30 @@ describe('CMTATConfidentialWhitelist', function () {
           ethers.MaxUint256
         )
       ).to.equal(true);
+    });
+
+    it('confidentialTransferAndCall is blocked when allowlist is enabled and sender is not allowlisted', async function () {
+      await this.token.connect(this.admin).enableAllowlist(true);
+      const receiver = await ethers.deployContract('ConfidentialReceiverMock', [true]);
+      const enc = await encryptAmount(this.token.target, this.holder.address, 100);
+      await expect(
+        this.token.connect(this.holder)['confidentialTransferAndCall(address,bytes32,bytes,bytes)'](
+          receiver.target, enc.handles[0], enc.inputProof, '0x'
+        )
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
+    });
+
+    it('confidentialTransferFromAndCall is blocked when allowlist is enabled and sender is not allowlisted', async function () {
+      await this.token.connect(this.admin).enableAllowlist(true);
+      const receiver = await ethers.deployContract('ConfidentialReceiverMock', [true]);
+      const exp = BigInt((await ethers.provider.getBlock('latest'))!.timestamp + 3600);
+      await this.token.connect(this.holder).setOperator(this.accounts[0].address, exp);
+      const enc = await encryptAmount(this.token.target, this.accounts[0].address, 100);
+      await expect(
+        this.token.connect(this.accounts[0])['confidentialTransferFromAndCall(address,address,bytes32,bytes,bytes)'](
+          this.holder.address, receiver.target, enc.handles[0], enc.inputProof, '0x'
+        )
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
     });
   });
 

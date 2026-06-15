@@ -20,8 +20,6 @@ import {ValidationModule} from "../lib/CMTAT/contracts/modules/wrapper/controlle
 contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
     bytes4 private constant _INTERFACE_ID_ERC7943_FUNGIBLE = 0x3edbb4c4;
 
-    error ERC7943CannotTransfer(address from, address to, uint256 amount);
-
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(
         string memory name_,
@@ -79,10 +77,7 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
         address to,
         uint256 /*amount*/
     ) public view returns (bool allowed) {
-        return
-            canSend(from) &&
-            canReceive(to) &&
-            _canTransferByWhitelistPolicy(from, to);
+        return canSend(from) && canReceive(to);
     }
 
     function confidentialTransfer(

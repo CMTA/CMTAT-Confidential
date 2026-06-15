@@ -69,12 +69,12 @@ contract CMTATConfidentialRuleEngine is
         bytes calldata inputProof
     ) public virtual override returns (euint64 transferred) {
         address from = _msgSender();
-        _transferredByRuleEngine(from, to);
         transferred = CMTATConfidential.confidentialTransfer(
             to,
             encryptedAmount,
             inputProof
         );
+        _transferredByRuleEngine(from, to);
     }
 
     function confidentialTransfer(
@@ -82,8 +82,8 @@ contract CMTATConfidentialRuleEngine is
         euint64 amount
     ) public virtual override returns (euint64 transferred) {
         address from = _msgSender();
-        _transferredByRuleEngine(from, to);
         transferred = CMTATConfidential.confidentialTransfer(to, amount);
+        _transferredByRuleEngine(from, to);
     }
 
     function confidentialTransferFrom(
@@ -93,13 +93,13 @@ contract CMTATConfidentialRuleEngine is
         bytes calldata inputProof
     ) public virtual override returns (euint64 transferred) {
         address spender = _msgSender();
-        _transferredFromByRuleEngine(spender, from, to);
         transferred = CMTATConfidential.confidentialTransferFrom(
             from,
             to,
             encryptedAmount,
             inputProof
         );
+        _transferredFromByRuleEngine(spender, from, to);
     }
 
     function confidentialTransferFrom(
@@ -108,12 +108,12 @@ contract CMTATConfidentialRuleEngine is
         euint64 amount
     ) public virtual override returns (euint64 transferred) {
         address spender = _msgSender();
-        _transferredFromByRuleEngine(spender, from, to);
         transferred = CMTATConfidential.confidentialTransferFrom(
             from,
             to,
             amount
         );
+        _transferredFromByRuleEngine(spender, from, to);
     }
 
     function confidentialTransferAndCall(
@@ -123,13 +123,13 @@ contract CMTATConfidentialRuleEngine is
         bytes calldata data
     ) public virtual override returns (euint64 transferred) {
         address from = _msgSender();
-        _transferredByRuleEngine(from, to);
         transferred = CMTATConfidential.confidentialTransferAndCall(
             to,
             encryptedAmount,
             inputProof,
             data
         );
+        _transferredByRuleEngine(from, to);
     }
 
     function confidentialTransferAndCall(
@@ -138,12 +138,12 @@ contract CMTATConfidentialRuleEngine is
         bytes calldata data
     ) public virtual override returns (euint64 transferred) {
         address from = _msgSender();
-        _transferredByRuleEngine(from, to);
         transferred = CMTATConfidential.confidentialTransferAndCall(
             to,
             amount,
             data
         );
+        _transferredByRuleEngine(from, to);
     }
 
     function confidentialTransferFromAndCall(
@@ -154,7 +154,6 @@ contract CMTATConfidentialRuleEngine is
         bytes calldata data
     ) public virtual override returns (euint64 transferred) {
         address spender = _msgSender();
-        _transferredFromByRuleEngine(spender, from, to);
         transferred = CMTATConfidential.confidentialTransferFromAndCall(
             from,
             to,
@@ -162,6 +161,7 @@ contract CMTATConfidentialRuleEngine is
             inputProof,
             data
         );
+        _transferredFromByRuleEngine(spender, from, to);
     }
 
     function confidentialTransferFromAndCall(
@@ -171,13 +171,13 @@ contract CMTATConfidentialRuleEngine is
         bytes calldata data
     ) public virtual override returns (euint64 transferred) {
         address spender = _msgSender();
-        _transferredFromByRuleEngine(spender, from, to);
         transferred = CMTATConfidential.confidentialTransferFromAndCall(
             from,
             to,
             amount,
             data
         );
+        _transferredFromByRuleEngine(spender, from, to);
     }
 
     function _authorizeRuleEngineManagement()

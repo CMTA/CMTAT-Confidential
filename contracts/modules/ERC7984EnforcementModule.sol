@@ -73,9 +73,10 @@ abstract contract ERC7984EnforcementModule is ERC7984 {
 
     /* ============ Public Functions - Forced Transfer ============ */
     /**
-     * @dev Forces a transfer from one address to another using encrypted amount with input proof.
-     * Bypasses freeze checks. Can be performed even when the contract is deactivated
-     * unless the inheriting contract adds an explicit deactivation check.
+     * @dev Transfers tokens from a frozen address, bypassing the freeze restriction
+     * that normally blocks `confidentialTransfer` from frozen senders.
+     * Can be performed even when the contract is deactivated unless the inheriting
+     * contract adds an explicit deactivation check in `_validateForcedTransfer`.
      * @param from Source address
      * @param to Destination address
      * @param encryptedAmount Encrypted amount to transfer
@@ -103,8 +104,8 @@ abstract contract ERC7984EnforcementModule is ERC7984 {
     }
 
     /**
-     * @dev Forces a transfer from one address to another using an already-encrypted amount.
-     * Bypasses freeze checks but respects contract deactivation.
+     * @dev Transfers tokens from a frozen address using an already-encrypted amount,
+     * bypassing the freeze restriction that normally blocks `confidentialTransfer`.
      * @param from Source address
      * @param to Destination address
      * @param amount Encrypted amount to transfer (caller must have ACL access)
@@ -131,8 +132,9 @@ abstract contract ERC7984EnforcementModule is ERC7984 {
 
     /* ============ Public Functions - Forced Burn ============ */
     /**
-     * @dev Forces a burn of tokens from a frozen address using encrypted amount with input proof.
-     * Bypasses freeze checks. Can be performed even when the contract is deactivated.
+     * @dev Burns tokens from a frozen address, bypassing the freeze restriction
+     * that normally blocks regular burns from frozen addresses.
+     * Can be performed even when the contract is deactivated.
      * @param from Address to burn from (must be frozen)
      * @param encryptedAmount Encrypted amount to burn
      * @param inputProof Zero-knowledge proof for the encrypted input
@@ -150,8 +152,9 @@ abstract contract ERC7984EnforcementModule is ERC7984 {
     }
 
     /**
-     * @dev Forces a burn of tokens from a frozen address using an already-encrypted amount.
-     * Bypasses freeze checks. Can be performed even when the contract is deactivated.
+     * @dev Burns tokens from a frozen address using an already-encrypted amount,
+     * bypassing the freeze restriction that normally blocks regular burns.
+     * Can be performed even when the contract is deactivated.
      * @param from Address to burn from (must be frozen)
      * @param amount Encrypted amount to burn (caller must have ACL access)
      * @return burned The encrypted amount actually burned

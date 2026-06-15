@@ -58,7 +58,7 @@ describe('ERC7984EnforcementModule', function () {
         this.token.connect(this.enforcer)['forcedBurn(address,bytes32,bytes)'](
           this.holder.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'CMTAT_AddressNotFrozen');
     });
 
     it('emits ForcedBurn', async function () {
@@ -88,22 +88,25 @@ describe('ERC7984EnforcementModule', function () {
     beforeEach(async function () {
       await mint(this.token, this.minter, this.holder, 1000);
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
+      this.factory = await ethers.deployContract('Euint64Factory');
     });
 
     it('_afterBurn is called: total supply observers get ACL on new handle after forcedBurn', async function () {
       await this.token.connect(this.supplyManager).addTotalSupplyObserver(this.supplyObserver.address);
 
-      // Mint a fresh encrypted amount that the enforcer has ACL access to
-      const enc = await encryptAmount(this.token.target, this.enforcer.address, 300);
-      const handle = await this.token.connect(this.enforcer)
-        ['forcedBurn(address,bytes32,bytes)'].staticCall(
-          this.holder.address, enc.handles[0], enc.inputProof
-        ).catch(() => null);
+      const tx = await this.factory.connect(this.enforcer).makeFor(this.token.target, 200);
+      const receipt = await tx.wait();
+      let amountHandle: string | undefined;
+      for (const log of receipt.logs) {
+        try {
+          const parsed = this.factory.interface.parseLog(log);
+          if (parsed?.name === 'HandleCreated') { amountHandle = parsed.args.handle; break; }
+        } catch { /* ignore */ }
+      }
+      if (!amountHandle) throw new Error('HandleCreated event not found');
 
-      // Use externalEuint64 overload for simplicity in the euint64 ACL path
-      const enc2 = await encryptAmount(this.token.target, this.enforcer.address, 200);
-      await this.token.connect(this.enforcer)['forcedBurn(address,bytes32,bytes)'](
-        this.holder.address, enc2.handles[0], enc2.inputProof
+      await this.token.connect(this.enforcer)['forcedBurn(address,bytes32)'](
+        this.holder.address, amountHandle
       );
 
       const supply = await decryptTotalSupply(this.token, this.supplyObserver);
