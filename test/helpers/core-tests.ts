@@ -186,6 +186,17 @@ export function runCoreTests() {
         )
       ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotSend');
     });
+
+    it('cannot burn when contract is deactivated', async function () {
+      await this.token.connect(this.pauser).pause();
+      await this.token.connect(this.admin).deactivateContract();
+      const enc = await encryptAmount(this.token.target, this.burner.address, 500);
+      await expect(
+        this.token.connect(this.burner)['burn(address,bytes32,bytes)'](
+          this.holder.address, enc.handles[0], enc.inputProof
+        )
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotSend');
+    });
   });
 
   // ─── pause ────────────────────────────────────────────────────────────────
@@ -245,6 +256,30 @@ export function runCoreTests() {
       await expect(
         this.token.connect(this.accounts[0])['confidentialTransferFrom(address,address,bytes32,bytes)'](
           this.holder.address, this.recipient.address, enc.handles[0], enc.inputProof
+        )
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
+    });
+
+    it('confidentialTransferAndCall is blocked when paused', async function () {
+      await this.token.connect(this.pauser).pause();
+      const receiver = await ethers.deployContract('ConfidentialReceiverMock', [true]);
+      const enc = await encryptAmount(this.token.target, this.holder.address, 100);
+      await expect(
+        this.token.connect(this.holder)['confidentialTransferAndCall(address,bytes32,bytes,bytes)'](
+          receiver.target, enc.handles[0], enc.inputProof, '0x'
+        )
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
+    });
+
+    it('confidentialTransferFromAndCall is blocked when paused', async function () {
+      const exp = Math.floor(Date.now() / 1000) + 86400;
+      await this.token.connect(this.holder).setOperator(this.accounts[0].address, exp);
+      await this.token.connect(this.pauser).pause();
+      const receiver = await ethers.deployContract('ConfidentialReceiverMock', [true]);
+      const enc = await encryptAmount(this.token.target, this.accounts[0].address, 100);
+      await expect(
+        this.token.connect(this.accounts[0])['confidentialTransferFromAndCall(address,address,bytes32,bytes,bytes)'](
+          this.holder.address, receiver.target, enc.handles[0], enc.inputProof, '0x'
         )
       ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
     });

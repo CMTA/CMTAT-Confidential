@@ -50,6 +50,16 @@ describe('ERC7984PublishTotalSupplyModule', function () {
       await mint(this.token, this.minter, this.holder, 1000);
       await expect(this.token.connect(this.other).publishTotalSupply()).to.be.reverted;
     });
+
+    it('can be called again after a subsequent mint creates a new handle', async function () {
+      await mint(this.token, this.minter, this.holder, 1000);
+      await this.token.connect(this.supplyManager).publishTotalSupply();
+      // A second mint produces a new total supply handle; publishTotalSupply can be called again
+      await mint(this.token, this.minter, this.holder, 500);
+      await expect(this.token.connect(this.supplyManager).publishTotalSupply())
+        .to.emit(this.token, 'TotalSupplyPublished')
+        .withArgs(this.supplyManager.address);
+    });
   });
 
   // ─── CMTATConfidentialLite ─────────────────────────────────────────────────────────
