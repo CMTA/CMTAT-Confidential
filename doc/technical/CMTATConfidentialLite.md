@@ -6,7 +6,7 @@
 
 `publishTotalSupply` (one-shot public disclosure) is still available from `ERC7984PublishTotalSupplyModule`, which is part of the shared base.
 
-**Source file:** `contracts/CMTATConfidentialLite.sol`
+**Source file:** `contracts/deployment/CMTATConfidentialLite.sol`
 **Contract version:** `0.3.0` (via `CMTATConfidentialVersionModule`)
 **Contract size:** ~19.7 KB
 

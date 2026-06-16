@@ -6,7 +6,7 @@
 
 Forced operations (`forcedTransfer`, `forcedBurn`) intentionally bypass the allowlist — they enforce only the frozen-address precondition. This mirrors CMTAT's design intent where regulatory enforcement powers (court orders, sanctions, error correction) override operational restrictions.
 
-**Source file:** `contracts/CMTATConfidentialWhitelist.sol`
+**Source file:** `contracts/deployment/CMTATConfidentialWhitelist.sol`
 **Contract version:** `0.3.0` (via `CMTATConfidentialVersionModule`)
 **Contract size:** ~22.2 KB
 

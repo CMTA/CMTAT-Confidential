@@ -6,7 +6,7 @@
 
 Because transfer amounts are encrypted (`euint64`), the RuleEngine always receives `value = 0` — only the public sender and receiver addresses are available for policy evaluation.
 
-**Source file:** `contracts/CMTATConfidentialRuleEngine.sol`
+**Source file:** `contracts/deployment/CMTATConfidentialRuleEngine.sol`
 **Contract version:** `0.3.0` (via `CMTATConfidentialVersionModule`)
 **Contract size:** ~22.2 KB
 
