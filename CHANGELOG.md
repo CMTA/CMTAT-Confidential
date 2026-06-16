@@ -49,6 +49,7 @@ npx prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'
 
 ### Changed
 
+- **`contracts/deployment/` directory**: The four concrete deployment variants (`CMTATConfidential`, `CMTATConfidentialLite`, `CMTATConfidentialRuleEngine`, `CMTATConfidentialWhitelist`) have been moved from `contracts/` to `contracts/deployment/`. `CMTATConfidentialBase` remains in `contracts/`. Import paths within the moved files have been updated accordingly.
 - **ERC-7943 standard errors**: Transfer/mint/burn validation now uses the standard `ERC7943CannotReceive(address)`, `ERC7943CannotSend(address)`, and `ERC7943CannotTransfer(address, address, uint256)` errors instead of the project-local `CMTAT_InvalidTransfer`. `ERC7943CannotSend`/`CannotReceive` are in scope via CMTAT's `ValidationModule`; `IERC7943FungibleTransferError` is explicitly imported in `CMTATConfidentialBase` for `ERC7943CannotTransfer`. **Breaking change** for callers that caught `CMTAT_InvalidTransfer`.
 - **Forced-operation error alignment**: `CMTAT_AddressZeroNotAllowed` replaced by `CMTAT_Enforcement_ZeroAddressNotAllowed` (inherited from CMTAT's `EnforcementModuleInternal`, no-arg). A local `CMTAT_AddressNotFrozen(address from)` is kept because CMTAT's `CMTAT_BurnEnforcement_AddressIsNotFrozen()` (no-arg, burn-only, defined in `CMTATBaseCore`) is outside the inheritance chain and lacks an address parameter.
 
