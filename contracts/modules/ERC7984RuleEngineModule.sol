@@ -62,24 +62,20 @@ abstract contract ERC7984RuleEngineModule is ValidationModuleRuleEngineInternal 
         return ruleEngine_.canTransferFrom(spender, from, to, 0);
     }
 
-    function _transferredByRuleEngine(
-        address from,
-        address to
-    ) internal virtual {
+    /**
+     * @dev Fires `ruleEngine.transferred()` before FHE arithmetic, matching CMTAT's
+     * pre-transfer enforcement order. If the rule engine reverts, no FHE gas is wasted.
+     * Intended to be wired in as the `_beforeTransfer` hook from `CMTATConfidentialBase`
+     * via an explicit override in the deployment contract.
+     */
+    function _applyRuleEngine(address spender, address from, address to) internal virtual {
         IRuleEngine ruleEngine_ = ruleEngine();
         if (address(ruleEngine_) != address(0)) {
-            ruleEngine_.transferred(from, to, 0);
-        }
-    }
-
-    function _transferredFromByRuleEngine(
-        address spender,
-        address from,
-        address to
-    ) internal virtual {
-        IRuleEngine ruleEngine_ = ruleEngine();
-        if (address(ruleEngine_) != address(0)) {
-            ruleEngine_.transferred(spender, from, to, 0);
+            if (spender != address(0)) {
+                ruleEngine_.transferred(spender, from, to, 0);
+            } else {
+                ruleEngine_.transferred(from, to, 0);
+            }
         }
     }
 

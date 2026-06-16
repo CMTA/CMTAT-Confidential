@@ -247,6 +247,7 @@ abstract contract CMTATConfidentialBase is
         if (!_canTransferGenericByModule(address(0), from, to)) {
             revert ERC7943CannotTransfer(from, to, 0);
         }
+        _beforeTransfer(address(0), from, to);
         return ERC7984.confidentialTransfer(to, encryptedAmount, inputProof);
     }
 
@@ -259,6 +260,7 @@ abstract contract CMTATConfidentialBase is
         if (!_canTransferGenericByModule(address(0), from, to)) {
             revert ERC7943CannotTransfer(from, to, 0);
         }
+        _beforeTransfer(address(0), from, to);
         return ERC7984.confidentialTransfer(to, amount);
     }
 
@@ -269,16 +271,12 @@ abstract contract CMTATConfidentialBase is
         externalEuint64 encryptedAmount,
         bytes calldata inputProof
     ) public virtual override returns (euint64 transferred) {
-        if (!_canTransferGenericByModule(_msgSender(), from, to)) {
+        address spender = _msgSender();
+        if (!_canTransferGenericByModule(spender, from, to)) {
             revert ERC7943CannotTransfer(from, to, 0);
         }
-        return
-            ERC7984.confidentialTransferFrom(
-                from,
-                to,
-                encryptedAmount,
-                inputProof
-            );
+        _beforeTransfer(spender, from, to);
+        return ERC7984.confidentialTransferFrom(from, to, encryptedAmount, inputProof);
     }
 
     /// @inheritdoc ERC7984
@@ -287,9 +285,11 @@ abstract contract CMTATConfidentialBase is
         address to,
         euint64 amount
     ) public virtual override returns (euint64 transferred) {
-        if (!_canTransferGenericByModule(_msgSender(), from, to)) {
+        address spender = _msgSender();
+        if (!_canTransferGenericByModule(spender, from, to)) {
             revert ERC7943CannotTransfer(from, to, 0);
         }
+        _beforeTransfer(spender, from, to);
         return ERC7984.confidentialTransferFrom(from, to, amount);
     }
 
@@ -316,13 +316,8 @@ abstract contract CMTATConfidentialBase is
         if (!_canTransferGenericByModule(address(0), from, to)) {
             revert ERC7943CannotTransfer(from, to, 0);
         }
-        return
-            ERC7984.confidentialTransferAndCall(
-                to,
-                encryptedAmount,
-                inputProof,
-                data
-            );
+        _beforeTransfer(address(0), from, to);
+        return ERC7984.confidentialTransferAndCall(to, encryptedAmount, inputProof, data);
     }
 
     /**
@@ -340,6 +335,7 @@ abstract contract CMTATConfidentialBase is
         if (!_canTransferGenericByModule(address(0), from, to)) {
             revert ERC7943CannotTransfer(from, to, 0);
         }
+        _beforeTransfer(address(0), from, to);
         return ERC7984.confidentialTransferAndCall(to, amount, data);
     }
 
@@ -351,17 +347,12 @@ abstract contract CMTATConfidentialBase is
         bytes calldata inputProof,
         bytes calldata data
     ) public virtual override returns (euint64 transferred) {
-        if (!_canTransferGenericByModule(_msgSender(), from, to)) {
+        address spender = _msgSender();
+        if (!_canTransferGenericByModule(spender, from, to)) {
             revert ERC7943CannotTransfer(from, to, 0);
         }
-        return
-            ERC7984.confidentialTransferFromAndCall(
-                from,
-                to,
-                encryptedAmount,
-                inputProof,
-                data
-            );
+        _beforeTransfer(spender, from, to);
+        return ERC7984.confidentialTransferFromAndCall(from, to, encryptedAmount, inputProof, data);
     }
 
     /// @inheritdoc ERC7984
@@ -371,11 +362,24 @@ abstract contract CMTATConfidentialBase is
         euint64 amount,
         bytes calldata data
     ) public virtual override returns (euint64 transferred) {
-        if (!_canTransferGenericByModule(_msgSender(), from, to)) {
+        address spender = _msgSender();
+        if (!_canTransferGenericByModule(spender, from, to)) {
             revert ERC7943CannotTransfer(from, to, 0);
         }
+        _beforeTransfer(spender, from, to);
         return ERC7984.confidentialTransferFromAndCall(from, to, amount, data);
     }
+
+    /**
+     * @dev Hook called after all module guards pass but before FHE arithmetic executes.
+     * Mirrors CMTAT's pattern where rule engine notification fires before the actual
+     * token state change. Empty by default; override to add pre-FHE enforcement
+     * (e.g. rule engine transfer notification).
+     * @param spender Address initiating the transfer (`address(0)` for direct transfers).
+     * @param from Token sender.
+     * @param to Token recipient.
+     */
+    function _beforeTransfer(address spender, address from, address to) internal virtual {}
 
     /* ============ ERC165 Support ============ */
 

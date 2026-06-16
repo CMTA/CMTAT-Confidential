@@ -44,6 +44,21 @@ npx prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'
 
 ### Added
 
+- **Module interfaces** (`contracts/interfaces/`): Six new NatSpec-documented interfaces — `IERC7984MintModule`, `IERC7984BurnModule`, `IERC7984EnforcementModule`, `IERC7984BalanceViewModule`, `IERC7984PublishTotalSupplyModule`, `IERC7984TotalSupplyViewModule`. Each module contract now inherits its corresponding interface; all events and errors are defined exclusively in the interface (no duplication in the implementation).
+- **`foundry.toml`**: Foundry configuration file matching the Hardhat optimizer settings (`optimizer = true`, `optimizer_runs = 200`, `evm_version = "prague"`, `solc = "0.8.34"`). Enables `forge build` as a fast compile check.
+
+### Changed
+
+- **ERC-7943 standard errors**: Transfer/mint/burn validation now uses the standard `ERC7943CannotReceive(address)`, `ERC7943CannotSend(address)`, and `ERC7943CannotTransfer(address, address, uint256)` errors instead of the project-local `CMTAT_InvalidTransfer`. `ERC7943CannotSend`/`CannotReceive` are in scope via CMTAT's `ValidationModule`; `IERC7943FungibleTransferError` is explicitly imported in `CMTATConfidentialBase` for `ERC7943CannotTransfer`. **Breaking change** for callers that caught `CMTAT_InvalidTransfer`.
+- **Forced-operation error alignment**: `CMTAT_AddressZeroNotAllowed` replaced by `CMTAT_Enforcement_ZeroAddressNotAllowed` (inherited from CMTAT's `EnforcementModuleInternal`, no-arg). A local `CMTAT_AddressNotFrozen(address from)` is kept because CMTAT's `CMTAT_BurnEnforcement_AddressIsNotFrozen()` (no-arg, burn-only, defined in `CMTATBaseCore`) is outside the inheritance chain and lacks an address parameter.
+
+### Documentation
+
+- **`/// @inheritdoc` NatSpec tags**: All public functions in the six FHE module contracts now carry `/// @inheritdoc IERC7984XxxModule`, delegating full NatSpec to the interface.
+- **`/** */` comment style in interfaces**: All NatSpec in interface files uses `/** */` blocks (not `///`).
+
+### Added
+
 - **`CMTATConfidentialRuleEngine`** (`0ab6137`): New deployment variant that gates all confidential transfers through a CMTA `IRuleEngine`. Because transfer amounts are encrypted, the RuleEngine always receives `value = 0`; rules can still enforce public restrictions (allowlists, blacklists, spender authorization, timestamps, etc.). Includes `canTransfer` / `canTransferFrom` view functions for ERC-7943 pre-flight checks.
 - **`ERC7984RuleEngineModule`** (`0ab6137`): Abstract module encapsulating RuleEngine integration — `setRuleEngine`, `_canTransferByRuleEngine`, `_canTransferFromByRuleEngine`, `_transferredByRuleEngine`, `_transferredFromByRuleEngine`. Gated by `RULE_ENGINE_ROLE`.
 - **`CMTATConfidentialWhitelist`** (`e237fea`, `f40068f`, `b08c62d`): New deployment variant enforcing an on-chain allowlist for confidential transfers. When `isAllowlistEnabled()` is true, both sender and recipient must be allowlisted. Overrides `canSend` / `canReceive` to compose CMTAT freeze/pause checks with allowlist policy. Exposes `canTransfer` and advertises `0x3edbb4c4` (ERC-7943 fungible) via ERC-165. Gated by `ALLOWLIST_ROLE`.
