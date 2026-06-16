@@ -6,6 +6,7 @@ import {externalEuint64, euint64} from "@fhevm/solidity/lib/FHE.sol";
 import {ERC7984} from "../openzeppelin-confidential-contracts/contracts/token/ERC7984/ERC7984.sol";
 
 import {CMTATConfidentialBase} from "./CMTATConfidentialBase.sol";
+import {ERC7984MintModule} from "./modules/ERC7984MintModule.sol";
 import {ERC7984TotalSupplyViewModule} from "./modules/ERC7984TotalSupplyViewModule.sol";
 
 /**
@@ -75,7 +76,7 @@ contract CMTATConfidential is
      * observers on the new total supply handle.
      */
     function _afterMint(address to, euint64 minted) internal virtual override {
-        super._afterMint(to, minted);
+        ERC7984MintModule._afterMint(to, minted);
         _updateTotalSupplyObserversAcl();
     }
 
@@ -87,7 +88,7 @@ contract CMTATConfidential is
         address from,
         euint64 burned
     ) internal virtual override {
-        super._afterBurn(from, burned);
+        CMTATConfidentialBase._afterBurn(from, burned);
         _updateTotalSupplyObserversAcl();
     }
 
@@ -103,7 +104,7 @@ contract CMTATConfidential is
         override(CMTATConfidentialBase, ERC7984)
         returns (euint64 transferred)
     {
-        return super._update(from, to, amount);
+        return CMTATConfidentialBase._update(from, to, amount);
     }
 
     /* ============ Diamond-resolution overrides (delegate to super) ============ */
@@ -120,7 +121,7 @@ contract CMTATConfidential is
         override(CMTATConfidentialBase, ERC7984)
         returns (euint64)
     {
-        return super.confidentialTransfer(to, encryptedAmount, inputProof);
+        return CMTATConfidentialBase.confidentialTransfer(to, encryptedAmount, inputProof);
     }
 
     function confidentialTransfer(
@@ -132,7 +133,7 @@ contract CMTATConfidential is
         override(CMTATConfidentialBase, ERC7984)
         returns (euint64)
     {
-        return super.confidentialTransfer(to, amount);
+        return CMTATConfidentialBase.confidentialTransfer(to, amount);
     }
 
     function confidentialTransferFrom(
@@ -147,7 +148,7 @@ contract CMTATConfidential is
         returns (euint64)
     {
         return
-            super.confidentialTransferFrom(
+            CMTATConfidentialBase.confidentialTransferFrom(
                 from,
                 to,
                 encryptedAmount,
@@ -165,7 +166,7 @@ contract CMTATConfidential is
         override(CMTATConfidentialBase, ERC7984)
         returns (euint64)
     {
-        return super.confidentialTransferFrom(from, to, amount);
+        return CMTATConfidentialBase.confidentialTransferFrom(from, to, amount);
     }
 
     function confidentialTransferAndCall(
@@ -180,7 +181,7 @@ contract CMTATConfidential is
         returns (euint64)
     {
         return
-            super.confidentialTransferAndCall(
+            CMTATConfidentialBase.confidentialTransferAndCall(
                 to,
                 encryptedAmount,
                 inputProof,
@@ -198,7 +199,7 @@ contract CMTATConfidential is
         override(CMTATConfidentialBase, ERC7984)
         returns (euint64)
     {
-        return super.confidentialTransferAndCall(to, amount, data);
+        return CMTATConfidentialBase.confidentialTransferAndCall(to, amount, data);
     }
 
     function confidentialTransferFromAndCall(
@@ -214,7 +215,7 @@ contract CMTATConfidential is
         returns (euint64)
     {
         return
-            super.confidentialTransferFromAndCall(
+            CMTATConfidentialBase.confidentialTransferFromAndCall(
                 from,
                 to,
                 encryptedAmount,
@@ -234,7 +235,7 @@ contract CMTATConfidential is
         override(CMTATConfidentialBase, ERC7984)
         returns (euint64)
     {
-        return super.confidentialTransferFromAndCall(from, to, amount, data);
+        return CMTATConfidentialBase.confidentialTransferFromAndCall(from, to, amount, data);
     }
 
     function supportsInterface(
@@ -246,7 +247,7 @@ contract CMTATConfidential is
         override(CMTATConfidentialBase, ERC7984)
         returns (bool)
     {
-        return super.supportsInterface(interfaceId);
+        return CMTATConfidentialBase.supportsInterface(interfaceId);
     }
 
     function decimals()
@@ -256,6 +257,6 @@ contract CMTATConfidential is
         override(CMTATConfidentialBase, ERC7984)
         returns (uint8)
     {
-        return super.decimals();
+        return CMTATConfidentialBase.decimals();
     }
 }

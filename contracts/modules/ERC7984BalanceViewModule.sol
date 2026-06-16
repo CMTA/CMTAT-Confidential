@@ -125,7 +125,7 @@ abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess, IERC7984Bal
         euint64 amount
     ) internal virtual override returns (euint64 transferred) {
         // Handles holder observer ACL grants via ERC7984ObserverAccess
-        transferred = super._update(from, to, amount);
+        transferred = ERC7984ObserverAccess._update(from, to, amount);
 
         address fromRoleObs = address(0);
         address toRoleObs = address(0);

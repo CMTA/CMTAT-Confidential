@@ -167,7 +167,7 @@ abstract contract CMTATConfidentialBase is
         address from,
         euint64 burned
     ) internal virtual override(ERC7984BurnModule, ERC7984EnforcementModule) {
-        super._afterBurn(from, burned);
+        ERC7984BurnModule._afterBurn(from, burned);
     }
 
     /* ============ _update Override ============ */
@@ -192,7 +192,7 @@ abstract contract CMTATConfidentialBase is
         override(ERC7984, ERC7984BalanceViewModule)
         returns (euint64 transferred)
     {
-        return super._update(from, to, amount);
+        return ERC7984BalanceViewModule._update(from, to, amount);
     }
 
     /* ============ Module Validation Overrides ============ */
