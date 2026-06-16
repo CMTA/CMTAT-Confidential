@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./modules/ERC7984BurnModule.sol | 9f78597da467a4430b99f50b53ef4694bd92cffa |
+| ./interfaces/IERC7984BalanceViewModule.sol | 95c5365221ce41b185eb87cc383565cbae5b57f8 |
 
 
 ### Contracts Description Table
@@ -15,12 +15,10 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **ERC7984BurnModule** | Implementation | ERC7984, IERC7984BurnModule |||
-| └ | burn | Public ❗️ | 🛑  | onlyBurner |
-| └ | burn | Public ❗️ | 🛑  | onlyBurner |
-| └ | _validateBurn | Internal 🔒 | 🛑  | |
-| └ | _afterBurn | Internal 🔒 | 🛑  | |
-| └ | _authorizeBurn | Internal 🔒 | 🛑  | |
+| **IERC7984BalanceViewModule** | Interface |  |||
+| └ | setRoleObserver | External ❗️ | 🛑  |NO❗️ |
+| └ | removeRoleObserver | External ❗️ | 🛑  |NO❗️ |
+| └ | roleObserver | External ❗️ |   |NO❗️ |
 
 
 ### Legend

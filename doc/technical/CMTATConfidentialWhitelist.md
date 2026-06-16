@@ -10,6 +10,10 @@ Forced operations (`forcedTransfer`, `forcedBurn`) intentionally bypass the allo
 **Contract version:** `0.3.0` (via `CMTATConfidentialVersionModule`)
 **Contract size:** ~21.9 KB
 
+
+
+![surya_inheritance_CMTATConfidentialWhitelist.sol](../schema/surya/surya_inheritance/surya_inheritance_CMTATConfidentialWhitelist.sol.png)
+
 ---
 
 ## Included Modules
@@ -56,6 +60,18 @@ CMTATConfidentialWhitelist
 │   └── ERC7984TotalSupplyViewModule
 └── AllowlistModule (CMTAT)
 ```
+
+---
+
+## Diagrams
+
+### Inheritance
+
+![Inheritance graph](../schema/surya/surya_inheritance/surya_inheritance_CMTATConfidentialWhitelist.sol.png)
+
+### Call Graph
+
+![Call graph](../schema/surya/surya_graph/surya_graph_CMTATConfidentialWhitelist.sol.png)
 
 ---
 

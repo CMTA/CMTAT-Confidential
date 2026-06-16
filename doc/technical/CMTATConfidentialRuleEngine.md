@@ -10,7 +10,19 @@ Because transfer amounts are encrypted (`euint64`), the RuleEngine always receiv
 **Contract version:** `0.3.0` (via `CMTATConfidentialVersionModule`)
 **Contract size:** ~21.9 KB
 
+### Schema
+
+
+
+![surya_inheritance_CMTATConfidentialRuleEngine.sol](../schema/surya/surya_inheritance/surya_inheritance_CMTATConfidentialRuleEngine.sol.png)
+
+
+
+![surya_graph_CMTATConfidentialWhitelist.sol](../schema/surya/surya_graph/surya_graph_CMTATConfidentialWhitelist.sol.png)
+
 ---
+
+
 
 ## Included Modules
 
@@ -57,6 +69,18 @@ CMTATConfidentialRuleEngine
 └── ERC7984RuleEngineModule
     └── ValidationModuleRuleEngineInternal  (CMTAT — ruleEngine storage + RuleEngine event)
 ```
+
+---
+
+## Diagrams
+
+### Inheritance
+
+![Inheritance graph](../schema/surya/surya_inheritance/surya_inheritance_CMTATConfidentialRuleEngine.sol.png)
+
+### Call Graph
+
+![Call graph](../schema/surya/surya_graph/surya_graph_CMTATConfidentialRuleEngine.sol.png)
 
 ---
 

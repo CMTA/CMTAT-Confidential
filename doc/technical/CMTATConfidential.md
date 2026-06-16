@@ -8,6 +8,12 @@
 **Contract version:** `0.3.0` (via `CMTATConfidentialVersionModule`)
 **Contract size:** ~20.7 KB
 
+### Schema
+
+![surya_inheritance_CMTATConfidential.sol](../schema/surya/surya_inheritance/surya_inheritance_CMTATConfidential.sol.png)
+
+![surya_graph_CMTATConfidential.sol](../schema/surya/surya_graph/surya_graph_CMTATConfidential.sol.png)
+
 ---
 
 ## Included Modules
@@ -53,6 +59,18 @@ CMTATConfidential
 ```
 
 > **Diamond resolution:** `CMTATConfidential` re-declares all eight `ERC7984` transfer functions and `supportsInterface`/`decimals` as thin delegates to `CMTATConfidentialBase`, because `ERC7984TotalSupplyViewModule` also inherits from `ERC7984` and creates a conflict the Solidity compiler requires to be explicitly resolved.
+
+---
+
+## Diagrams
+
+### Inheritance
+
+![Inheritance graph](../schema/surya/surya_inheritance/surya_inheritance_CMTATConfidential.sol.png)
+
+### Call Graph
+
+![Call graph](../schema/surya/surya_graph/surya_graph_CMTATConfidential.sol.png)
 
 ---
 

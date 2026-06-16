@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./modules/ERC7984MintModule.sol | c15c590bd24ee4e1d323bf04ca820c4e1c186b29 |
+| ./modules/ERC7984MintModule.sol | 1eb5398dcfadd005582fbf733a1905243cfcd0db |
 
 
 ### Contracts Description Table
@@ -15,7 +15,7 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **ERC7984MintModule** | Implementation | ERC7984 |||
+| **ERC7984MintModule** | Implementation | ERC7984, IERC7984MintModule |||
 | └ | mint | Public ❗️ | 🛑  | onlyMinter |
 | └ | mint | Public ❗️ | 🛑  | onlyMinter |
 | └ | _validateMint | Internal 🔒 | 🛑  | |

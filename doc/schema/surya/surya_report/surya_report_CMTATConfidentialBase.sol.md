@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./CMTATConfidentialBase.sol | 63dcaea000e45880deeef0343d40e6180b236060 |
+| ./CMTATConfidentialBase.sol | 4c9a8640f5567af00af0df0316498ac3ab673e2a |
 
 
 ### Contracts Description Table
@@ -15,7 +15,7 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **CMTATConfidentialBase** | Implementation | ERC7984, CMTATBaseGeneric, ZamaEthereumConfig, ERC7984MintModule, ERC7984BurnModule, ERC7984EnforcementModule, ERC7984BalanceViewModule, ERC7984PublishTotalSupplyModule, CMTATConfidentialVersionModule |||
+| **CMTATConfidentialBase** | Implementation | ERC7984, CMTATBaseGeneric, IERC7943FungibleTransferError, ZamaEthereumConfig, ERC7984MintModule, ERC7984BurnModule, ERC7984EnforcementModule, ERC7984BalanceViewModule, ERC7984PublishTotalSupplyModule, CMTATConfidentialVersionModule |||
 | └ | <Constructor> | Public ❗️ | 🛑  | ERC7984 |
 | └ | initialize | Internal 🔒 | 🛑  | initializer |
 | └ | _authorizeMint | Internal 🔒 | 🛑  | onlyRole |
@@ -34,6 +34,7 @@
 | └ | _validateBurn | Internal 🔒 | 🛑  | |
 | └ | _validateForcedTransfer | Internal 🔒 | 🛑  | |
 | └ | _validateForcedBurn | Internal 🔒 | 🛑  | |
+| └ | canTransfer | Public ❗️ |   |NO❗️ |
 | └ | confidentialTransfer | Public ❗️ | 🛑  |NO❗️ |
 | └ | confidentialTransfer | Public ❗️ | 🛑  |NO❗️ |
 | └ | confidentialTransferFrom | Public ❗️ | 🛑  |NO❗️ |
@@ -42,6 +43,7 @@
 | └ | confidentialTransferAndCall | Public ❗️ | 🛑  |NO❗️ |
 | └ | confidentialTransferFromAndCall | Public ❗️ | 🛑  |NO❗️ |
 | └ | confidentialTransferFromAndCall | Public ❗️ | 🛑  |NO❗️ |
+| └ | _beforeTransfer | Internal 🔒 | 🛑  | |
 | └ | supportsInterface | Public ❗️ |   |NO❗️ |
 | └ | version | Public ❗️ |   |NO❗️ |
 

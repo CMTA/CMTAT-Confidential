@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./modules/ERC7984BurnModule.sol | 9f78597da467a4430b99f50b53ef4694bd92cffa |
+| ./interfaces/IERC7984TotalSupplyViewModule.sol | 5f74e689bbd9e9e9fd9ba121a5c85819969145ba |
 
 
 ### Contracts Description Table
@@ -15,12 +15,12 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **ERC7984BurnModule** | Implementation | ERC7984, IERC7984BurnModule |||
-| └ | burn | Public ❗️ | 🛑  | onlyBurner |
-| └ | burn | Public ❗️ | 🛑  | onlyBurner |
-| └ | _validateBurn | Internal 🔒 | 🛑  | |
-| └ | _afterBurn | Internal 🔒 | 🛑  | |
-| └ | _authorizeBurn | Internal 🔒 | 🛑  | |
+| **IERC7984TotalSupplyViewModule** | Interface |  |||
+| └ | maxSupplyObservers | External ❗️ |   |NO❗️ |
+| └ | setMaxSupplyObservers | External ❗️ | 🛑  |NO❗️ |
+| └ | addTotalSupplyObserver | External ❗️ | 🛑  |NO❗️ |
+| └ | removeTotalSupplyObserver | External ❗️ | 🛑  |NO❗️ |
+| └ | totalSupplyObservers | External ❗️ |   |NO❗️ |
 
 
 ### Legend

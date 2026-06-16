@@ -10,6 +10,8 @@
 **Contract version:** `0.3.0` (via `CMTATConfidentialVersionModule`)
 **Contract size:** ~19.2 KB
 
+![surya_inheritance_CMTATConfidentialLite.sol](../schema/surya/surya_inheritance/surya_inheritance_CMTATConfidentialLite.sol.png)
+
 ---
 
 ## Included Modules
@@ -50,6 +52,18 @@ CMTATConfidentialLite
 ```
 
 > **No diamond resolution needed:** Unlike `CMTATConfidential`, this variant only inherits from `CMTATConfidentialBase` — there is no second `ERC7984` descendant, so no transfer function re-declarations are required.
+
+---
+
+## Diagrams
+
+### Inheritance
+
+![Inheritance graph](../schema/surya/surya_inheritance/surya_inheritance_CMTATConfidentialLite.sol.png)
+
+### Call Graph
+
+![Call graph](../schema/surya/surya_graph/surya_graph_CMTATConfidentialLite.sol.png)
 
 ---
 

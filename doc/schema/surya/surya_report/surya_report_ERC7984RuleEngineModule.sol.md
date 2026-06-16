@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./modules/ERC7984BurnModule.sol | 9f78597da467a4430b99f50b53ef4694bd92cffa |
+| ./modules/ERC7984RuleEngineModule.sol | 3a9047919b7868a6533a6918713bb750ac696476 |
 
 
 ### Contracts Description Table
@@ -15,12 +15,12 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **ERC7984BurnModule** | Implementation | ERC7984, IERC7984BurnModule |||
-| └ | burn | Public ❗️ | 🛑  | onlyBurner |
-| └ | burn | Public ❗️ | 🛑  | onlyBurner |
-| └ | _validateBurn | Internal 🔒 | 🛑  | |
-| └ | _afterBurn | Internal 🔒 | 🛑  | |
-| └ | _authorizeBurn | Internal 🔒 | 🛑  | |
+| **ERC7984RuleEngineModule** | Implementation | ValidationModuleRuleEngineInternal |||
+| └ | setRuleEngine | Public ❗️ | 🛑  | onlyRuleEngineManager |
+| └ | _canTransferByRuleEngine | Internal 🔒 |   | |
+| └ | _canTransferFromByRuleEngine | Internal 🔒 |   | |
+| └ | _applyRuleEngine | Internal 🔒 | 🛑  | |
+| └ | _authorizeRuleEngineManagement | Internal 🔒 | 🛑  | |
 
 
 ### Legend

@@ -273,6 +273,26 @@ ERROR:root:Please report an issue to https://github.com/crytic/slither/issues
 
 At this stage, no Slither findings are available for this release due to this tooling/build-artifact sync issue.
 
+### Design Limitations
+
+#### `confidentialTransferAndCall` — silent refund failure on re-entrant receiver
+
+`confidentialTransferAndCall` and `confidentialTransferFromAndCall` use an ERC-1363-style
+callback pattern where the receiver is credited **before** its `onConfidentialTransferReceived`
+hook is called. If the callback returns `false`, the implementation attempts a compensating
+reverse transfer via `FHE.select(success, 0, sent)`.
+
+This reverse transfer can silently produce **0** if a malicious or re-entrant receiver drains its
+encrypted balance inside the callback before returning `false`: because `FHESafeMath.tryDecrease`
+operates on an encrypted value, it cannot revert on underflow — it saturates to 0 instead. The
+sender then loses the transferred amount permanently with no on-chain indication of failure.
+
+This is a structural limitation of FHE arithmetic and an intentional trade-off in the upstream
+ERC-7984 library (see audit finding #1 and #2 in the table above).
+
+**Only call `confidentialTransferAndCall` and `confidentialTransferFromAndCall` with trusted,
+audited receiver contracts.**
+
 ## Roles
 
 | Role | Description |

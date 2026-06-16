@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./modules/ERC7984BalanceViewModule.sol | bef2a326ee5c2bafa5972310b61aa09340db620c |
+| ./modules/ERC7984BalanceViewModule.sol | 9ff08d3ae37b37f801cc02e00d44ba7eff0946de |
 
 
 ### Contracts Description Table
@@ -15,7 +15,7 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **ERC7984BalanceViewModule** | Implementation | ERC7984ObserverAccess |||
+| **ERC7984BalanceViewModule** | Implementation | ERC7984ObserverAccess, IERC7984BalanceViewModule |||
 | └ | setRoleObserver | Public ❗️ | 🛑  | onlyObserverManager |
 | └ | removeRoleObserver | Public ❗️ | 🛑  | onlyObserverManager |
 | └ | roleObserver | Public ❗️ |   |NO❗️ |

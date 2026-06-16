@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./modules/ERC7984BurnModule.sol | 9f78597da467a4430b99f50b53ef4694bd92cffa |
+| ./CMTATConfidentialRuleEngine.sol | f3dbe52141a77b0103f027ef7cb6d1d34299b466 |
 
 
 ### Contracts Description Table
@@ -15,12 +15,12 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **ERC7984BurnModule** | Implementation | ERC7984, IERC7984BurnModule |||
-| └ | burn | Public ❗️ | 🛑  | onlyBurner |
-| └ | burn | Public ❗️ | 🛑  | onlyBurner |
-| └ | _validateBurn | Internal 🔒 | 🛑  | |
-| └ | _afterBurn | Internal 🔒 | 🛑  | |
-| └ | _authorizeBurn | Internal 🔒 | 🛑  | |
+| **CMTATConfidentialRuleEngine** | Implementation | CMTATConfidential, ERC7984RuleEngineModule |||
+| └ | <Constructor> | Public ❗️ | 🛑  | CMTATConfidential |
+| └ | canTransfer | Public ❗️ |   |NO❗️ |
+| └ | canTransferFrom | Public ❗️ |   |NO❗️ |
+| └ | _beforeTransfer | Internal 🔒 | 🛑  | |
+| └ | _authorizeRuleEngineManagement | Internal 🔒 | 🛑  | onlyRole |
 
 
 ### Legend
