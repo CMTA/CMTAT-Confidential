@@ -195,10 +195,13 @@ describe('CMTATConfidentialWhitelist', function () {
       ).to.equal(true);
     });
 
-    it('advertises ERC-7943 fungible support through ERC-165', async function () {
+    it('does not claim full IERC7943Fungible (0x3edbb4c4) via ERC-165', async function () {
+      // Full IERC7943Fungible compliance is impossible with FHE: forcedTransfer(uint256),
+      // setFrozenTokens, getFrozenTokens, and ForcedTransfer/Frozen events all require
+      // plaintext amounts. Advertising 0x3edbb4c4 would mislead integrators.
       expect(
         await this.token.supportsInterface(ERC7943_FUNGIBLE_INTERFACE_ID)
-      ).to.equal(true);
+      ).to.equal(false);
     });
 
     it('keeps canTransfer amount-agnostic for confidential amounts', async function () {

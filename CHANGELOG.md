@@ -61,9 +61,13 @@ npx prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'
 
 - **`CMTATConfidentialRuleEngine`** (`0ab6137`): New deployment variant that gates all confidential transfers through a CMTA `IRuleEngine`. Because transfer amounts are encrypted, the RuleEngine always receives `value = 0`; rules can still enforce public restrictions (allowlists, blacklists, spender authorization, timestamps, etc.). Includes `canTransfer` / `canTransferFrom` view functions for ERC-7943 pre-flight checks.
 - **`ERC7984RuleEngineModule`** (`0ab6137`): Abstract module encapsulating RuleEngine integration — `setRuleEngine`, `_canTransferByRuleEngine`, `_canTransferFromByRuleEngine`, `_transferredByRuleEngine`, `_transferredFromByRuleEngine`. Gated by `RULE_ENGINE_ROLE`.
-- **`CMTATConfidentialWhitelist`** (`e237fea`, `f40068f`, `b08c62d`): New deployment variant enforcing an on-chain allowlist for confidential transfers. When `isAllowlistEnabled()` is true, both sender and recipient must be allowlisted. Overrides `canSend` / `canReceive` to compose CMTAT freeze/pause checks with allowlist policy. Exposes `canTransfer` and advertises `0x3edbb4c4` (ERC-7943 fungible) via ERC-165. Gated by `ALLOWLIST_ROLE`.
+- **`CMTATConfidentialWhitelist`** (`e237fea`, `f40068f`, `b08c62d`): New deployment variant enforcing an on-chain allowlist for confidential transfers. When `isAllowlistEnabled()` is true, both sender and recipient must be allowlisted. Overrides `canSend` / `canReceive` to compose CMTAT freeze/pause checks with allowlist policy. Exposes `canTransfer`. Gated by `ALLOWLIST_ROLE`.
 - **`lib/RuleEngine`** (`0ab6137`): Added CMTA RuleEngine submodule under `lib/`.
 - **ERC-7943 specification** (`e237fea`): Added `doc/ERCSpecification/erc-7943-uRWA.md`.
+
+### Fixed
+
+- **`CMTATConfidentialWhitelist` ERC-165 false claim removed**: An earlier version of this variant returned `true` for `0x3edbb4c4` (`IERC7943Fungible`). This was incorrect: full compliance requires `forcedTransfer(address, address, uint256)`, `setFrozenTokens`, `getFrozenTokens`, and plaintext-amount events — all incompatible with FHE encrypted balances. The contract now delegates `supportsInterface` to `CMTATConfidential` without claiming `0x3edbb4c4`. The view functions `canSend`, `canReceive`, `canTransfer` (with `amount` ignored) and the standard `ERC7943Cannot*` errors remain available as partial ERC-7943 support across all four variants.
 
 ### Changed
 
@@ -74,11 +78,13 @@ npx prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'
 ### Documentation
 
 - Added explicit inheritance delegation guideline to `CLAUDE.md` / `AGENTS.md` (`0ab6137`): prefer explicit parent calls (`CMTATConfidential.supportsInterface(...)`) over `super` in multi-inheritance contexts.
+- **ERC-7943 partial compliance**: `doc/technical/CMTATConfidentialWhitelist.md` documents which parts of `IERC7943Fungible` are implemented and why full compliance is architecturally impossible with FHE encrypted amounts.
+- **Aderyn v0.3.0 static analysis**: 19 contracts (1 195 nSLOC), 0 high, 7 low findings. Full disposition table added to `README.md` and `doc/audit/v0.3.0/aderyn-report-feedback.md`. No production code changes required.
 
 ### Testing
 
 - Added `test/CMTATConfidentialRuleEngine.test.ts` (`0ab6137`): covers rule engine allow/block paths, `setRuleEngine`, `canTransfer` / `canTransferFrom` semantics, and full `runCoreTests()` suite.
-- Added `test/CMTATConfidentialWhitelist.test.ts` (`f40068f`): covers allowlist enable/disable, per-address allowlisting, operator path, ERC-7943 view functions, ERC-165 interface advertisement, and full `runCoreTests()` suite.
+- Added `test/CMTATConfidentialWhitelist.test.ts` (`f40068f`): covers allowlist enable/disable, per-address allowlisting, operator path, partial ERC-7943 view functions, negative ERC-165 assertion for `0x3edbb4c4`, and full `runCoreTests()` suite.
 
 ## 0.2.0
 

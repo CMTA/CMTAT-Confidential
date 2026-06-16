@@ -18,7 +18,7 @@ Because transfer amounts are encrypted (`euint64`), the RuleEngine always receiv
 
 
 
-![surya_graph_CMTATConfidentialWhitelist.sol](../schema/surya/surya_graph/surya_graph_CMTATConfidentialWhitelist.sol.png)
+![surya_graph_CMTATConfidentialRuleEngine.sol](../schema/surya/surya_graph/surya_graph_CMTATConfidentialRuleEngine.sol.png)
 
 ---
 

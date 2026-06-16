@@ -301,6 +301,7 @@ describe('ERC7984XxxModule', function () {
 | `ENFORCER_ROLE` | `EnforcementModule` (CMTAT) | `_authorizeFreeze()` |
 | `OBSERVER_ROLE` | `ERC7984BalanceViewModule` | `_authorizeObserverManagement()` |
 | `RULE_ENGINE_ROLE` | `ERC7984RuleEngineModule` | `_authorizeRuleEngineManagement()` |
+| `ALLOWLIST_ROLE` | `AllowlistModule` (CMTAT) | `_authorizeAllowlistManagement()` |
 
 ## Note
 
