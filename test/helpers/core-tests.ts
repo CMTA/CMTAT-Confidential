@@ -35,7 +35,7 @@ export function runCoreTests() {
     throw new Error('HandleCreated event not found');
   }
 
-  before(async function () {
+  beforeEach(async function () {
     this.factory = await ethers.deployContract('Euint64Factory');
   });
   // ─── constructor ─────────────────────────────────────────────────────────

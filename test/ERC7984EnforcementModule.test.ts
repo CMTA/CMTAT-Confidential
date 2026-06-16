@@ -129,6 +129,18 @@ describe('ERC7984EnforcementModule', function () {
       this.factory = await ethers.deployContract('Euint64Factory');
     });
 
+    it('reverts ERC7984EnforcementModule_UnauthorizedHandle when caller lacks ACL', async function () {
+      // use createEncryptedInput so the handle has ACL only for holder+token, never for
+      // forcedOpsAgent — avoids cross-test ACL contamination from shared FHE counter state
+      const enc = await encryptAmount(this.token.target, this.holder.address, 300);
+
+      await expect(
+        this.token.connect(this.forcedOpsAgent)['forcedTransfer(address,address,bytes32)'](
+          this.holder.address, this.recipient.address, enc.handles[0]
+        )
+      ).to.be.revertedWithCustomError(this.token, 'ERC7984EnforcementModule_UnauthorizedHandle');
+    });
+
     it('FORCED_OPS_ROLE can forcedTransfer with a pre-encrypted handle', async function () {
       const tx = await this.factory.connect(this.forcedOpsAgent).makeFor(this.token.target, 300);
       const receipt = await tx.wait();
@@ -139,19 +151,6 @@ describe('ERC7984EnforcementModule', function () {
       );
       const handle = await this.token.confidentialBalanceOf(this.recipient.address);
       expect(await decryptBalance(this.token.target, handle, this.recipient)).to.equal(300n);
-    });
-
-    it('reverts ERC7984EnforcementModule_UnauthorizedHandle when caller lacks ACL', async function () {
-      // handle created by holder — forcedOpsAgent does not have ACL access to it
-      const tx = await this.factory.connect(this.holder).makeFor(this.token.target, 300);
-      const receipt = await tx.wait();
-      const amountHandle = getHandleFromReceipt(this.factory, receipt);
-
-      await expect(
-        this.token.connect(this.forcedOpsAgent)['forcedTransfer(address,address,bytes32)'](
-          this.holder.address, this.recipient.address, amountHandle
-        )
-      ).to.be.revertedWithCustomError(this.token, 'ERC7984EnforcementModule_UnauthorizedHandle');
     });
   });
 
@@ -236,13 +235,13 @@ describe('ERC7984EnforcementModule', function () {
     });
 
     it('reverts ERC7984EnforcementModule_UnauthorizedHandle when caller lacks ACL', async function () {
-      const tx = await this.factory.connect(this.holder).makeFor(this.token.target, 200);
-      const receipt = await tx.wait();
-      const amountHandle = getHandleFromReceipt(this.factory, receipt);
+      // use createEncryptedInput so the handle has ACL only for holder+token, never for
+      // forcedOpsAgent — avoids cross-test ACL contamination from shared FHE counter state
+      const enc = await encryptAmount(this.token.target, this.holder.address, 200);
 
       await expect(
         this.token.connect(this.forcedOpsAgent)['forcedBurn(address,bytes32)'](
-          this.holder.address, amountHandle
+          this.holder.address, enc.handles[0]
         )
       ).to.be.revertedWithCustomError(this.token, 'ERC7984EnforcementModule_UnauthorizedHandle');
     });

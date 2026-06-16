@@ -18,8 +18,8 @@ import { runCoreTests } from './helpers/core-tests';
 describe('CMTATConfidentialRuleEngine', function () {
   beforeEach(async function () {
     const signers = await ethers.getSigners();
-    this.authorizedOperator = signers[7];
-    this.unauthorizedOperator = signers[8];
+    this.authorizedOperator = signers[8];
+    this.unauthorizedOperator = signers[9];
     this.ruleEngine = await ethers.deployContract('RuleEngineMock', [
       this.authorizedOperator.address,
     ]);

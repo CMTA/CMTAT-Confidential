@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {ERC7984ObserverAccess} from "../../openzeppelin-confidential-contracts/contracts/token/ERC7984/extensions/ERC7984ObserverAccess.sol";
+import {ERC7984ObserverAccess} from "../../lib/openzeppelin-confidential-contracts/contracts/token/ERC7984/extensions/ERC7984ObserverAccess.sol";
 import {FHE, euint64} from "@fhevm/solidity/lib/FHE.sol";
 import {IERC7984BalanceViewModule} from "../interfaces/IERC7984BalanceViewModule.sol";
 

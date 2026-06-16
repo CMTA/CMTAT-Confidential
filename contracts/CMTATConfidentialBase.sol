@@ -10,7 +10,7 @@ import {IERC7943FungibleTransferError} from "../lib/CMTAT/contracts/interfaces/t
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
 /* ==== OpenZeppelin Confidential Contracts === */
-import {ERC7984} from "../openzeppelin-confidential-contracts/contracts/token/ERC7984/ERC7984.sol";
+import {ERC7984} from "../lib/openzeppelin-confidential-contracts/contracts/token/ERC7984/ERC7984.sol";
 import {externalEuint64, euint64} from "@fhevm/solidity/lib/FHE.sol";
 import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
