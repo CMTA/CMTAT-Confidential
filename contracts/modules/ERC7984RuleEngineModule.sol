@@ -22,6 +22,14 @@ abstract contract ERC7984RuleEngineModule is ValidationModuleRuleEngineInternal 
         _;
     }
 
+    /**
+     * @dev Pass `address(0)` to disable RuleEngine checks entirely.
+     * Note: calling `setRuleEngine(address(0))` when no engine has been set yet
+     * (i.e. `ruleEngine() == address(0)`) reverts with `ERC7984RuleEngineModule_SameRuleEngine`.
+     * The constructor uses `_setRuleEngine` directly to bypass this check, so
+     * this edge case only arises if the caller explicitly tries to set zero after
+     * deployment without first setting a non-zero engine.
+     */
     function setRuleEngine(
         IRuleEngine newRuleEngine
     ) public virtual onlyRuleEngineManager {

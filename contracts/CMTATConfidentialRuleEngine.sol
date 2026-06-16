@@ -42,6 +42,13 @@ contract CMTATConfidentialRuleEngine is
         }
     }
 
+    /**
+     * @notice Returns whether a transfer from `from` to `to` is currently permitted.
+     * @dev `amount` is intentionally ignored. Transfer amounts are encrypted and
+     * unavailable to public view functions, so amount-based rules in the RuleEngine
+     * (e.g. minimum size, balance caps) are not evaluated here. Only sender/receiver
+     * permissioning rules are reflected by this view.
+     */
     function canTransfer(
         address from,
         address to,
@@ -52,6 +59,10 @@ contract CMTATConfidentialRuleEngine is
             _canTransferByRuleEngine(from, to);
     }
 
+    /**
+     * @notice Returns whether a delegated transfer by `spender` from `from` to `to` is permitted.
+     * @dev `amount` is intentionally ignored for the same reason as `canTransfer`.
+     */
     function canTransferFrom(
         address spender,
         address from,

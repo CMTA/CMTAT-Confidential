@@ -228,6 +228,14 @@ abstract contract CMTATConfidentialBase is
     }
 
     /* ============ Transfer Overrides ============ */
+    /**
+     * @dev All transfer overrides below pass `0` as the `amount` argument to
+     * `ERC7943CannotTransfer`. The actual transfer amount is encrypted and
+     * unavailable at the point of the pre-flight check, so the value is
+     * structurally fixed to zero. Integrators must not assume amount-based
+     * rules (e.g. minimum transfer size, balance caps) are enforced by this
+     * error — only permissioned restrictions on sender and receiver are checked.
+     */
 
     /// @inheritdoc ERC7984
     function confidentialTransfer(
