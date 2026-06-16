@@ -815,7 +815,7 @@ Decimals are configurable at deployment for both `CMTATConfidential` and `CMTATC
 | `@openzeppelin/contracts` | 5.6.1 |
 | `@openzeppelin/contracts-upgradeable` | 5.6.1 |
 | **Submodule** |  |
-| [OpenZeppelin Confidential Contracts](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts) | [v0.4.0](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts/releases/tag/v0.4.0) |
+| [OpenZeppelin Confidential Contracts](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts) | [v0.4.1](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts/releases/tag/v0.4.1) |
 | [CMTAT](https://github.com/CMTA/CMTAT/) | [v3.3.0-rc1](https://github.com/CMTA/CMTAT/releases/tag/v3.3.0-rc1) |
 | [RuleEngine](https://github.com/CMTA/RuleEngine/) | v3.0.0-rc4 |
 

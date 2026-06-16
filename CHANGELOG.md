@@ -99,7 +99,12 @@ npx prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'
 
 - Added `test/CMTATConfidentialRuleEngine.test.ts` (`0ab6137`): covers rule engine allow/block paths, `setRuleEngine`, `canTransfer` / `canTransferFrom` semantics, and full `runCoreTests()` suite.
 - Added `test/CMTATConfidentialWhitelist.test.ts` (`f40068f`): covers allowlist enable/disable, per-address allowlisting, operator path, partial ERC-7943 view functions, negative ERC-165 assertion for `0x3edbb4c4`, and full `runCoreTests()` suite.
-- Added `test/CMTATBaseFeatures.test.ts`: 30 tests covering `setName`/`setSymbol` (including `Name`/`Symbol` event assertions), `setTerms`, `setTokenId`, `setInformation`, and full ERC-1643 document management (`setDocument`, `getDocument`, `getAllDocuments`, `removeDocument`, `DocumentUpdated`/`DocumentRemoved` events, access control, role delegation).
+- Added `test/CMTATBaseFeatures.test.ts`: 22 tests covering `setTerms`, `setTokenId`, `setInformation`, and full ERC-1643 document management (`setDocument`, `getDocument`, `getAllDocuments`, `removeDocument`, `DocumentUpdated`/`DocumentRemoved` events, access control, role delegation).
+- Added `test/ERC7984TokenAttributeModule.test.ts`: 32 tests covering `setName`/`setSymbol` across all four deployment variants (`CMTATConfidential`, `CMTATConfidentialLite`, `CMTATConfidentialRuleEngine`, `CMTATConfidentialWhitelist`).
+
+### Dependencies
+
+- Updated OpenZeppelin Confidential Contracts submodule from `v0.4.0` to `v0.4.1`. The release contains a single bugfix in `BatcherConfidential` (not used by this project); no code changes required.
 
 ## 0.2.0
 
