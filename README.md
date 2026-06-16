@@ -264,15 +264,15 @@ Nethermind AuditAgent automated scan (March 18, 2026, commit `51f9d7aa`) reporte
 
 ### Static Analysis — Aderyn (v0.3.0)
 
-Aderyn static analysis (v0.3.0) reported **0 high** and **7 low** severity findings across 19 contracts (1 195 nSLOC). All findings are accepted or not applicable. Full rationale in [`aderyn-report-feedback.md`](./doc/audit/v0.3.0/aderyn-report-feedback.md).
+Aderyn static analysis (v0.3.0) reported **0 high** and **7 low** severity findings across 21 contracts (1 276 nSLOC). All findings are accepted or not applicable. Full rationale in [`aderyn-report-feedback.md`](./doc/audit/v0.3.0/aderyn-report-feedback.md).
 
 | ID | Finding | Instances | Disposition |
 |----|---------|-----------|-------------|
-| L-1 | Centralization Risk | 13 | Accepted — role-based access control is mandatory for a regulated security token |
-| L-2 | Unspecific Solidity Pragma (`^0.8.27`) | 19 | Accepted — lower bound required by OZ Confidential submodule; Hardhat compiles with `0.8.34` |
-| L-3 | PUSH0 Opcode | 19 | Not applicable — target is Ethereum mainnet, EVM version set to `prague` in `hardhat.config.ts` |
+| L-1 | Centralization Risk | 14 | Accepted — role-based access control is mandatory for a regulated security token |
+| L-2 | Unspecific Solidity Pragma (`^0.8.27`) | 21 | Accepted — lower bound required by OZ Confidential submodule; Hardhat compiles with `0.8.34` |
+| L-3 | PUSH0 Opcode | 21 | Not applicable — target is Ethereum mainnet, EVM version set to `prague` in `hardhat.config.ts` |
 | L-4 | Modifier Invoked Only Once | 3 | Accepted — consistent with the module authorization pattern across all modules |
-| L-5 | Empty Block | 21 | Accepted — modifier-only authorization hooks and intentional virtual extension points |
+| L-5 | Empty Block | 22 | Accepted — modifier-only authorization hooks and intentional virtual extension points |
 | L-6 | Internal Function Used Only Once | 1 | Accepted — required by the OpenZeppelin `initializer` modifier pattern |
 | L-7 | Unchecked Return | 8 | Not applicable — `FHE.allow()` / `FHE.makePubliclyDecryptable()` return the same handle (fluent interface), not an error code |
 

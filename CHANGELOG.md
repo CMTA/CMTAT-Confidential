@@ -79,7 +79,7 @@ npx prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'
 
 - Added explicit inheritance delegation guideline to `CLAUDE.md` / `AGENTS.md` (`0ab6137`): prefer explicit parent calls (`CMTATConfidential.supportsInterface(...)`) over `super` in multi-inheritance contexts.
 - **ERC-7943 partial compliance**: `doc/technical/CMTATConfidentialWhitelist.md` documents which parts of `IERC7943Fungible` are implemented and why full compliance is architecturally impossible with FHE encrypted amounts.
-- **Aderyn v0.3.0 static analysis**: 19 contracts (1 195 nSLOC), 0 high, 7 low findings. Full disposition table added to `README.md` and `doc/audit/v0.3.0/aderyn-report-feedback.md`. No production code changes required.
+- **Aderyn v0.3.0 static analysis**: 21 contracts (1 276 nSLOC), 0 high, 7 low findings. Full disposition table added to `README.md` and `doc/audit/v0.3.0/aderyn-report-feedback.md`. No production code changes required.
 
 ### Added
 
