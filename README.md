@@ -230,7 +230,17 @@ Nethermind AuditAgent automated scan (March 18, 2026, commit `51f9d7aa`) reporte
 
 ### Static Analysis — Aderyn (v0.3.0)
 
-Aderyn static analysis (v0.3.0) reported **0 high** and **8 low** severity findings across the updated contracts. All findings are accepted or not applicable. Full rationale in [`aderyn-report-feedback.md`](./doc/audit/v0.3.0/aderyn-report-feedback.md).
+Aderyn static analysis (v0.3.0) reported **0 high** and **7 low** severity findings across 19 contracts (1 195 nSLOC). All findings are accepted or not applicable. Full rationale in [`aderyn-report-feedback.md`](./doc/audit/v0.3.0/aderyn-report-feedback.md).
+
+| ID | Finding | Instances | Disposition |
+|----|---------|-----------|-------------|
+| L-1 | Centralization Risk | 13 | Accepted — role-based access control is mandatory for a regulated security token |
+| L-2 | Unspecific Solidity Pragma (`^0.8.27`) | 19 | Accepted — lower bound required by OZ Confidential submodule; Hardhat compiles with `0.8.34` |
+| L-3 | PUSH0 Opcode | 19 | Not applicable — target is Ethereum mainnet, EVM version set to `prague` in `hardhat.config.ts` |
+| L-4 | Modifier Invoked Only Once | 3 | Accepted — consistent with the module authorization pattern across all modules |
+| L-5 | Empty Block | 21 | Accepted — modifier-only authorization hooks and intentional virtual extension points |
+| L-6 | Internal Function Used Only Once | 1 | Accepted — required by the OpenZeppelin `initializer` modifier pattern |
+| L-7 | Unchecked Return | 8 | Not applicable — `FHE.allow()` / `FHE.makePubliclyDecryptable()` return the same handle (fluent interface), not an error code |
 
 ### Static Analysis — Aderyn (v0.2.0)
 
@@ -477,7 +487,7 @@ await token.connect(sender)['confidentialTransfer(address,bytes32,bytes)'](
 
 ### Whitelist Variant
 
-`CMTATConfidentialWhitelist` adds on/off allowlist enforcement to all holder and operator transfers. It implements the [ERC-7943](./doc/ERCSpecification/erc-7943-uRWA.md) fungible interface.
+`CMTATConfidentialWhitelist` adds on/off allowlist enforcement to all holder and operator transfers. It partially implements [ERC-7943](./doc/ERCSpecification/erc-7943-uRWA.md) view functions but **does not claim full `IERC7943Fungible` compliance** (`0x3edbb4c4`): the mandatory enforcement functions (`forcedTransfer(uint256)`, `setFrozenTokens`, `getFrozenTokens`) and their associated events require plaintext amounts, which are incompatible with FHE encrypted balances. See the [technical doc](./doc/technical/CMTATConfidentialWhitelist.md#erc-7943-partial-implementation) for the full breakdown.
 
 ```solidity
 // Enable or disable allowlist enforcement (ALLOWLIST_ROLE)
@@ -486,7 +496,7 @@ function enableAllowlist(bool enabled) public onlyRole(ALLOWLIST_ROLE);
 // Add or remove an address from the allowlist (ALLOWLIST_ROLE)
 function setAddressAllowlist(address account, bool allowlisted) public onlyRole(ALLOWLIST_ROLE);
 
-// ERC-7943 view checks (return false when allowlist is enabled and address is not allowlisted)
+// Partial ERC-7943 view checks (return false when allowlist is enabled and address is not allowlisted)
 function canSend(address account) public view returns (bool);
 function canReceive(address account) public view returns (bool);
 function canTransfer(address from, address to, uint256 amount) public view returns (bool);
@@ -495,6 +505,8 @@ function canTransfer(address from, address to, uint256 amount) public view retur
 When the allowlist is enabled, any transfer where either party is not allowlisted reverts with `ERC7943CannotTransfer(from, to, 0)` (amount is always `0` since the actual amount is encrypted). The contract also reverts `ERC7943CannotReceive(to)` on mint and `ERC7943CannotSend(from)` on burn when the respective party is not allowlisted.
 
 When the allowlist is disabled, all these checks are bypassed and the contract behaves identically to `CMTATConfidential`.
+
+> **Note:** `canSend`, `canReceive`, and `canTransfer` (with `amount` ignored) are available in **all four variants** via the inherited `ValidationModule`. The Whitelist variant adds the allowlist dimension to these checks.
 
 ### Forced Transfer
 
@@ -738,7 +750,7 @@ CMTAT-Confidential/
 │   ├── CMTATConfidential.sol                          # Full variant (+ total supply visibility)
 │   ├── CMTATConfidentialLite.sol                      # Lite variant (smaller, no total supply module)
 │   ├── CMTATConfidentialRuleEngine.sol                # Full variant + RuleEngine transfer restrictions
-│   ├── CMTATConfidentialWhitelist.sol                 # Full variant + ERC-7943 allowlist enforcement
+│   ├── CMTATConfidentialWhitelist.sol                 # Full variant + on/off allowlist enforcement
 │   └── modules/
 │       ├── ERC7984MintModule.sol                  # Mint with authorization hook
 │       ├── ERC7984BurnModule.sol                  # Burn with authorization hook

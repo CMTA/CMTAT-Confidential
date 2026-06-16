@@ -30,9 +30,6 @@ import {ValidationModule} from "../lib/CMTAT/contracts/modules/wrapper/controlle
  * path, rather than being duplicated across every transfer variant.
  */
 contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
-    // `type(IERC7943Fungible).interfaceId` as defined in the ERC-7943 specification.
-    bytes4 private constant _INTERFACE_ID_ERC7943_FUNGIBLE = 0x3edbb4c4;
-
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(
         string memory name_,
@@ -55,15 +52,12 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
     /**
      * @notice Returns whether a confidential transfer from `from` to `to` is
      * currently permitted.
-     * @dev ERC-7943 includes `amount` for fungible tokens. In this confidential
-     * variant the transfer amount is encrypted, so the public view cannot evaluate
-     * amount-specific balance or frozen-amount rules. The public `amount` parameter
-     * is therefore intentionally ignored and this function only reflects permissioned
-     * transfer rules that are public in this model.
+     * @dev The `amount` parameter is intentionally ignored: transfer amounts are
+     * encrypted and unavailable to public view functions.
      *
-     * Note: this view checks whether an unconditional (non-delegated) transfer is
-     * permitted. It uses `address(0)` as the spender, so a delegated transfer by a
-     * non-allowlisted spender could still be rejected at execution time.
+     * This view checks whether an unconditional (non-delegated) transfer is permitted.
+     * It uses `address(0)` as the spender, so a delegated transfer by a non-allowlisted
+     * spender could still be rejected at execution time.
      */
     function canTransfer(
         address from,
@@ -76,9 +70,7 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
     function supportsInterface(
         bytes4 interfaceId
     ) public view virtual override returns (bool) {
-        return
-            interfaceId == _INTERFACE_ID_ERC7943_FUNGIBLE ||
-            CMTATConfidential.supportsInterface(interfaceId);
+        return CMTATConfidential.supportsInterface(interfaceId);
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -181,15 +181,41 @@ confidentialTransfer / confidentialTransferFrom / *AndCall
 
 ---
 
-## ERC-7943 Interface
+## ERC-7943 Partial Implementation
 
-This contract implements `IERC7943Fungible` (`interfaceId = 0x3edbb4c4`):
+CMTAT Confidential implements **part** of `IERC7943Fungible` but **cannot claim full compliance** (`interfaceId = 0x3edbb4c4`) because the FHE architecture is fundamentally incompatible with several mandatory interface members.
+
+### Why full ERC-7943 compliance is not possible
+
+`IERC7943Fungible` mandates plaintext amounts in enforcement and freeze operations:
+
+| ERC-7943 requirement | Reason incompatible |
+|---|---|
+| `forcedTransfer(address, address, uint256 amount)` | Transfer amounts are encrypted (`euint64`); no plaintext amount exists at the contract level |
+| `setFrozenTokens(address, uint256 amount)` | ERC-7943 uses an amount-based freeze model; CMTAT uses a boolean freeze (`setAddressFrozen`) |
+| `getFrozenTokens(address) → uint256` | Boolean freeze model; no amount can be returned |
+| `ForcedTransfer(from, to, uint256 amount)` event | Emitting a plaintext seized amount would break confidentiality |
+| `Frozen(account, uint256 amount)` event | No amount to emit |
+
+### What is implemented
+
+The following ERC-7943 view functions and errors are available in **all four deployment variants** (inherited from CMTAT's `ValidationModule` and `CMTATConfidentialBase`):
 
 ```solidity
+// Account-level eligibility checks (checks freeze; Whitelist variant also checks allowlist)
 function canSend(address account) public view returns (bool);
 function canReceive(address account) public view returns (bool);
+
+// Transfer-level authorization check (amount ignored — encrypted and unavailable)
 function canTransfer(address from, address to, uint256 /*amount*/) public view returns (bool);
 ```
+
+Standard ERC-7943 errors are also emitted on revert by all variants:
+- `ERC7943CannotSend(address account)` — emitted on mint/burn when target is frozen or not allowlisted
+- `ERC7943CannotReceive(address account)` — same, for the recipient side
+- `ERC7943CannotTransfer(address from, address to, uint256 amount)` — emitted on blocked transfers (always with `amount = 0` since the actual amount is encrypted)
+
+### Behaviour of the view functions (Whitelist variant)
 
 **Important asymmetry:** `canSend`/`canReceive` check freeze + allowlist only — they do **not** reflect pause state. When the contract is paused, both may return `true` while `canTransfer` returns `false`. Always use `canTransfer` for the authoritative pre-flight check.
 
@@ -203,13 +229,9 @@ function canTransfer(address from, address to, uint256 /*amount*/) public view r
 | Sender frozen | ❌ | ✅ | ❌ |
 | Contract paused | ✅ | ✅ | ❌ |
 
-ERC-165 support is advertised via `supportsInterface`:
+### ERC-165 introspection
 
-```solidity
-function supportsInterface(bytes4 interfaceId) public view returns (bool) {
-    return interfaceId == 0x3edbb4c4 || CMTATConfidential.supportsInterface(interfaceId);
-}
-```
+`supportsInterface` does **not** return `true` for `0x3edbb4c4`. Advertising full `IERC7943Fungible` compliance would mislead integrators that attempt to call `forcedTransfer(uint256)`, `setFrozenTokens`, or `getFrozenTokens` and expect amount-based semantics.
 
 ---
 
@@ -220,8 +242,9 @@ function supportsInterface(bytes4 interfaceId) public view returns (bool) {
 | Total supply observer list (auto ACL) | ✅ | ❌ | ✅ | ✅ |
 | `publishTotalSupply` | ✅ | ✅ | ✅ | ✅ |
 | RuleEngine transfer restriction | ❌ | ❌ | ✅ | ❌ |
-| Allowlist enforcement (ERC-7943) | ❌ | ❌ | ❌ | ✅ |
-| `canSend` / `canReceive` (ERC-7943) | ❌ | ❌ | ❌ | ✅ |
+| Allowlist enforcement | ❌ | ❌ | ❌ | ✅ |
+| `canSend` / `canReceive` / `canTransfer` (partial ERC-7943) | ✅ | ✅ | ✅ | ✅ |
+| ERC-7943 `0x3edbb4c4` (full compliance) | ❌ | ❌ | ❌ | ❌ |
 | `SUPPLY_OBSERVER_ROLE` | ✅ | ❌ | ✅ | ✅ |
 | `RULE_ENGINE_ROLE` | ❌ | ❌ | ✅ | ❌ |
 | `ALLOWLIST_ROLE` | ❌ | ❌ | ❌ | ✅ |
@@ -229,7 +252,7 @@ function supportsInterface(bytes4 interfaceId) public view returns (bool) {
 
 **Choose this variant when:**
 - Transfer policy is a simple on/off allowlist — both sender and recipient must be approved.
-- You need ERC-7943 `canSend`/`canReceive`/`canTransfer` view checks for off-chain or UI integration.
+- You need `canSend`/`canReceive`/`canTransfer` view checks for off-chain or UI integration with allowlist-aware semantics.
 - The allowlist is managed by your compliance team and is expected to change infrequently.
 - You do not need the flexibility of a swappable external RuleEngine.
 
