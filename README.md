@@ -825,10 +825,11 @@ Decimals are configurable at deployment for both `CMTATConfidential` and `CMTATC
 CMTAT-Confidential/
 ├── contracts/
 │   ├── CMTATConfidentialBase.sol                      # Abstract base (all shared logic)
-│   ├── CMTATConfidential.sol                          # Full variant (+ total supply visibility)
-│   ├── CMTATConfidentialLite.sol                      # Lite variant (smaller, no total supply module)
-│   ├── CMTATConfidentialRuleEngine.sol                # Full variant + RuleEngine transfer restrictions
-│   ├── CMTATConfidentialWhitelist.sol                 # Full variant + on/off allowlist enforcement
+│   ├── deployment/
+│   │   ├── CMTATConfidential.sol                      # Full variant (+ total supply visibility)
+│   │   ├── CMTATConfidentialLite.sol                  # Lite variant (smaller, no total supply module)
+│   │   ├── CMTATConfidentialRuleEngine.sol            # Full variant + RuleEngine transfer restrictions
+│   │   └── CMTATConfidentialWhitelist.sol             # Full variant + on/off allowlist enforcement
 │   └── modules/
 │       ├── ERC7984MintModule.sol                  # Mint with authorization hook
 │       ├── ERC7984BurnModule.sol                  # Burn with authorization hook

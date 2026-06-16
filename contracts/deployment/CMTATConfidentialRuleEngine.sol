@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {ICMTATConstructor} from "../lib/CMTAT/contracts/interfaces/technical/ICMTATConstructor.sol";
-import {IRuleEngine} from "../lib/CMTAT/contracts/interfaces/engine/IRuleEngine.sol";
+import {ICMTATConstructor} from "../../lib/CMTAT/contracts/interfaces/technical/ICMTATConstructor.sol";
+import {IRuleEngine} from "../../lib/CMTAT/contracts/interfaces/engine/IRuleEngine.sol";
 import {CMTATConfidential} from "./CMTATConfidential.sol";
-import {CMTATConfidentialBase} from "./CMTATConfidentialBase.sol";
-import {ERC7984RuleEngineModule} from "./modules/ERC7984RuleEngineModule.sol";
+import {CMTATConfidentialBase} from "../CMTATConfidentialBase.sol";
+import {ERC7984RuleEngineModule} from "../modules/ERC7984RuleEngineModule.sol";
 
 /**
  * @title CMTATConfidentialRuleEngine

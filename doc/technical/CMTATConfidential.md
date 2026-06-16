@@ -4,7 +4,7 @@
 
 `CMTATConfidential` is the **full deployment variant** of the CMTAT Confidential token. It extends the shared abstract base (`CMTATConfidentialBase`) with `ERC7984TotalSupplyViewModule`, adding automatic ACL re-grant for registered total supply observers on every mint or burn.
 
-**Source file:** `contracts/CMTATConfidential.sol`
+**Source file:** `contracts/deployment/CMTATConfidential.sol`
 **Contract version:** `0.3.0` (via `CMTATConfidentialVersionModule`)
 **Contract size:** ~21.1 KB
 
