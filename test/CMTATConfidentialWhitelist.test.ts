@@ -245,6 +245,88 @@ describe('CMTATConfidentialWhitelist', function () {
         )
       ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
     });
+
+    it('transferFrom is blocked when spender is not allowlisted even if from and to are', async function () {
+      await this.token.connect(this.admin).enableAllowlist(true);
+      await this.token.connect(this.admin).setAddressAllowlist(this.holder.address, true);
+      await this.token.connect(this.admin).setAddressAllowlist(this.recipient.address, true);
+      const exp = BigInt((await ethers.provider.getBlock('latest'))!.timestamp + 3600);
+      await this.token.connect(this.holder).setOperator(this.accounts[0].address, exp);
+      const enc = await encryptAmount(this.token.target, this.accounts[0].address, 100);
+      await expect(
+        this.token.connect(this.accounts[0])['confidentialTransferFrom(address,address,bytes32,bytes)'](
+          this.holder.address, this.recipient.address, enc.handles[0], enc.inputProof
+        )
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
+    });
+
+    describe('mint and burn allowlist enforcement', function () {
+      it('mint is blocked when allowlist is enabled and recipient is not allowlisted', async function () {
+        await this.token.connect(this.admin).enableAllowlist(true);
+        const enc = await encryptAmount(this.token.target, this.minter.address, 500);
+        await expect(
+          this.token.connect(this.minter)['mint(address,bytes32,bytes)'](
+            this.recipient.address, enc.handles[0], enc.inputProof
+          )
+        ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotReceive');
+      });
+
+      it('mint succeeds when allowlist is enabled and recipient is allowlisted', async function () {
+        await this.token.connect(this.admin).enableAllowlist(true);
+        await this.token.connect(this.admin).setAddressAllowlist(this.recipient.address, true);
+        const enc = await encryptAmount(this.token.target, this.minter.address, 500);
+        await this.token.connect(this.minter)['mint(address,bytes32,bytes)'](
+          this.recipient.address, enc.handles[0], enc.inputProof
+        );
+        const handle = await this.token.confidentialBalanceOf(this.recipient.address);
+        expect(await decryptBalance(this.token.target, handle, this.recipient)).to.equal(500n);
+      });
+
+      it('burn is blocked when allowlist is enabled and account is not allowlisted', async function () {
+        await this.token.connect(this.admin).enableAllowlist(true);
+        const enc = await encryptAmount(this.token.target, this.burner.address, 100);
+        await expect(
+          this.token.connect(this.burner)['burn(address,bytes32,bytes)'](
+            this.holder.address, enc.handles[0], enc.inputProof
+          )
+        ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotSend');
+      });
+
+      it('burn succeeds when allowlist is enabled and account is allowlisted', async function () {
+        await this.token.connect(this.admin).enableAllowlist(true);
+        await this.token.connect(this.admin).setAddressAllowlist(this.holder.address, true);
+        const enc = await encryptAmount(this.token.target, this.burner.address, 100);
+        await this.token.connect(this.burner)['burn(address,bytes32,bytes)'](
+          this.holder.address, enc.handles[0], enc.inputProof
+        );
+        const handle = await this.token.confidentialBalanceOf(this.holder.address);
+        expect(await decryptBalance(this.token.target, handle, this.holder)).to.equal(900n);
+      });
+    });
+
+    describe('forced operations bypass the allowlist', function () {
+      it('forcedTransfer succeeds when allowlist is enabled and parties are not allowlisted', async function () {
+        await this.token.connect(this.admin).enableAllowlist(true);
+        await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
+        const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 200);
+        await this.token.connect(this.forcedOpsAgent)['forcedTransfer(address,address,bytes32,bytes)'](
+          this.holder.address, this.recipient.address, enc.handles[0], enc.inputProof
+        );
+        const handle = await this.token.confidentialBalanceOf(this.recipient.address);
+        expect(await decryptBalance(this.token.target, handle, this.recipient)).to.equal(200n);
+      });
+
+      it('forcedBurn succeeds when allowlist is enabled and account is not allowlisted', async function () {
+        await this.token.connect(this.admin).enableAllowlist(true);
+        await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
+        const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 300);
+        await this.token.connect(this.forcedOpsAgent)['forcedBurn(address,bytes32,bytes)'](
+          this.holder.address, enc.handles[0], enc.inputProof
+        );
+        const handle = await this.token.confidentialBalanceOf(this.holder.address);
+        expect(await decryptBalance(this.token.target, handle, this.holder)).to.equal(700n);
+      });
+    });
   });
 
   describe('decimals configuration', function () {

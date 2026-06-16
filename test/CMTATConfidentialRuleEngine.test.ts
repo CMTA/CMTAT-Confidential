@@ -113,6 +113,20 @@ describe('CMTATConfidentialRuleEngine', function () {
       ).to.equal(true);
     });
 
+    it('canTransfer returns false when contract is paused', async function () {
+      await this.token.connect(this.pauser).pause();
+      expect(
+        await this.token.canTransfer(this.holder.address, this.recipient.address, 1)
+      ).to.equal(false);
+    });
+
+    it('canTransfer returns false when sender is frozen', async function () {
+      await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
+      expect(
+        await this.token.canTransfer(this.holder.address, this.recipient.address, 1)
+      ).to.equal(false);
+    });
+
     it('exposes canTransferFrom through the rule engine with value zero semantics', async function () {
       expect(
         await this.token.canTransferFrom(

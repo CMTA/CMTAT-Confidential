@@ -73,8 +73,8 @@ describe('ERC7984EnforcementModule', function () {
     });
 
     it('FORCED_OPS_ROLE can forcedTransfer from a frozen address', async function () {
-      const enc = await encryptAmount(this.token.target, this.enforcer.address, 400);
-      await this.token.connect(this.enforcer)['forcedTransfer(address,address,bytes32,bytes)'](
+      const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 400);
+      await this.token.connect(this.forcedOpsAgent)['forcedTransfer(address,address,bytes32,bytes)'](
         this.holder.address, this.recipient.address, enc.handles[0], enc.inputProof
       );
       const handle = await this.token.confidentialBalanceOf(this.recipient.address);
@@ -92,31 +92,31 @@ describe('ERC7984EnforcementModule', function () {
 
     it('reverts CMTAT_AddressNotFrozen when address is not frozen', async function () {
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, false);
-      const enc = await encryptAmount(this.token.target, this.enforcer.address, 100);
+      const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 100);
       await expect(
-        this.token.connect(this.enforcer)['forcedTransfer(address,address,bytes32,bytes)'](
+        this.token.connect(this.forcedOpsAgent)['forcedTransfer(address,address,bytes32,bytes)'](
           this.holder.address, this.recipient.address, enc.handles[0], enc.inputProof
         )
       ).to.be.revertedWithCustomError(this.token, 'CMTAT_AddressNotFrozen');
     });
 
     it('reverts CMTAT_Enforcement_ZeroAddressNotAllowed when to is address(0)', async function () {
-      const enc = await encryptAmount(this.token.target, this.enforcer.address, 100);
+      const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 100);
       await expect(
-        this.token.connect(this.enforcer)['forcedTransfer(address,address,bytes32,bytes)'](
+        this.token.connect(this.forcedOpsAgent)['forcedTransfer(address,address,bytes32,bytes)'](
           this.holder.address, ethers.ZeroAddress, enc.handles[0], enc.inputProof
         )
       ).to.be.revertedWithCustomError(this.token, 'CMTAT_Enforcement_ZeroAddressNotAllowed');
     });
 
     it('emits ForcedTransfer with correct args', async function () {
-      const enc = await encryptAmount(this.token.target, this.enforcer.address, 400);
+      const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 400);
       await expect(
-        this.token.connect(this.enforcer)['forcedTransfer(address,address,bytes32,bytes)'](
+        this.token.connect(this.forcedOpsAgent)['forcedTransfer(address,address,bytes32,bytes)'](
           this.holder.address, this.recipient.address, enc.handles[0], enc.inputProof
         )
       ).to.emit(this.token, 'ForcedTransfer')
-        .withArgs(this.enforcer.address, this.holder.address, this.recipient.address, anyValue);
+        .withArgs(this.forcedOpsAgent.address, this.holder.address, this.recipient.address, anyValue);
     });
   });
 
@@ -130,11 +130,11 @@ describe('ERC7984EnforcementModule', function () {
     });
 
     it('FORCED_OPS_ROLE can forcedTransfer with a pre-encrypted handle', async function () {
-      const tx = await this.factory.connect(this.enforcer).makeFor(this.token.target, 300);
+      const tx = await this.factory.connect(this.forcedOpsAgent).makeFor(this.token.target, 300);
       const receipt = await tx.wait();
       const amountHandle = getHandleFromReceipt(this.factory, receipt);
 
-      await this.token.connect(this.enforcer)['forcedTransfer(address,address,bytes32)'](
+      await this.token.connect(this.forcedOpsAgent)['forcedTransfer(address,address,bytes32)'](
         this.holder.address, this.recipient.address, amountHandle
       );
       const handle = await this.token.confidentialBalanceOf(this.recipient.address);
@@ -142,13 +142,13 @@ describe('ERC7984EnforcementModule', function () {
     });
 
     it('reverts ERC7984EnforcementModule_UnauthorizedHandle when caller lacks ACL', async function () {
-      // handle created by holder — enforcer does not have ACL access to it
+      // handle created by holder — forcedOpsAgent does not have ACL access to it
       const tx = await this.factory.connect(this.holder).makeFor(this.token.target, 300);
       const receipt = await tx.wait();
       const amountHandle = getHandleFromReceipt(this.factory, receipt);
 
       await expect(
-        this.token.connect(this.enforcer)['forcedTransfer(address,address,bytes32)'](
+        this.token.connect(this.forcedOpsAgent)['forcedTransfer(address,address,bytes32)'](
           this.holder.address, this.recipient.address, amountHandle
         )
       ).to.be.revertedWithCustomError(this.token, 'ERC7984EnforcementModule_UnauthorizedHandle');
@@ -164,8 +164,8 @@ describe('ERC7984EnforcementModule', function () {
     });
 
     it('FORCED_OPS_ROLE can forcedBurn from a frozen address', async function () {
-      const enc = await encryptAmount(this.token.target, this.enforcer.address, 400);
-      await this.token.connect(this.enforcer)['forcedBurn(address,bytes32,bytes)'](
+      const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 400);
+      await this.token.connect(this.forcedOpsAgent)['forcedBurn(address,bytes32,bytes)'](
         this.holder.address, enc.handles[0], enc.inputProof
       );
     });
@@ -181,18 +181,18 @@ describe('ERC7984EnforcementModule', function () {
 
     it('reverts CMTAT_AddressNotFrozen when address is not frozen', async function () {
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, false);
-      const enc = await encryptAmount(this.token.target, this.enforcer.address, 100);
+      const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 100);
       await expect(
-        this.token.connect(this.enforcer)['forcedBurn(address,bytes32,bytes)'](
+        this.token.connect(this.forcedOpsAgent)['forcedBurn(address,bytes32,bytes)'](
           this.holder.address, enc.handles[0], enc.inputProof
         )
       ).to.be.revertedWithCustomError(this.token, 'CMTAT_AddressNotFrozen');
     });
 
     it('emits ForcedBurn', async function () {
-      const enc = await encryptAmount(this.token.target, this.enforcer.address, 400);
+      const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 400);
       await expect(
-        this.token.connect(this.enforcer)['forcedBurn(address,bytes32,bytes)'](
+        this.token.connect(this.forcedOpsAgent)['forcedBurn(address,bytes32,bytes)'](
           this.holder.address, enc.handles[0], enc.inputProof
         )
       ).to.emit(this.token, 'ForcedBurn');
@@ -201,8 +201,8 @@ describe('ERC7984EnforcementModule', function () {
     it('_afterBurn is called: total supply observers get ACL on new handle after forcedBurn', async function () {
       await this.token.connect(this.supplyManager).addTotalSupplyObserver(this.supplyObserver.address);
 
-      const enc = await encryptAmount(this.token.target, this.enforcer.address, 400);
-      await this.token.connect(this.enforcer)['forcedBurn(address,bytes32,bytes)'](
+      const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 400);
+      await this.token.connect(this.forcedOpsAgent)['forcedBurn(address,bytes32,bytes)'](
         this.holder.address, enc.handles[0], enc.inputProof
       );
 
@@ -223,11 +223,11 @@ describe('ERC7984EnforcementModule', function () {
     it('_afterBurn is called: total supply observers get ACL on new handle after forcedBurn', async function () {
       await this.token.connect(this.supplyManager).addTotalSupplyObserver(this.supplyObserver.address);
 
-      const tx = await this.factory.connect(this.enforcer).makeFor(this.token.target, 200);
+      const tx = await this.factory.connect(this.forcedOpsAgent).makeFor(this.token.target, 200);
       const receipt = await tx.wait();
       const amountHandle = getHandleFromReceipt(this.factory, receipt);
 
-      await this.token.connect(this.enforcer)['forcedBurn(address,bytes32)'](
+      await this.token.connect(this.forcedOpsAgent)['forcedBurn(address,bytes32)'](
         this.holder.address, amountHandle
       );
 
@@ -241,7 +241,7 @@ describe('ERC7984EnforcementModule', function () {
       const amountHandle = getHandleFromReceipt(this.factory, receipt);
 
       await expect(
-        this.token.connect(this.enforcer)['forcedBurn(address,bytes32)'](
+        this.token.connect(this.forcedOpsAgent)['forcedBurn(address,bytes32)'](
           this.holder.address, amountHandle
         )
       ).to.be.revertedWithCustomError(this.token, 'ERC7984EnforcementModule_UnauthorizedHandle');

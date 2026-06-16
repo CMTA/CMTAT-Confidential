@@ -39,13 +39,18 @@ export const ALLOWLIST_ROLE = ethers.keccak256(ethers.toUtf8Bytes('ALLOWLIST_ROL
  * and returns the token + named signers.
  *
  * Signer layout (matches all test files):
- *   [0] admin  [1] minter  [2] burner  [3] pauser  [4] enforcer
- *   [5] holder [6] recipient  [7..] accounts (extra)
+ *   [0] admin        [1] minter      [2] burner        [3] pauser
+ *   [4] enforcer     [5] holder      [6] recipient      [7] forcedOpsAgent
+ *   [8..] accounts (extra)
+ *
+ * Role separation is intentional:
+ *   enforcer       → ENFORCER_ROLE only (freeze / unfreeze addresses)
+ *   forcedOpsAgent → FORCED_OPS_ROLE only (forcedTransfer / forcedBurn)
  */
 export async function deployToken(contractName: string, decimals: number = TOKEN_DECIMALS, extraArgs: any[] = []) {
   const signers = await ethers.getSigners();
-  const [admin, minter, burner, pauser, enforcer, holder, recipient] = signers;
-  const accounts = signers.slice(7);
+  const [admin, minter, burner, pauser, enforcer, holder, recipient, forcedOpsAgent] = signers;
+  const accounts = signers.slice(8);
 
   const token = await ethers.deployContract(contractName, [
     TOKEN_NAME,
@@ -61,9 +66,9 @@ export async function deployToken(contractName: string, decimals: number = TOKEN
   await token.connect(admin).grantRole(BURNER_ROLE, burner.address);
   await token.connect(admin).grantRole(PAUSER_ROLE, pauser.address);
   await token.connect(admin).grantRole(ENFORCER_ROLE, enforcer.address);
-  await token.connect(admin).grantRole(FORCED_OPS_ROLE, enforcer.address);
+  await token.connect(admin).grantRole(FORCED_OPS_ROLE, forcedOpsAgent.address);
 
-  return { token, admin, minter, burner, pauser, enforcer, holder, recipient, accounts };
+  return { token, admin, minter, burner, pauser, enforcer, forcedOpsAgent, holder, recipient, accounts };
 }
 
 // ─── FHE helpers ─────────────────────────────────────────────────────────────

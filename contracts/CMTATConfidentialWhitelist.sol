@@ -15,7 +15,13 @@ import {ValidationModule} from "../lib/CMTAT/contracts/modules/wrapper/controlle
  * - If `isAllowlistEnabled() == true`, sender, recipient, and (for `transferFrom`
  *   variants) spender must all be allowlisted.
  *
- * Forced operations (forced transfer / forced burn) are unchanged.
+ * Forced operations (`forcedTransfer`, `forcedBurn`) intentionally bypass the allowlist.
+ * They require only that the source address is frozen — the `FORCED_OPS_ROLE` holder has
+ * authority to seize frozen funds regardless of whether the parties are allowlisted. This
+ * mirrors CMTAT's design intent for regulatory enforcement actions (court orders, sanctions
+ * compliance, error correction) where the allowlist is an operational restriction, not an
+ * absolute override of regulatory power. The `_validateForcedTransfer` and
+ * `_validateForcedBurn` hooks in `CMTATConfidentialBase` enforce only the frozen precondition.
  *
  * Implementation note: allowlist enforcement is wired through CMTAT's standard
  * validation hooks (`_canTransferStandardByModule`, `_canMintBurnByModule`,
