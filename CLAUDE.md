@@ -35,7 +35,8 @@ CMTATConfidential
 | Path | Contents |
 |------|----------|
 | `openzeppelin-confidential-contracts/contracts/token/ERC7984/` | `ERC7984.sol`, `ERC7984ObserverAccess.sol` |
-| `CMTAT/contracts/modules/` | Pause, Enforcement, AccessControl, Document, ExtraInfo modules |
+| `lib/CMTAT/contracts/modules/` | Pause, Enforcement, AccessControl, Document, ExtraInfo modules |
+| `lib/RuleEngine/` | CMTA RuleEngine submodule |
 
 ---
 
@@ -102,6 +103,40 @@ function _validateXxx(...) internal virtual override {
 - [ ] If the module overrides `_update`: add explicit `_update` override in `CMTATConfidential.sol`
 - [ ] Update `README.md` (Architecture tree, Roles table, Extended Features table, Contract Functions section, Project Structure)
 - [ ] Write tests in `test/ERC7984XxxModule.test.ts`
+
+---
+
+## Inheritance Delegation Guideline
+
+When an override must delegate to a parent implementation, call the inherited contract explicitly instead of using `super`.
+
+```solidity
+return CMTATConfidential.supportsInterface(interfaceId);
+```
+
+Avoid:
+
+```solidity
+return super.supportsInterface(interfaceId);
+```
+
+This keeps the intended parent implementation clear in contracts with multiple inheritance.
+
+---
+
+## Custom Error Guideline
+
+New Solidity reverts must use custom errors with typed arguments. Do not use string-literal revert reasons in `revert` or `require`.
+
+```solidity
+revert RuleEngine_InvalidTransfer(from, to, 0);
+```
+
+Avoid:
+
+```solidity
+revert CMTAT_InvalidTransfer(from, to, "RuleEngine blocked");
+```
 
 ---
 
@@ -248,6 +283,7 @@ describe('ERC7984XxxModule', function () {
 | Handle staleness | Every arithmetic operation creates a new handle. ACL must be re-granted after each `_update` |
 | `super._update` chain | `ERC7984BalanceViewModule._update` → `ERC7984ObserverAccess._update` → `ERC7984._update` |
 | `FHE.allow` is permanent | ACL cannot be revoked. Removing an observer only prevents future grants |
+| RuleEngine value | `CMTATConfidentialRuleEngine` passes `0` as RuleEngine `value` because transfer amounts are encrypted |
 | `userDecryptEuint` signature | `(type, handle, contractAddress, signerWithAccess)` — contract address is the 3rd arg |
 | `bigint` comparisons | FHE decrypted values are `bigint` — use `1000n`, not `1000` in assertions |
 
@@ -264,3 +300,10 @@ describe('ERC7984XxxModule', function () {
 | `DEFAULT_ADMIN_ROLE` | `AccessControlModule` (CMTAT) | `_authorizeDeactivate()` |
 | `ENFORCER_ROLE` | `EnforcementModule` (CMTAT) | `_authorizeFreeze()` |
 | `OBSERVER_ROLE` | `ERC7984BalanceViewModule` | `_authorizeObserverManagement()` |
+| `RULE_ENGINE_ROLE` | `ERC7984RuleEngineModule` | `_authorizeRuleEngineManagement()` |
+| `ALLOWLIST_ROLE` | `AllowlistModule` (CMTAT) | `_authorizeAllowlistManagement()` |
+| `TOKEN_ATTRIBUTE_ROLE` | `ERC7984TokenAttributeModule` | `_authorizeTokenAttributeManagement()` |
+
+## Note
+
+After each implemented feature or fix, provide a one-line GitHub commit message for all changes since the last commit.

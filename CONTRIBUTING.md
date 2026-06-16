@@ -1,6 +1,6 @@
 # Contributing Guidelines
 
-There are many ways to contribute to CMTAT FHE Contracts.
+There are many ways to contribute to CMTAT Confidential Contracts.
 
 ## Opening an issue
 

@@ -1,0 +1,19 @@
+[profile.default]
+src = "contracts"
+out = "artifacts"
+libs = ["lib", "node_modules"]
+
+solc = "0.8.34"
+evm_version = "prague"
+optimizer = true
+optimizer_runs = 200
+
+remappings = [
+    "@fhevm/=node_modules/@fhevm/",
+    "@openzeppelin/=node_modules/@openzeppelin/",
+    "CMTAT/=lib/CMTAT/",
+    "CMTATv3.0.0/=lib/RuleEngine/lib/CMTATv3.0.0/contracts/",
+    "RuleEngine/=lib/RuleEngine/src/",
+    "encrypted-types/=node_modules/encrypted-types/",
+    "hardhat/=node_modules/hardhat/",
+]

@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./modules/ERC7984BurnModule.sol | 45ec5244eaca03920c8365ede72bb9841f66f309 |
+| ./modules/ERC7984BurnModule.sol | 137a628f0b3c9679bdf192d5c2755093ffd94bbe |
 
 
 ### Contracts Description Table
@@ -15,7 +15,7 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **ERC7984BurnModule** | Implementation | ERC7984 |||
+| **ERC7984BurnModule** | Implementation | ERC7984, IERC7984BurnModule |||
 | └ | burn | Public ❗️ | 🛑  | onlyBurner |
 | └ | burn | Public ❗️ | 🛑  | onlyBurner |
 | └ | _validateBurn | Internal 🔒 | 🛑  | |

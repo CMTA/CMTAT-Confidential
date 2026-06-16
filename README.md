@@ -12,6 +12,7 @@ A confidential security token implementation combining [CMTAT](https://github.co
 - [Compiler & EVM Version](#compiler--evm-version)
 - [Security](#security)
 - [Roles](#roles)
+- [Events](#events)
 - [Contract Functions](#contract-functions)
 - [Role-Based Access Control](#role-based-access-control)
 - [Troubleshooting](#troubleshooting)
@@ -41,6 +42,7 @@ Fully Homomorphic Encryption (FHE) enables computing directly on encrypted data 
 - **Role-Based Access Control**: Granular permissions for minting, burning, pausing, and enforcement
 - **Document Management**: Attach terms, documents, and metadata to tokens
 - **ERC-7984 Standard**: Based on OpenZeppelin's confidential token implementation
+- **ERC-7943 Compliance**: Standard errors (`ERC7943CannotSend`, `ERC7943CannotReceive`, `ERC7943CannotTransfer`) and view checks (`canSend`, `canReceive`, `canTransfer`) in `CMTATConfidentialWhitelist`
 
 
 
@@ -66,8 +68,10 @@ CMTAT-Confidential
 │   ├── ERC7984BurnModule - Modular burn with authorization hook
 │   ├── ERC7984EnforcementModule - Forced transfer and forced burn
 │   ├── ERC7984BalanceViewModule - Per-account balance observers (holder + role slots)
-│   ├── ERC7984PublishTotalSupplyModule - Public total supply disclosure (in CMTATConfidentialBase)
-│   └── ERC7984TotalSupplyViewModule - Total supply observer list with auto ACL re-grant (CMTATConfidential only)
+│   ├── ERC7984PublishTotalSupplyModule - Public total supply disclosure (all variants)
+│   ├── ERC7984TotalSupplyViewModule - Total supply observer list with auto ACL re-grant (all full variants except Lite)
+│   ├── ERC7984TokenAttributeModule - Post-deployment name/symbol updates (ERC-3643 alignment)
+│   └── ERC7984RuleEngineModule - RuleEngine transfer restrictions with public value = 0
 │
 └── Zama Protocol Infrastructure (configured via ZamaEthereumConfig)
     ├── ACL - Access Control List for encrypted data permissions
@@ -75,6 +79,37 @@ CMTAT-Confidential
     ├── KMSVerifier - Verifies decryption proofs from Key Management System
     └── InputVerifier - Validates encrypted inputs and ZKPoKs
 ```
+
+### Module Reference
+
+All FHE modules follow the same pattern: a role constant, a modifier, a virtual authorization hook overridden in `CMTATConfidentialBase`, and optional validation/hook functions. Every module has a corresponding interface in `contracts/interfaces/`.
+
+| Module | Role | Source | Availability | Purpose |
+|--------|------|--------|-------------|---------|
+| `ERC7984MintModule` | `MINTER_ROLE` | `contracts/modules/` | all variants | Encrypted mint via ZKPoK input or existing handle |
+| `ERC7984BurnModule` | `BURNER_ROLE` | `contracts/modules/` | all variants | Encrypted burn via ZKPoK input or existing handle |
+| `ERC7984EnforcementModule` | `FORCED_OPS_ROLE` | `contracts/modules/` | all variants | Forced transfer and forced burn from frozen addresses |
+| `ERC7984BalanceViewModule` | `OBSERVER_ROLE` | `contracts/modules/` | all variants | Per-account balance observers (holder slot + role slot); auto ACL re-grant on every `_update` |
+| `ERC7984PublishTotalSupplyModule` | `SUPPLY_PUBLISHER_ROLE` | `contracts/modules/` | all variants | Mark the current total supply handle as publicly decryptable (one-shot, irrevocable per handle) |
+| `ERC7984TotalSupplyViewModule` | `SUPPLY_OBSERVER_ROLE` | `contracts/modules/` | all except Lite | Registered observers automatically receive ACL access on the total supply handle after every mint/burn |
+| `ERC7984TokenAttributeModule` | `TOKEN_ATTRIBUTE_ROLE` | `contracts/modules/` | all variants | Post-deployment `setName` / `setSymbol` — ERC-3643 alignment |
+| `ERC7984RuleEngineModule` | `RULE_ENGINE_ROLE` | `contracts/modules/` | RuleEngine variant only | Plug in a CMTA `IRuleEngine` for transfer policy checks; passes `value = 0` because amounts are encrypted |
+| `CMTATConfidentialVersionModule` | — | `contracts/modules/` | all variants | Pins `version()` to `0.3.0`, overriding CMTAT's own version module |
+
+CMTAT modules (from `lib/CMTAT/`) are inherited through `CMTATBaseGeneric` and always present in all variants:
+
+| CMTAT Module | Role | Purpose |
+|---|---|---|
+| `PauseModule` | `PAUSER_ROLE` | Pause / unpause all transfers |
+| `EnforcementModule` | `ENFORCER_ROLE` | Freeze / unfreeze individual addresses |
+| `AccessControlModule` | `DEFAULT_ADMIN_ROLE` | Role management and contract deactivation |
+| `ValidationModule` | — | `canSend`, `canReceive`, `canTransfer` view checks; ERC-7943 errors |
+| `ExtraInformationModule` | `EXTRA_INFORMATION_ROLE` | `setTokenId`, `setTerms`, `setInformation` |
+| `DocumentERC1643Module` | `DOCUMENT_ROLE` | ERC-1643 document management (`setDocument`, `removeDocument`, `getDocument`) |
+| `AllowlistModule` | `ALLOWLIST_ROLE` | On/off allowlist — `CMTATConfidentialWhitelist` only |
+| `ValidationModuleRuleEngineInternal` | — | `ruleEngine()` storage + `RuleEngine` event — `CMTATConfidentialRuleEngine` only |
+
+---
 
 ### How It Works
 
@@ -100,10 +135,10 @@ This section maps the CMTAT framework features to the CMTAT Confidential impleme
 | Deactivate contract | `deactivateContract()` - inherited from CMTAT |
 | Freeze | `setAddressFrozen(address, true)` - inherited from CMTAT |
 | Unfreeze | `setAddressFrozen(address, false)` - inherited from CMTAT |
-| Name attribute | ERC20 `name()` - public |
-| Ticker symbol attribute | ERC20 `symbol()` - public |
-| Token ID attribute | `tokenId()` - inherited from CMTAT |
-| Reference to legally required documentation | `terms()` - inherited from CMTAT |
+| Name attribute | `name()` — mutable post-deployment via `setName()` (`TOKEN_ATTRIBUTE_ROLE`) |
+| Ticker symbol attribute | `symbol()` — mutable post-deployment via `setSymbol()` (`TOKEN_ATTRIBUTE_ROLE`) |
+| Token ID attribute | `tokenId()` — mutable via `setTokenId()` (`EXTRA_INFORMATION_ROLE`) |
+| Reference to legally required documentation | `terms()` — mutable via `setTerms()` (`EXTRA_INFORMATION_ROLE`) |
 
 ### Extended Features
 
@@ -115,8 +150,8 @@ This section maps the CMTAT framework features to the CMTAT Confidential impleme
 | Public Disclosure | `requestDiscloseEncryptedAmount()` / `discloseEncryptedAmount()` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
 | On-chain snapshot | Not implemented | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
 | Freeze partial tokens | Not implemented (all balances are encrypted) | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
-| Integrated allowlisting | Not implemented | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
-| RuleEngine / transfer hook | Not implemented | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
+| Integrated allowlisting | `CMTATConfidentialWhitelist` (ERC-7943 `canSend`/`canReceive`/`canTransfer`) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| RuleEngine / transfer hook | `CMTATConfidentialRuleEngine` (`value = 0` because amounts are encrypted) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
 | Upgradability | Not implemented (standalone only) | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
 
 ### Implementation Details
@@ -157,21 +192,29 @@ To decrypt encrypted values (balances, amounts, total supply), the requesting pa
 
 ## Deployment Variants
 
-Two deployment-ready contracts are provided. Both share the same abstract base (`CMTATConfidentialBase`) and are functionally identical except for total supply visibility.
+Four deployment-ready contracts are provided. They share the same abstract base (`CMTATConfidentialBase`) except for optional total supply visibility, optional RuleEngine transfer restrictions, and optional allowlist enforcement.
 
-| | `CMTATConfidential` | `CMTATConfidentialLite` |
-|---|---|---|
-| Confidential balances & transfers | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| Mint / Burn / Forced ops | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| Pause / Freeze | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| Per-account balance observers | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| `publishTotalSupply` (public disclosure) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| Total supply observer list (auto ACL) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
-| `SUPPLY_OBSERVER_ROLE` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| `SUPPLY_PUBLISHER_ROLE` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| Contract size | ~20.5 KB | ~19.2 KB |
+| | `CMTATConfidential` | `CMTATConfidentialLite` | `CMTATConfidentialRuleEngine` | `CMTATConfidentialWhitelist` |
+|---|---|---|---|---|
+| Confidential balances & transfers | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Mint / Burn / Forced ops | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Pause / Freeze | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Per-account balance observers | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| `publishTotalSupply` (public disclosure) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Total supply observer list (auto ACL) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| RuleEngine transfer restriction | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
+| Allowlist enforcement | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| `canSend` / `canReceive` / `canTransfer` (partial ERC-7943) | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| ERC-7943 `0x3edbb4c4` (full compliance) | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
+| `SUPPLY_OBSERVER_ROLE` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| `SUPPLY_PUBLISHER_ROLE` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| `RULE_ENGINE_ROLE` | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
+| `ALLOWLIST_ROLE` | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
+| Contract size | ~21.1 KB | ~19.7 KB | ~22.2 KB | ~22.2 KB |
 
-Choose `CMTATConfidentialLite` when automatic per-observer ACL re-grant on every mint/burn is not required and you want to minimize deployment cost. `publishTotalSupply` (one-shot public disclosure) is available in both variants.
+Choose `CMTATConfidentialLite` when automatic per-observer ACL re-grant on every mint/burn is not required and you want to minimize deployment cost. `publishTotalSupply` (one-shot public disclosure) is available in all deployment variants.
+Choose `CMTATConfidentialRuleEngine` when public transfer-policy rules such as whitelists, blacklists, jurisdiction checks, or other CMTA RuleEngine rules must restrict confidential transfers. Since amounts are encrypted, the token passes `0` as the RuleEngine `value` for validation and transfer notifications.
+Choose `CMTATConfidentialWhitelist` when a simple on/off allowlist is sufficient: both sender and recipient must be allowlisted when enforcement is enabled. Provides `canSend`, `canReceive`, `canTransfer` view checks (partial ERC-7943 — see note in Whitelist Variant section).
 
 ## Installation
 
@@ -198,7 +241,7 @@ npm run test
 
 ## Versioning
 
-The contract-level `version()` string is pinned to `0.2.0` via `CMTATConfidentialVersionModule`.
+The contract-level `version()` string is pinned to `0.3.0` via `CMTATConfidentialVersionModule`.
 
 ## Security
 
@@ -219,7 +262,21 @@ Nethermind AuditAgent automated scan (March 18, 2026, commit `51f9d7aa`) reporte
 | 7 | Info | Unbounded observer list can cause DoS on `mint` and `burn` | Duplicate of #4 — resolved together | `12249c1` |
 | 8 | Best Practice | Duplicate observer removal via `setRoleObserver(account, address(0))` | Fixed — `setRoleObserver` now rejects `address(0)` | `a74314e` |
 
-### Static Analysis — Aderyn
+### Static Analysis — Aderyn (v0.3.0)
+
+Aderyn static analysis (v0.3.0) reported **0 high** and **7 low** severity findings across 21 contracts (1 276 nSLOC). All findings are accepted or not applicable. Full rationale in [`aderyn-report-feedback.md`](./doc/audit/v0.3.0/aderyn-report-feedback.md).
+
+| ID | Finding | Instances | Disposition |
+|----|---------|-----------|-------------|
+| L-1 | Centralization Risk | 14 | Accepted — role-based access control is mandatory for a regulated security token |
+| L-2 | Unspecific Solidity Pragma (`^0.8.27`) | 21 | Accepted — lower bound required by OZ Confidential submodule; Hardhat compiles with `0.8.34` |
+| L-3 | PUSH0 Opcode | 21 | Not applicable — target is Ethereum mainnet, EVM version set to `prague` in `hardhat.config.ts` |
+| L-4 | Modifier Invoked Only Once | 3 | Accepted — consistent with the module authorization pattern across all modules |
+| L-5 | Empty Block | 22 | Accepted — modifier-only authorization hooks and intentional virtual extension points |
+| L-6 | Internal Function Used Only Once | 1 | Accepted — required by the OpenZeppelin `initializer` modifier pattern |
+| L-7 | Unchecked Return | 8 | Not applicable — `FHE.allow()` / `FHE.makePubliclyDecryptable()` return the same handle (fluent interface), not an error code |
+
+### Static Analysis — Aderyn (v0.2.0)
 
 Aderyn static analysis (v0.2.0) reported **0 high** and **8 low** severity findings across 12 contracts (663 nSLOC). All findings are accepted or not applicable for this codebase. Full rationale in [`aderyn-report-feedback.md`](./doc/audit/v0.2.0/aderyn-report-feedback.md), source report in [`aderyn-report.md`](./doc/audit/v0.2.0/aderyn-report.md).
 
@@ -260,6 +317,26 @@ ERROR:root:Please report an issue to https://github.com/crytic/slither/issues
 
 At this stage, no Slither findings are available for this release due to this tooling/build-artifact sync issue.
 
+### Design Limitations
+
+#### `confidentialTransferAndCall` — silent refund failure on re-entrant receiver
+
+`confidentialTransferAndCall` and `confidentialTransferFromAndCall` use an ERC-1363-style
+callback pattern where the receiver is credited **before** its `onConfidentialTransferReceived`
+hook is called. If the callback returns `false`, the implementation attempts a compensating
+reverse transfer via `FHE.select(success, 0, sent)`.
+
+This reverse transfer can silently produce **0** if a malicious or re-entrant receiver drains its
+encrypted balance inside the callback before returning `false`: because `FHESafeMath.tryDecrease`
+operates on an encrypted value, it cannot revert on underflow — it saturates to 0 instead. The
+sender then loses the transferred amount permanently with no on-chain indication of failure.
+
+This is a structural limitation of FHE arithmetic and an intentional trade-off in the upstream
+ERC-7984 library (see audit finding #1 and #2 in the table above).
+
+**Only call `confidentialTransferAndCall` and `confidentialTransferFromAndCall` with trusted,
+audited receiver contracts.**
+
 ## Roles
 
 | Role | Description |
@@ -273,6 +350,101 @@ At this stage, no Slither findings are available for this release due to this to
 | `OBSERVER_ROLE` | Can assign per-account balance observers via `setRoleObserver` |
 | `SUPPLY_OBSERVER_ROLE` | Can manage total supply observers (`addTotalSupplyObserver`, `removeTotalSupplyObserver`) |
 | `SUPPLY_PUBLISHER_ROLE` | Can call `publishTotalSupply` |
+| `RULE_ENGINE_ROLE` | Can update the RuleEngine in `CMTATConfidentialRuleEngine` |
+| `ALLOWLIST_ROLE` | Can manage the allowlist in `CMTATConfidentialWhitelist` (`setAddressAllowlist`, `enableAllowlist`) |
+| `TOKEN_ATTRIBUTE_ROLE` | Can rename the token post-deployment (`setName`, `setSymbol`) |
+| `EXTRA_INFORMATION_ROLE` | Can update token metadata (`setTokenId`, `setTerms`, `setInformation`) |
+| `DOCUMENT_ROLE` | Can manage ERC-1643 documents (`setDocument`, `removeDocument`) |
+
+## Events
+
+All events emitted by the contract, organized by module. Events from FHE modules carry `euint64` handles for encrypted amounts — the plaintext values are not visible in logs.
+
+### FHE Modules
+
+#### ERC7984MintModule
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `Mint` | `Mint(address indexed minter, address indexed to, euint64 encryptedAmount)` | `mint()` completes successfully |
+
+#### ERC7984BurnModule
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `Burn` | `Burn(address indexed burner, address indexed from, euint64 encryptedAmount)` | `burn()` completes successfully |
+
+#### ERC7984EnforcementModule
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `ForcedTransfer` | `ForcedTransfer(address indexed enforcer, address indexed from, address indexed to, euint64 encryptedAmount)` | `forcedTransfer()` completes successfully |
+| `ForcedBurn` | `ForcedBurn(address indexed enforcer, address indexed from, euint64 encryptedAmount)` | `forcedBurn()` completes successfully |
+
+#### ERC7984BalanceViewModule
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `RoleObserverSet` | `RoleObserverSet(address indexed account, address indexed oldObserver, address indexed newObserver, address setBy)` | `setRoleObserver()` or `removeRoleObserver()` is called |
+| `ERC7984ObserverAccessObserverSet` | `ERC7984ObserverAccessObserverSet(address account, address oldObserver, address newObserver)` | `setObserver()` is called by a holder to assign their personal observer (inherited from `ERC7984ObserverAccess`) |
+
+#### ERC7984PublishTotalSupplyModule
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `TotalSupplyPublished` | `TotalSupplyPublished(address indexed publishedBy)` | `publishTotalSupply()` marks the current total supply handle as publicly decryptable |
+
+#### ERC7984TotalSupplyViewModule — `CMTATConfidential`, `CMTATConfidentialRuleEngine`, `CMTATConfidentialWhitelist` only
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `TotalSupplyObserverAdded` | `TotalSupplyObserverAdded(address indexed observer, address indexed addedBy)` | `addTotalSupplyObserver()` registers a new observer |
+| `TotalSupplyObserverRemoved` | `TotalSupplyObserverRemoved(address indexed observer, address indexed removedBy)` | `removeTotalSupplyObserver()` deregisters an observer |
+| `MaxSupplyObserversUpdated` | `MaxSupplyObserversUpdated(uint256 oldMax, uint256 newMax, address updatedBy)` | `setMaxSupplyObservers()` changes the observer cap |
+
+#### ERC7984TokenAttributeModule — all variants
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `Name` | `Name(string indexed newNameIndexed, string newName)` | `setName()` updates the token name |
+| `Symbol` | `Symbol(string indexed newSymbolIndexed, string newSymbol)` | `setSymbol()` updates the token symbol |
+
+#### ERC7984RuleEngineModule — `CMTATConfidentialRuleEngine` only
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `RuleEngine` | `RuleEngine(IRuleEngine indexed newRuleEngine)` | `setRuleEngine()` updates the active rule engine (inherited from `ValidationModuleRuleEngineInternal`) |
+
+### CMTAT-Inherited Events
+
+#### PauseModule (via OpenZeppelin `Pausable`)
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `Paused` | `Paused(address account)` | `pause()` is called |
+| `Unpaused` | `Unpaused(address account)` | `unpause()` is called |
+| `Deactivated` | `Deactivated(address indexed account)` | `deactivateContract()` permanently deactivates the contract |
+
+#### EnforcementModule
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `AddressFrozen` | `AddressFrozen(address indexed account, bool indexed isFrozen, address indexed enforcer, bytes data)` | `setAddressFrozen()` changes the freeze state of an address |
+
+#### AccessControlModule (via OpenZeppelin `AccessControl`)
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `RoleGranted` | `RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)` | `grantRole()` assigns a role to an account |
+| `RoleRevoked` | `RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender)` | `revokeRole()` or `renounceRole()` removes a role |
+| `RoleAdminChanged` | `RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)` | `setRoleAdmin()` changes the admin role for a role |
+
+#### AllowlistModule — `CMTATConfidentialWhitelist` only
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `AllowlistEnableStatus` | `AllowlistEnableStatus(address indexed operator, bool status)` | `enableAllowlist()` enables or disables allowlist enforcement |
+| `AddressAddedToAllowlist` | `AddressAddedToAllowlist(address indexed account, bool indexed status, address indexed enforcer, bytes data)` | `setAddressAllowlist()` adds or removes an address from the allowlist |
 
 ## Contract Functions
 
@@ -320,6 +492,24 @@ ERC-7984 exposes eight transfer function variants:
 | `confidentialTransferAndCall(...)` | Transfer with ERC-1363 callback |
 | `confidentialTransferFromAndCall(...)` | Operator transfer with callback |
 
+### RuleEngine Variant
+
+`CMTATConfidentialRuleEngine` adds CMTA RuleEngine checks to holder and operator transfers. It exposes:
+
+```solidity
+function ruleEngine() public view returns (IRuleEngine);
+function setRuleEngine(IRuleEngine newRuleEngine) public onlyRole(RULE_ENGINE_ROLE);
+function canTransfer(address from, address to, uint256 amount) public view returns (bool);
+function canTransferFrom(address spender, address from, address to, uint256 amount) public view returns (bool);
+```
+
+The public `amount` parameter is intentionally ignored. Confidential balances use encrypted `euint64` amounts, so RuleEngine calls receive `value = 0`:
+
+- holder transfer validation: `ruleEngine.canTransfer(from, to, 0)`
+- operator transfer validation: `ruleEngine.canTransferFrom(spender, from, to, 0)`
+- holder transfer notification: `ruleEngine.transferred(from, to, 0)`
+- operator transfer notification: `ruleEngine.transferred(spender, from, to, 0)`
+
 Example transfer:
 
 ```typescript
@@ -338,6 +528,29 @@ await token.connect(sender)['confidentialTransfer(address,bytes32,bytes)'](
   encryptedInput.inputProof
 );
 ```
+
+### Whitelist Variant
+
+`CMTATConfidentialWhitelist` adds on/off allowlist enforcement to all holder and operator transfers. It partially implements [ERC-7943](./doc/ERCSpecification/erc-7943-uRWA.md) view functions but **does not claim full `IERC7943Fungible` compliance** (`0x3edbb4c4`): the mandatory enforcement functions (`forcedTransfer(uint256)`, `setFrozenTokens`, `getFrozenTokens`) and their associated events require plaintext amounts, which are incompatible with FHE encrypted balances. See the [technical doc](./doc/technical/CMTATConfidentialWhitelist.md#erc-7943-partial-implementation) for the full breakdown.
+
+```solidity
+// Enable or disable allowlist enforcement (ALLOWLIST_ROLE)
+function enableAllowlist(bool enabled) public onlyRole(ALLOWLIST_ROLE);
+
+// Add or remove an address from the allowlist (ALLOWLIST_ROLE)
+function setAddressAllowlist(address account, bool allowlisted) public onlyRole(ALLOWLIST_ROLE);
+
+// Partial ERC-7943 view checks (return false when allowlist is enabled and address is not allowlisted)
+function canSend(address account) public view returns (bool);
+function canReceive(address account) public view returns (bool);
+function canTransfer(address from, address to, uint256 amount) public view returns (bool);
+```
+
+When the allowlist is enabled, any transfer where either party is not allowlisted reverts with `ERC7943CannotTransfer(from, to, 0)` (amount is always `0` since the actual amount is encrypted). The contract also reverts `ERC7943CannotReceive(to)` on mint and `ERC7943CannotSend(from)` on burn when the respective party is not allowlisted.
+
+When the allowlist is disabled, all these checks are bypassed and the contract behaves identically to `CMTATConfidential`.
+
+> **Note:** `canSend`, `canReceive`, and `canTransfer` (with `amount` ignored) are available in **all four variants** via the inherited `ValidationModule`. The Whitelist variant adds the allowlist dimension to these checks.
 
 ### Forced Transfer
 
@@ -381,7 +594,7 @@ function forcedBurn(
 
 By default the total supply is encrypted and inaccessible to third parties. Two mechanisms are available to open read access, gated by `SUPPLY_OBSERVER_ROLE` (observer list) or `SUPPLY_PUBLISHER_ROLE` (public disclosure).
 
-#### Option 1 — Authorized observers (automatic, stays current) — `CMTATConfidential` only
+#### Option 1 — Authorized observers (automatic, stays current) — `CMTATConfidential`, `CMTATConfidentialRuleEngine`, `CMTATConfidentialWhitelist`
 
 Register addresses that will automatically receive ACL access to the total supply handle after every mint or burn:
 
@@ -413,7 +626,7 @@ const handle = await token.confidentialTotalSupply();
 const supply = await fhevm.userDecryptEuint(FhevmType.euint64, handle, tokenAddress, observer);
 ```
 
-#### Option 2 — Public disclosure (anyone, irrevocable per handle) — `CMTATConfidential` and `CMTATConfidentialLite`
+#### Option 2 — Public disclosure (anyone, irrevocable per handle) — all variants
 
 Mark the current total supply handle as publicly decryptable. Any off-chain party can then request decryption via the Zama Relayer SDK without ACL access. After the next mint or burn, the new handle will not be publicly decryptable — call again if needed.
 
@@ -423,10 +636,44 @@ await token.connect(complianceManager).publishTotalSupply();
 
 | Mechanism | Availability | Access scope | Stays current after mint/burn |
 |-----------|-------------|-------------|-------------------------------|
-| `addTotalSupplyObserver` | `CMTATConfidential` only | Specific registered addresses | Yes — re-granted automatically via `_afterMint`/`_afterBurn` hooks |
-| `publishTotalSupply` | `CMTATConfidential` and `CMTATConfidentialLite` | `SUPPLY_PUBLISHER_ROLE` | No — must be called again after each mint/burn |
+| `addTotalSupplyObserver` | All variants except `CMTATConfidentialLite` | Specific registered addresses | Yes — re-granted automatically via `_afterMint`/`_afterBurn` hooks |
+| `publishTotalSupply` | All variants | `SUPPLY_PUBLISHER_ROLE` | No — must be called again after each mint/burn |
 
 > **Gas note:** In `CMTATConfidential`, every mint or burn triggers `_updateTotalSupplyObserversACL()`, which iterates over all registered total supply observers and calls `FHE.allow()` for each one. Additionally, `_update` runs a chain of balance observer ACL grants. Keep both observer lists small to control gas costs per operation.
+
+### Token Name and Symbol
+
+Update the token name or symbol post-deployment (requires `TOKEN_ATTRIBUTE_ROLE`):
+
+```solidity
+function setName(string calldata name_) public onlyRole(TOKEN_ATTRIBUTE_ROLE);
+function setSymbol(string calldata symbol_) public onlyRole(TOKEN_ATTRIBUTE_ROLE);
+```
+
+Emits `Name(string indexed, string)` and `Symbol(string indexed, string)` respectively — same event signatures as CMTAT's `ERC20BaseModule`.
+
+### Token Metadata
+
+Update token metadata inherited from CMTAT (requires `EXTRA_INFORMATION_ROLE`):
+
+```solidity
+function setTokenId(string calldata tokenId_) public onlyRole(EXTRA_INFORMATION_ROLE);
+function setTerms(IERC1643CMTAT.DocumentInfo calldata terms_) public onlyRole(EXTRA_INFORMATION_ROLE);
+function setInformation(string calldata information_) public onlyRole(EXTRA_INFORMATION_ROLE);
+```
+
+Read back via the corresponding getters: `tokenId()`, `terms()`, `information()`.
+
+### Document Management
+
+Manage ERC-1643 documents attached to the token (requires `DOCUMENT_ROLE`):
+
+```solidity
+function setDocument(bytes32 name, string calldata uri, bytes32 documentHash) public onlyRole(DOCUMENT_ROLE);
+function removeDocument(bytes32 name) public onlyRole(DOCUMENT_ROLE);
+function getDocument(bytes32 name) public view returns (Document memory);
+function getAllDocuments() public view returns (bytes32[] memory);
+```
 
 ### Pause / Unpause
 
@@ -569,7 +816,8 @@ Decimals are configurable at deployment for both `CMTATConfidential` and `CMTATC
 | `@openzeppelin/contracts-upgradeable` | 5.6.1 |
 | **Submodule** |  |
 | [OpenZeppelin Confidential Contracts](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts) | [v0.4.0](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts/releases/tag/v0.4.0) |
-| [CMTAT](https://github.com/CMTA/CMTAT/) | [v3.2.0](https://github.com/CMTA/CMTAT/releases/tag/v3.2.0) |
+| [CMTAT](https://github.com/CMTA/CMTAT/) | [v3.3.0-rc1](https://github.com/CMTA/CMTAT/releases/tag/v3.3.0-rc1) |
+| [RuleEngine](https://github.com/CMTA/RuleEngine/) | v3.0.0-rc4 |
 
 ## Project Structure
 
@@ -579,30 +827,41 @@ CMTAT-Confidential/
 │   ├── CMTATConfidentialBase.sol                      # Abstract base (all shared logic)
 │   ├── CMTATConfidential.sol                          # Full variant (+ total supply visibility)
 │   ├── CMTATConfidentialLite.sol                      # Lite variant (smaller, no total supply module)
+│   ├── CMTATConfidentialRuleEngine.sol                # Full variant + RuleEngine transfer restrictions
+│   ├── CMTATConfidentialWhitelist.sol                 # Full variant + on/off allowlist enforcement
 │   └── modules/
 │       ├── ERC7984MintModule.sol                  # Mint with authorization hook
 │       ├── ERC7984BurnModule.sol                  # Burn with authorization hook
 │       ├── ERC7984EnforcementModule.sol           # Forced transfer and forced burn
 │       ├── ERC7984BalanceViewModule.sol           # Per-account balance observers
-│       ├── CMTATConfidentialVersionModule.sol              # CMTAT Confidential version override (0.2.0)
 │       ├── ERC7984PublishTotalSupplyModule.sol    # Public total supply disclosure
-│       └── ERC7984TotalSupplyViewModule.sol       # Total supply observer list (auto ACL)
-├── CMTAT/                                    # CMTAT submodule (compliance modules)
+│       ├── ERC7984TokenAttributeModule.sol        # Post-deployment name/symbol (ERC-3643)
+│       ├── ERC7984TotalSupplyViewModule.sol       # Total supply observer list (auto ACL)
+│       ├── ERC7984RuleEngineModule.sol            # RuleEngine storage, checks, and notifications
+│       └── CMTATConfidentialVersionModule.sol     # CMTAT Confidential version override (0.3.0)
+├── lib/
+│   ├── CMTAT/                                # CMTAT submodule (compliance modules)
+│   └── RuleEngine/                           # CMTA RuleEngine submodule
 ├── openzeppelin-confidential-contracts/      # OZ submodule (ERC7984)
-├── docs/
-│   ├── fhe/                                  # Zama FHE documentation
-│   └── openzeppelin-confidential/            # OZ confidential docs
+├── doc/
+│   ├── audit/                                # Aderyn static analysis reports
+│   ├── ERCSpecification/                     # Referenced ERC specs (ERC-7943, etc.)
+│   ├── specification/                        # Project specification
+│   └── technical/                            # Per-variant and per-module technical documentation
 ├── test/
 │   ├── CMTATConfidential.test.ts                           # Full variant core tests
 │   ├── CMTATConfidentialLite.test.ts                       # Lite variant core tests (shared suite)
+│   ├── CMTATConfidentialRuleEngine.test.ts                 # RuleEngine variant tests
+│   ├── CMTATConfidentialWhitelist.test.ts                  # Whitelist variant tests
 │   ├── ERC7984BalanceViewModule.test.ts           # Balance observer module tests
+│   ├── CMTATBaseFeatures.test.ts                  # CMTAT metadata: name/symbol, terms, documents
+│   ├── ERC7984EnforcementModule.test.ts           # Forced transfer/burn module tests
 │   ├── ERC7984PublishTotalSupplyModule.test.ts    # Public disclosure module tests
 │   ├── ERC7984TotalSupplyViewModule.test.ts       # Total supply observer module tests
 │   └── helpers/
 │       ├── deploy.ts                         # Shared deploy helper + role constants
-│       ├── core-tests.ts                     # Shared Mocha test suite
-│       └── accounts.ts                       # Account impersonation utilities
-└── hardhat.config.js
+│       └── core-tests.ts                     # Shared Mocha test suite
+└── hardhat.config.ts
 ```
 
 ## FAQ

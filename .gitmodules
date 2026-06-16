@@ -1,6 +1,9 @@
 [submodule "openzeppelin-confidential-contracts"]
-	path = openzeppelin-confidential-contracts
+	path = lib/openzeppelin-confidential-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-confidential-contracts/
 [submodule "CMTAT"]
-	path = CMTAT
+	path = lib/CMTAT
 	url = https://github.com/CMTA/CMTAT
+[submodule "lib/RuleEngine"]
+	path = lib/RuleEngine
+	url = https://github.com/CMTA/RuleEngine

@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./mocks/ConfidentialReceiverMock.sol | 0a9e871ebcc3089fdbaf66d9c4674e1563014cef |
+| ./mocks/ConfidentialReceiverMock.sol | 2086319dbe5f2012eac75f2c8bca940b8b6ed4e5 |
 
 
 ### Contracts Description Table

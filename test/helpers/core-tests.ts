@@ -18,7 +18,7 @@ import { anyValue } from '@nomicfoundation/hardhat-chai-matchers/withArgs';
  *
  * Call this function inside a describe block that has a beforeEach setting:
  *   this.token, this.admin, this.minter, this.burner, this.pauser,
- *   this.enforcer, this.holder, this.recipient, this.accounts
+ *   this.enforcer, this.forcedOpsAgent, this.holder, this.recipient, this.accounts
  */
 export function runCoreTests() {
   function getHandleFromReceipt(factory: any, receipt: any): string {
@@ -62,7 +62,7 @@ export function runCoreTests() {
     });
 
     it('exposes the CMTAT Confidential version', async function () {
-      expect(await this.token.version()).to.equal('0.2.0');
+      expect(await this.token.version()).to.equal('0.3.0');
     });
   });
 
@@ -123,7 +123,7 @@ export function runCoreTests() {
         this.token.connect(this.minter)['mint(address,bytes32,bytes)'](
           this.holder.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotReceive');
     });
 
     it('cannot mint when contract is deactivated', async function () {
@@ -134,7 +134,7 @@ export function runCoreTests() {
         this.token.connect(this.minter)['mint(address,bytes32,bytes)'](
           this.holder.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotReceive');
     });
   });
 
@@ -184,7 +184,18 @@ export function runCoreTests() {
         this.token.connect(this.burner)['burn(address,bytes32,bytes)'](
           this.holder.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotSend');
+    });
+
+    it('cannot burn when contract is deactivated', async function () {
+      await this.token.connect(this.pauser).pause();
+      await this.token.connect(this.admin).deactivateContract();
+      const enc = await encryptAmount(this.token.target, this.burner.address, 500);
+      await expect(
+        this.token.connect(this.burner)['burn(address,bytes32,bytes)'](
+          this.holder.address, enc.handles[0], enc.inputProof
+        )
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotSend');
     });
   });
 
@@ -217,7 +228,7 @@ export function runCoreTests() {
         this.token.connect(this.holder)['confidentialTransfer(address,bytes32,bytes)'](
           this.recipient.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
     });
 
     it('mint is allowed when paused', async function () {
@@ -246,7 +257,31 @@ export function runCoreTests() {
         this.token.connect(this.accounts[0])['confidentialTransferFrom(address,address,bytes32,bytes)'](
           this.holder.address, this.recipient.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
+    });
+
+    it('confidentialTransferAndCall is blocked when paused', async function () {
+      await this.token.connect(this.pauser).pause();
+      const receiver = await ethers.deployContract('ConfidentialReceiverMock', [true]);
+      const enc = await encryptAmount(this.token.target, this.holder.address, 100);
+      await expect(
+        this.token.connect(this.holder)['confidentialTransferAndCall(address,bytes32,bytes,bytes)'](
+          receiver.target, enc.handles[0], enc.inputProof, '0x'
+        )
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
+    });
+
+    it('confidentialTransferFromAndCall is blocked when paused', async function () {
+      const exp = Math.floor(Date.now() / 1000) + 86400;
+      await this.token.connect(this.holder).setOperator(this.accounts[0].address, exp);
+      await this.token.connect(this.pauser).pause();
+      const receiver = await ethers.deployContract('ConfidentialReceiverMock', [true]);
+      const enc = await encryptAmount(this.token.target, this.accounts[0].address, 100);
+      await expect(
+        this.token.connect(this.accounts[0])['confidentialTransferFromAndCall(address,address,bytes32,bytes,bytes)'](
+          this.holder.address, receiver.target, enc.handles[0], enc.inputProof, '0x'
+        )
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
     });
   });
 
@@ -281,7 +316,7 @@ export function runCoreTests() {
         this.token.connect(this.holder)['confidentialTransfer(address,bytes32,bytes)'](
           this.recipient.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
     });
 
     it('cannot transfer to frozen address', async function () {
@@ -291,7 +326,19 @@ export function runCoreTests() {
         this.token.connect(this.holder)['confidentialTransfer(address,bytes32,bytes)'](
           this.recipient.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
+    });
+
+    it('frozen operator cannot initiate confidentialTransferFrom', async function () {
+      const exp = Math.floor(Date.now() / 1000) + 86400;
+      await this.token.connect(this.holder).setOperator(this.accounts[0].address, exp);
+      await this.token.connect(this.enforcer).setAddressFrozen(this.accounts[0].address, true);
+      const enc = await encryptAmount(this.token.target, this.accounts[0].address, 100);
+      await expect(
+        this.token.connect(this.accounts[0])['confidentialTransferFrom(address,address,bytes32,bytes)'](
+          this.holder.address, this.recipient.address, enc.handles[0], enc.inputProof
+        )
+      ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
     });
   });
 
@@ -302,25 +349,25 @@ export function runCoreTests() {
       await mint(this.token, this.minter, this.holder, 1000);
     });
 
-    it('enforcer can force transfer from frozen address', async function () {
+    it('FORCED_OPS_ROLE can force transfer from frozen address', async function () {
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
-      const enc = await encryptAmount(this.token.target, this.enforcer.address, 500);
+      const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 500);
       await expect(
-        this.token.connect(this.enforcer)['forcedTransfer(address,address,bytes32,bytes)'](
+        this.token.connect(this.forcedOpsAgent)['forcedTransfer(address,address,bytes32,bytes)'](
           this.holder.address, this.recipient.address, enc.handles[0], enc.inputProof
         )
       ).to.emit(this.token, 'ForcedTransfer')
-        .withArgs(this.enforcer.address, this.holder.address, this.recipient.address, anyValue);
+        .withArgs(this.forcedOpsAgent.address, this.holder.address, this.recipient.address, anyValue);
       const handle = await this.token.confidentialBalanceOf(this.recipient.address);
       expect(await decryptBalance(this.token.target, handle, this.recipient)).to.equal(500n);
     });
 
-    it('enforcer can force transfer with a pre-encrypted handle', async function () {
+    it('FORCED_OPS_ROLE can force transfer with a pre-encrypted handle', async function () {
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
-      const tx = await this.factory.connect(this.enforcer).makeFor(this.token.target, 300);
+      const tx = await this.factory.connect(this.forcedOpsAgent).makeFor(this.token.target, 300);
       const receipt = await tx.wait();
       const amountHandle = getHandleFromReceipt(this.factory, receipt);
-      await this.token.connect(this.enforcer)['forcedTransfer(address,address,bytes32)'](
+      await this.token.connect(this.forcedOpsAgent)['forcedTransfer(address,address,bytes32)'](
         this.holder.address, this.recipient.address, amountHandle
       );
       const balanceHandle = await this.token.confidentialBalanceOf(this.recipient.address);
@@ -328,15 +375,15 @@ export function runCoreTests() {
     });
 
     it('cannot force transfer from non-frozen address', async function () {
-      const enc = await encryptAmount(this.token.target, this.enforcer.address, 500);
+      const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 500);
       await expect(
-        this.token.connect(this.enforcer)['forcedTransfer(address,address,bytes32,bytes)'](
+        this.token.connect(this.forcedOpsAgent)['forcedTransfer(address,address,bytes32,bytes)'](
           this.holder.address, this.recipient.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'CMTAT_AddressNotFrozen');
     });
 
-    it('non-enforcer cannot force transfer', async function () {
+    it('account without FORCED_OPS_ROLE cannot force transfer', async function () {
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
       const enc = await encryptAmount(this.token.target, this.holder.address, 500);
       await expect(
@@ -348,20 +395,20 @@ export function runCoreTests() {
 
     it('cannot force transfer to address(0)', async function () {
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
-      const enc = await encryptAmount(this.token.target, this.enforcer.address, 500);
+      const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 500);
       await expect(
-        this.token.connect(this.enforcer)['forcedTransfer(address,address,bytes32,bytes)'](
+        this.token.connect(this.forcedOpsAgent)['forcedTransfer(address,address,bytes32,bytes)'](
           this.holder.address, ethers.ZeroAddress, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_AddressZeroNotAllowed');
+      ).to.be.revertedWithCustomError(this.token, 'CMTAT_Enforcement_ZeroAddressNotAllowed');
     });
 
-    it('enforcer can force transfer even when contract is deactivated', async function () {
+    it('FORCED_OPS_ROLE can force transfer even when contract is deactivated', async function () {
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
       await this.token.connect(this.pauser).pause();
       await this.token.connect(this.admin).deactivateContract();
-      const enc = await encryptAmount(this.token.target, this.enforcer.address, 500);
-      await this.token.connect(this.enforcer)['forcedTransfer(address,address,bytes32,bytes)'](
+      const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 500);
+      await this.token.connect(this.forcedOpsAgent)['forcedTransfer(address,address,bytes32,bytes)'](
         this.holder.address, this.recipient.address, enc.handles[0], enc.inputProof
       );
       const handle = await this.token.confidentialBalanceOf(this.recipient.address);
@@ -376,26 +423,26 @@ export function runCoreTests() {
       await mint(this.token, this.minter, this.holder, 1000);
     });
 
-    it('enforcer can force burn from frozen address', async function () {
+    it('FORCED_OPS_ROLE can force burn from frozen address', async function () {
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
-      const enc = await encryptAmount(this.token.target, this.enforcer.address, 500);
+      const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 500);
       await expect(
-        this.token.connect(this.enforcer)['forcedBurn(address,bytes32,bytes)'](
+        this.token.connect(this.forcedOpsAgent)['forcedBurn(address,bytes32,bytes)'](
           this.holder.address, enc.handles[0], enc.inputProof
         )
       ).to.emit(this.token, 'ForcedBurn')
-        .withArgs(this.enforcer.address, this.holder.address, anyValue);
+        .withArgs(this.forcedOpsAgent.address, this.holder.address, anyValue);
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, false);
       const handle = await this.token.confidentialBalanceOf(this.holder.address);
       expect(await decryptBalance(this.token.target, handle, this.holder)).to.equal(500n);
     });
 
-    it('enforcer can force burn with a pre-encrypted handle', async function () {
+    it('FORCED_OPS_ROLE can force burn with a pre-encrypted handle', async function () {
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
-      const tx = await this.factory.connect(this.enforcer).makeFor(this.token.target, 250);
+      const tx = await this.factory.connect(this.forcedOpsAgent).makeFor(this.token.target, 250);
       const receipt = await tx.wait();
       const amountHandle = getHandleFromReceipt(this.factory, receipt);
-      await this.token.connect(this.enforcer)['forcedBurn(address,bytes32)'](
+      await this.token.connect(this.forcedOpsAgent)['forcedBurn(address,bytes32)'](
         this.holder.address, amountHandle
       );
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, false);
@@ -403,10 +450,10 @@ export function runCoreTests() {
       expect(await decryptBalance(this.token.target, balanceHandle, this.holder)).to.equal(750n);
     });
 
-    it('enforcer can force burn all tokens from frozen address', async function () {
+    it('FORCED_OPS_ROLE can force burn all tokens from frozen address', async function () {
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
-      const enc = await encryptAmount(this.token.target, this.enforcer.address, 1000);
-      await this.token.connect(this.enforcer)['forcedBurn(address,bytes32,bytes)'](
+      const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 1000);
+      await this.token.connect(this.forcedOpsAgent)['forcedBurn(address,bytes32,bytes)'](
         this.holder.address, enc.handles[0], enc.inputProof
       );
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, false);
@@ -415,15 +462,15 @@ export function runCoreTests() {
     });
 
     it('cannot force burn from non-frozen address', async function () {
-      const enc = await encryptAmount(this.token.target, this.enforcer.address, 500);
+      const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 500);
       await expect(
-        this.token.connect(this.enforcer)['forcedBurn(address,bytes32,bytes)'](
+        this.token.connect(this.forcedOpsAgent)['forcedBurn(address,bytes32,bytes)'](
           this.holder.address, enc.handles[0], enc.inputProof
         )
-      ).to.be.revertedWithCustomError(this.token, 'CMTAT_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.token, 'CMTAT_AddressNotFrozen');
     });
 
-    it('non-enforcer cannot force burn', async function () {
+    it('account without FORCED_OPS_ROLE cannot force burn', async function () {
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
       const enc = await encryptAmount(this.token.target, this.holder.address, 500);
       await expect(
@@ -433,12 +480,12 @@ export function runCoreTests() {
       ).to.be.reverted;
     });
 
-    it('enforcer can force burn even when contract is deactivated', async function () {
+    it('FORCED_OPS_ROLE can force burn even when contract is deactivated', async function () {
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
       await this.token.connect(this.pauser).pause();
       await this.token.connect(this.admin).deactivateContract();
-      const enc = await encryptAmount(this.token.target, this.enforcer.address, 500);
-      await this.token.connect(this.enforcer)['forcedBurn(address,bytes32,bytes)'](
+      const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 500);
+      await this.token.connect(this.forcedOpsAgent)['forcedBurn(address,bytes32,bytes)'](
         this.holder.address, enc.handles[0], enc.inputProof
       );
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, false);
@@ -448,8 +495,8 @@ export function runCoreTests() {
 
     it('force burn with amount exceeding balance burns 0', async function () {
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
-      const enc = await encryptAmount(this.token.target, this.enforcer.address, 2000);
-      await this.token.connect(this.enforcer)['forcedBurn(address,bytes32,bytes)'](
+      const enc = await encryptAmount(this.token.target, this.forcedOpsAgent.address, 2000);
+      await this.token.connect(this.forcedOpsAgent)['forcedBurn(address,bytes32,bytes)'](
         this.holder.address, enc.handles[0], enc.inputProof
       );
       await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, false);

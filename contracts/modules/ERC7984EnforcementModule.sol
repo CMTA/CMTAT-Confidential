@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {ERC7984} from "../../openzeppelin-confidential-contracts/contracts/token/ERC7984/ERC7984.sol";
+import {ERC7984} from "../../lib/openzeppelin-confidential-contracts/contracts/token/ERC7984/ERC7984.sol";
 import {FHE, externalEuint64, euint64} from "@fhevm/solidity/lib/FHE.sol";
+import {IERC7984EnforcementModule} from "../interfaces/IERC7984EnforcementModule.sol";
 
 /**
  * @title ERC7984EnforcementModule
@@ -31,25 +32,9 @@ import {FHE, externalEuint64, euint64} from "@fhevm/solidity/lib/FHE.sol";
  * The validation functions should be overridden to enforce that the
  * source address is frozen.
  */
-abstract contract ERC7984EnforcementModule is ERC7984 {
+abstract contract ERC7984EnforcementModule is ERC7984, IERC7984EnforcementModule {
     /* ============ Roles ============ */
     bytes32 public constant FORCED_OPS_ROLE = keccak256("FORCED_OPS_ROLE");
-    /* ============ Events ============ */
-    event ForcedTransfer(
-        address indexed enforcer,
-        address indexed from,
-        address indexed to,
-        euint64 encryptedAmount
-    );
-
-    event ForcedBurn(
-        address indexed enforcer,
-        address indexed from,
-        euint64 encryptedAmount
-    );
-
-    /* ============ Errors ============ */
-    error ERC7984EnforcementModule_UnauthorizedHandle();
 
     /* ============ Modifier ============ */
     /**
@@ -72,16 +57,7 @@ abstract contract ERC7984EnforcementModule is ERC7984 {
     }
 
     /* ============ Public Functions - Forced Transfer ============ */
-    /**
-     * @dev Forces a transfer from one address to another using encrypted amount with input proof.
-     * Bypasses freeze checks. Can be performed even when the contract is deactivated
-     * unless the inheriting contract adds an explicit deactivation check.
-     * @param from Source address
-     * @param to Destination address
-     * @param encryptedAmount Encrypted amount to transfer
-     * @param inputProof Zero-knowledge proof for the encrypted input
-     * @return transferred The encrypted amount actually transferred
-     */
+    /// @inheritdoc IERC7984EnforcementModule
     function forcedTransfer(
         address from,
         address to,
@@ -102,14 +78,7 @@ abstract contract ERC7984EnforcementModule is ERC7984 {
         emit ForcedTransfer(msg.sender, from, to, transferred);
     }
 
-    /**
-     * @dev Forces a transfer from one address to another using an already-encrypted amount.
-     * Bypasses freeze checks but respects contract deactivation.
-     * @param from Source address
-     * @param to Destination address
-     * @param amount Encrypted amount to transfer (caller must have ACL access)
-     * @return transferred The encrypted amount actually transferred
-     */
+    /// @inheritdoc IERC7984EnforcementModule
     function forcedTransfer(
         address from,
         address to,
@@ -130,14 +99,7 @@ abstract contract ERC7984EnforcementModule is ERC7984 {
     }
 
     /* ============ Public Functions - Forced Burn ============ */
-    /**
-     * @dev Forces a burn of tokens from a frozen address using encrypted amount with input proof.
-     * Bypasses freeze checks. Can be performed even when the contract is deactivated.
-     * @param from Address to burn from (must be frozen)
-     * @param encryptedAmount Encrypted amount to burn
-     * @param inputProof Zero-knowledge proof for the encrypted input
-     * @return burned The encrypted amount actually burned
-     */
+    /// @inheritdoc IERC7984EnforcementModule
     function forcedBurn(
         address from,
         externalEuint64 encryptedAmount,
@@ -149,13 +111,7 @@ abstract contract ERC7984EnforcementModule is ERC7984 {
         emit ForcedBurn(msg.sender, from, burned);
     }
 
-    /**
-     * @dev Forces a burn of tokens from a frozen address using an already-encrypted amount.
-     * Bypasses freeze checks. Can be performed even when the contract is deactivated.
-     * @param from Address to burn from (must be frozen)
-     * @param amount Encrypted amount to burn (caller must have ACL access)
-     * @return burned The encrypted amount actually burned
-     */
+    /// @inheritdoc IERC7984EnforcementModule
     function forcedBurn(
         address from,
         euint64 amount
