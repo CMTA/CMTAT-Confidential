@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./modules/ERC7984BurnModule.sol | 9f78597da467a4430b99f50b53ef4694bd92cffa |
+| ./modules/ERC7984BurnModule.sol | 137a628f0b3c9679bdf192d5c2755093ffd94bbe |
 
 
 ### Contracts Description Table

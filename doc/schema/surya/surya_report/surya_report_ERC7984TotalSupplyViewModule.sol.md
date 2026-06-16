@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./modules/ERC7984TotalSupplyViewModule.sol | 874e1db76caf7e74ead77f0351f9b676158f6e22 |
+| ./modules/ERC7984TotalSupplyViewModule.sol | 1069e03dfc19eb968f15fb078a43e03594f8a711 |
 
 
 ### Contracts Description Table

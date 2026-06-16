@@ -14,6 +14,18 @@ ERC-7984 (`ERC7984.sol`) stores name and symbol as `private` fields set once at 
 
 ---
 
+## Diagrams
+
+### Inheritance
+
+![Inheritance graph](../schema/surya/surya_inheritance/surya_inheritance_ERC7984TokenAttributeModule.sol.png)
+
+### Call Graph
+
+![Call graph](../schema/surya/surya_graph/surya_graph_ERC7984TokenAttributeModule.sol.png)
+
+---
+
 ## Role
 
 | Role | Constant | Gating hook |

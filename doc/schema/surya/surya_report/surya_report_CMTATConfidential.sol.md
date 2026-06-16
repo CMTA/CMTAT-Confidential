@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./CMTATConfidential.sol | e3ba997bd07e4570e5369eb6d815b62adc95e741 |
+| ./CMTATConfidential.sol | 8c95a711227d59fadd625e9a8fe21fb92e8d8a02 |
 
 
 ### Contracts Description Table
@@ -32,6 +32,8 @@
 | └ | confidentialTransferFromAndCall | Public ❗️ | 🛑  |NO❗️ |
 | └ | supportsInterface | Public ❗️ |   |NO❗️ |
 | └ | decimals | Public ❗️ |   |NO❗️ |
+| └ | name | Public ❗️ |   |NO❗️ |
+| └ | symbol | Public ❗️ |   |NO❗️ |
 
 
 ### Legend

@@ -4,14 +4,7 @@ import { deployToken, TOKEN_NAME, TOKEN_SYMBOL } from './helpers/deploy';
 
 const TOKEN_ATTRIBUTE_ROLE = ethers.keccak256(ethers.toUtf8Bytes('TOKEN_ATTRIBUTE_ROLE'));
 
-describe('ERC7984TokenAttributeModule', function () {
-  beforeEach(async function () {
-    const ctx = await deployToken('CMTATConfidential');
-    Object.assign(this, ctx);
-
-    await this.token.connect(this.admin).grantRole(TOKEN_ATTRIBUTE_ROLE, this.admin.address);
-  });
-
+function runTokenAttributeTests() {
   describe('initial state', function () {
     it('name and symbol are set from constructor values', async function () {
       expect(await this.token.name()).to.equal(TOKEN_NAME);
@@ -57,5 +50,45 @@ describe('ERC7984TokenAttributeModule', function () {
     it('unauthorized caller cannot update symbol', async function () {
       await expect(this.token.connect(this.holder).setSymbol('HCK')).to.be.reverted;
     });
+  });
+}
+
+describe('ERC7984TokenAttributeModule', function () {
+  describe('CMTATConfidential', function () {
+    beforeEach(async function () {
+      const ctx = await deployToken('CMTATConfidential');
+      Object.assign(this, ctx);
+      await this.token.connect(this.admin).grantRole(TOKEN_ATTRIBUTE_ROLE, this.admin.address);
+    });
+    runTokenAttributeTests();
+  });
+
+  describe('CMTATConfidentialLite', function () {
+    beforeEach(async function () {
+      const ctx = await deployToken('CMTATConfidentialLite');
+      Object.assign(this, ctx);
+      await this.token.connect(this.admin).grantRole(TOKEN_ATTRIBUTE_ROLE, this.admin.address);
+    });
+    runTokenAttributeTests();
+  });
+
+  describe('CMTATConfidentialRuleEngine', function () {
+    beforeEach(async function () {
+      const signers = await ethers.getSigners();
+      const ruleEngine = await ethers.deployContract('RuleEngineMock', [signers[8].address]);
+      const ctx = await deployToken('CMTATConfidentialRuleEngine', 6, [ruleEngine.target]);
+      Object.assign(this, ctx);
+      await this.token.connect(this.admin).grantRole(TOKEN_ATTRIBUTE_ROLE, this.admin.address);
+    });
+    runTokenAttributeTests();
+  });
+
+  describe('CMTATConfidentialWhitelist', function () {
+    beforeEach(async function () {
+      const ctx = await deployToken('CMTATConfidentialWhitelist');
+      Object.assign(this, ctx);
+      await this.token.connect(this.admin).grantRole(TOKEN_ATTRIBUTE_ROLE, this.admin.address);
+    });
+    runTokenAttributeTests();
   });
 });
