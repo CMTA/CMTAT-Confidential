@@ -8,7 +8,7 @@ Because transfer amounts are encrypted (`euint64`), the RuleEngine always receiv
 
 **Source file:** `contracts/CMTATConfidentialRuleEngine.sol`
 **Contract version:** `0.3.0` (via `CMTATConfidentialVersionModule`)
-**Contract size:** ~21.9 KB
+**Contract size:** ~22.2 KB
 
 ### Schema
 
@@ -208,7 +208,7 @@ The amount is structurally zero because the actual transfer amount is encrypted 
 | `SUPPLY_OBSERVER_ROLE` | ✅ | ❌ | ✅ | ✅ |
 | `RULE_ENGINE_ROLE` | ❌ | ❌ | ✅ | ❌ |
 | `ALLOWLIST_ROLE` | ❌ | ❌ | ❌ | ✅ |
-| Contract size | ~20.7 KB | ~19.2 KB | ~21.9 KB | ~21.9 KB |
+| Contract size | ~21.1 KB | ~19.7 KB | ~22.2 KB | ~22.2 KB |
 
 **Choose this variant when:**
 - Transfer policy is complex and must be managed externally (e.g., allowlists, blacklists, jurisdiction rules, investor categorization) through a CMTA-compatible RuleEngine contract.

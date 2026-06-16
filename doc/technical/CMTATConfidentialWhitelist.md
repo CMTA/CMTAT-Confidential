@@ -8,7 +8,7 @@ Forced operations (`forcedTransfer`, `forcedBurn`) intentionally bypass the allo
 
 **Source file:** `contracts/CMTATConfidentialWhitelist.sol`
 **Contract version:** `0.3.0` (via `CMTATConfidentialVersionModule`)
-**Contract size:** ~21.9 KB
+**Contract size:** ~22.2 KB
 
 
 
@@ -248,7 +248,7 @@ Standard ERC-7943 errors are also emitted on revert by all variants:
 | `SUPPLY_OBSERVER_ROLE` | ✅ | ❌ | ✅ | ✅ |
 | `RULE_ENGINE_ROLE` | ❌ | ❌ | ✅ | ❌ |
 | `ALLOWLIST_ROLE` | ❌ | ❌ | ❌ | ✅ |
-| Contract size | ~20.7 KB | ~19.2 KB | ~21.9 KB | ~21.9 KB |
+| Contract size | ~21.1 KB | ~19.7 KB | ~22.2 KB | ~22.2 KB |
 
 **Choose this variant when:**
 - Transfer policy is a simple on/off allowlist — both sender and recipient must be approved.

@@ -6,7 +6,7 @@
 
 **Source file:** `contracts/CMTATConfidential.sol`
 **Contract version:** `0.3.0` (via `CMTATConfidentialVersionModule`)
-**Contract size:** ~20.7 KB
+**Contract size:** ~21.1 KB
 
 ### Schema
 
@@ -190,7 +190,7 @@ Marks the **current** handle as publicly decryptable. After the next mint or bur
 | `SUPPLY_OBSERVER_ROLE` | ✅ | ❌ | ✅ | ✅ |
 | `RULE_ENGINE_ROLE` | ❌ | ❌ | ✅ | ❌ |
 | `ALLOWLIST_ROLE` | ❌ | ❌ | ❌ | ✅ |
-| Contract size | ~20.7 KB | ~19.2 KB | ~21.9 KB | ~21.9 KB |
+| Contract size | ~21.1 KB | ~19.7 KB | ~22.2 KB | ~22.2 KB |
 
 **Choose this variant when:**
 - You need automatic ACL re-grant for regulators or auditors watching the total supply, without calling `publishTotalSupply` after every mint/burn.

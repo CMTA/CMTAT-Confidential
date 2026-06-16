@@ -210,7 +210,7 @@ Four deployment-ready contracts are provided. They share the same abstract base 
 | `SUPPLY_PUBLISHER_ROLE` | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
 | `RULE_ENGINE_ROLE` | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> |
 | `ALLOWLIST_ROLE` | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #b00020;">&#x2718;</span></strong> | <strong><span style="color: #1e7e34;">&#x2714;</span></strong> |
-| Contract size | ~20.7 KB | ~19.2 KB | ~21.9 KB | ~21.9 KB |
+| Contract size | ~21.1 KB | ~19.7 KB | ~22.2 KB | ~22.2 KB |
 
 Choose `CMTATConfidentialLite` when automatic per-observer ACL re-grant on every mint/burn is not required and you want to minimize deployment cost. `publishTotalSupply` (one-shot public disclosure) is available in all deployment variants.
 Choose `CMTATConfidentialRuleEngine` when public transfer-policy rules such as whitelists, blacklists, jurisdiction checks, or other CMTA RuleEngine rules must restrict confidential transfers. Since amounts are encrypted, the token passes `0` as the RuleEngine `value` for validation and transfer notifications.

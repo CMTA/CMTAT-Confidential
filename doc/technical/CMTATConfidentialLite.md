@@ -2,13 +2,13 @@
 
 ## Overview
 
-`CMTATConfidentialLite` is the **lightweight deployment variant** of the CMTAT Confidential token. It is identical to `CMTATConfidential` but omits `ERC7984TotalSupplyViewModule`, meaning there is no registered observer list that receives automatic ACL re-grant on mint/burn. This reduces contract size by ~1.3 KB and eliminates the per-observer `FHE.allow()` loop on every mint and burn.
+`CMTATConfidentialLite` is the **lightweight deployment variant** of the CMTAT Confidential token. It is identical to `CMTATConfidential` but omits `ERC7984TotalSupplyViewModule`, meaning there is no registered observer list that receives automatic ACL re-grant on mint/burn. This reduces contract size by ~1.4 KB and eliminates the per-observer `FHE.allow()` loop on every mint and burn.
 
 `publishTotalSupply` (one-shot public disclosure) is still available from `ERC7984PublishTotalSupplyModule`, which is part of the shared base.
 
 **Source file:** `contracts/CMTATConfidentialLite.sol`
 **Contract version:** `0.3.0` (via `CMTATConfidentialVersionModule`)
-**Contract size:** ~19.2 KB
+**Contract size:** ~19.7 KB
 
 ![surya_inheritance_CMTATConfidentialLite.sol](../schema/surya/surya_inheritance/surya_inheritance_CMTATConfidentialLite.sol.png)
 
@@ -164,11 +164,11 @@ For automatic ACL re-grant to a fixed list of regulators or auditors, deploy `CM
 | `SUPPLY_OBSERVER_ROLE` | ✅ | ❌ | ✅ | ✅ |
 | `RULE_ENGINE_ROLE` | ❌ | ❌ | ✅ | ❌ |
 | `ALLOWLIST_ROLE` | ❌ | ❌ | ❌ | ✅ |
-| Contract size | ~20.7 KB | ~19.2 KB | ~21.9 KB | ~21.9 KB |
+| Contract size | ~21.1 KB | ~19.7 KB | ~22.2 KB | ~22.2 KB |
 
 **Choose this variant when:**
 - You do not need an on-chain observer list that automatically receives total supply ACL after every mint/burn.
-- You want to minimize deployment cost (~1.3 KB smaller than `CMTATConfidential`) and eliminate the per-observer `FHE.allow()` gas overhead on every mint/burn.
+- You want to minimize deployment cost (~1.4 KB smaller than `CMTATConfidential`) and eliminate the per-observer `FHE.allow()` gas overhead on every mint/burn.
 - You are comfortable calling `publishTotalSupply()` manually whenever a compliance party needs to read the supply.
 
 **Choose `CMTATConfidential` instead if** total supply observers need to stay current automatically without manual intervention after every mint/burn.
