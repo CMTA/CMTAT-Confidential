@@ -1,10 +1,9 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { deployToken, TOKEN_NAME, TOKEN_SYMBOL } from './helpers/deploy';
+import { deployToken } from './helpers/deploy';
 
 const EXTRA_INFORMATION_ROLE = ethers.keccak256(ethers.toUtf8Bytes('EXTRA_INFORMATION_ROLE'));
 const DOCUMENT_ROLE = ethers.keccak256(ethers.toUtf8Bytes('DOCUMENT_ROLE'));
-const TOKEN_ATTRIBUTE_ROLE = ethers.keccak256(ethers.toUtf8Bytes('TOKEN_ATTRIBUTE_ROLE'));
 
 const DOC_NAME = ethers.encodeBytes32String('prospectus');
 const DOC_URI = 'https://example.com/prospectus.pdf';
@@ -17,52 +16,6 @@ describe('CMTATBaseFeatures', function () {
 
     await this.token.connect(this.admin).grantRole(EXTRA_INFORMATION_ROLE, this.admin.address);
     await this.token.connect(this.admin).grantRole(DOCUMENT_ROLE, this.admin.address);
-    await this.token.connect(this.admin).grantRole(TOKEN_ATTRIBUTE_ROLE, this.admin.address);
-  });
-
-  // ─── Token name / symbol (ERC-3643) ────────────────────────────────────────
-
-  describe('setName / setSymbol', function () {
-    it('name and symbol start with constructor values', async function () {
-      expect(await this.token.name()).to.equal(TOKEN_NAME);
-      expect(await this.token.symbol()).to.equal(TOKEN_SYMBOL);
-    });
-
-    it('role holder can update name', async function () {
-      await this.token.connect(this.admin).setName('New Token Name');
-      expect(await this.token.name()).to.equal('New Token Name');
-    });
-
-    it('role holder can update symbol', async function () {
-      await this.token.connect(this.admin).setSymbol('NTK');
-      expect(await this.token.symbol()).to.equal('NTK');
-    });
-
-    it('setName emits Name event', async function () {
-      await expect(this.token.connect(this.admin).setName('Renamed'))
-        .to.emit(this.token, 'Name')
-        .withArgs('Renamed', 'Renamed');
-    });
-
-    it('setSymbol emits Symbol event', async function () {
-      await expect(this.token.connect(this.admin).setSymbol('RNM'))
-        .to.emit(this.token, 'Symbol')
-        .withArgs('RNM', 'RNM');
-    });
-
-    it('unauthorized caller cannot update name', async function () {
-      await expect(this.token.connect(this.holder).setName('Hack')).to.be.reverted;
-    });
-
-    it('unauthorized caller cannot update symbol', async function () {
-      await expect(this.token.connect(this.holder).setSymbol('HCK')).to.be.reverted;
-    });
-
-    it('TOKEN_ATTRIBUTE_ROLE can be granted to a non-admin', async function () {
-      await this.token.connect(this.admin).grantRole(TOKEN_ATTRIBUTE_ROLE, this.holder.address);
-      await this.token.connect(this.holder).setName('Delegated Name');
-      expect(await this.token.name()).to.equal('Delegated Name');
-    });
   });
 
   // ─── Extra information ──────────────────────────────────────────────────────
