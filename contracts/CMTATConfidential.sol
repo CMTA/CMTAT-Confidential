@@ -259,4 +259,24 @@ contract CMTATConfidential is
     {
         return CMTATConfidentialBase.decimals();
     }
+
+    function name()
+        public
+        view
+        virtual
+        override(CMTATConfidentialBase, ERC7984)
+        returns (string memory)
+    {
+        return CMTATConfidentialBase.name();
+    }
+
+    function symbol()
+        public
+        view
+        virtual
+        override(CMTATConfidentialBase, ERC7984)
+        returns (string memory)
+    {
+        return CMTATConfidentialBase.symbol();
+    }
 }

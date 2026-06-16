@@ -302,6 +302,7 @@ describe('ERC7984XxxModule', function () {
 | `OBSERVER_ROLE` | `ERC7984BalanceViewModule` | `_authorizeObserverManagement()` |
 | `RULE_ENGINE_ROLE` | `ERC7984RuleEngineModule` | `_authorizeRuleEngineManagement()` |
 | `ALLOWLIST_ROLE` | `AllowlistModule` (CMTAT) | `_authorizeAllowlistManagement()` |
+| `TOKEN_ATTRIBUTE_ROLE` | `ERC7984TokenAttributeModule` | `_authorizeTokenAttributeManagement()` |
 
 ## Note
 

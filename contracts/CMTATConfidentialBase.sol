@@ -20,6 +20,7 @@ import {ERC7984BurnModule} from "./modules/ERC7984BurnModule.sol";
 import {ERC7984EnforcementModule} from "./modules/ERC7984EnforcementModule.sol";
 import {ERC7984BalanceViewModule} from "./modules/ERC7984BalanceViewModule.sol";
 import {ERC7984PublishTotalSupplyModule} from "./modules/ERC7984PublishTotalSupplyModule.sol";
+import {ERC7984TokenAttributeModule} from "./modules/ERC7984TokenAttributeModule.sol";
 import {CMTATConfidentialVersionModule} from "./modules/CMTATConfidentialVersionModule.sol";
 import {VersionModule} from "../lib/CMTAT/contracts/modules/wrapper/core/VersionModule.sol";
 
@@ -40,7 +41,8 @@ import {VersionModule} from "../lib/CMTAT/contracts/modules/wrapper/core/Version
  *   ├── ERC7984BurnModule                (burn with hook)
  *   ├── ERC7984EnforcementModule         (forcedTransfer, forcedBurn with hooks)
  *   ├── ERC7984BalanceViewModule         (dual-observer: holder slot + role slot)
- *   └── ERC7984PublishTotalSupplyModule  (publishTotalSupply — SUPPLY_PUBLISHER_ROLE)
+ *   ├── ERC7984PublishTotalSupplyModule  (publishTotalSupply — SUPPLY_PUBLISHER_ROLE)
+ *   └── ERC7984TokenAttributeModule      (setName / setSymbol — TOKEN_ATTRIBUTE_ROLE)
  */
 abstract contract CMTATConfidentialBase is
     ERC7984,
@@ -52,6 +54,7 @@ abstract contract CMTATConfidentialBase is
     ERC7984EnforcementModule,
     ERC7984BalanceViewModule,
     ERC7984PublishTotalSupplyModule,
+    ERC7984TokenAttributeModule,
     CMTATConfidentialVersionModule
 {
     uint8 private immutable _TOKEN_DECIMALS;
@@ -90,6 +93,7 @@ abstract contract CMTATConfidentialBase is
     ) ERC7984(name_, symbol_, contractUri_) {
         require(decimals_ <= 18, CMTAT_DecimalsTooHigh(decimals_));
         _TOKEN_DECIMALS = decimals_;
+        _initTokenAttributes(name_, symbol_);
         initialize(admin, extraInformationAttributes_);
     }
 
@@ -154,6 +158,35 @@ abstract contract CMTATConfidentialBase is
         override
         onlyRole(SUPPLY_PUBLISHER_ROLE)
     {}
+
+    function _authorizeTokenAttributeManagement()
+        internal
+        virtual
+        override
+        onlyRole(TOKEN_ATTRIBUTE_ROLE)
+    {}
+
+    /// @inheritdoc ERC7984
+    function name()
+        public
+        view
+        virtual
+        override(ERC7984, ERC7984TokenAttributeModule)
+        returns (string memory)
+    {
+        return ERC7984TokenAttributeModule.name();
+    }
+
+    /// @inheritdoc ERC7984
+    function symbol()
+        public
+        view
+        virtual
+        override(ERC7984, ERC7984TokenAttributeModule)
+        returns (string memory)
+    {
+        return ERC7984TokenAttributeModule.symbol();
+    }
 
     /// @inheritdoc ERC7984
     function decimals() public view virtual override returns (uint8) {
