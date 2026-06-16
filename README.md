@@ -68,8 +68,9 @@ CMTAT-Confidential
 │   ├── ERC7984BurnModule - Modular burn with authorization hook
 │   ├── ERC7984EnforcementModule - Forced transfer and forced burn
 │   ├── ERC7984BalanceViewModule - Per-account balance observers (holder + role slots)
-│   ├── ERC7984PublishTotalSupplyModule - Public total supply disclosure (in CMTATConfidentialBase)
+│   ├── ERC7984PublishTotalSupplyModule - Public total supply disclosure (all variants)
 │   ├── ERC7984TotalSupplyViewModule - Total supply observer list with auto ACL re-grant (all full variants except Lite)
+│   ├── ERC7984TokenAttributeModule - Post-deployment name/symbol updates (ERC-3643 alignment)
 │   └── ERC7984RuleEngineModule - RuleEngine transfer restrictions with public value = 0
 │
 └── Zama Protocol Infrastructure (configured via ZamaEthereumConfig)
@@ -78,6 +79,37 @@ CMTAT-Confidential
     ├── KMSVerifier - Verifies decryption proofs from Key Management System
     └── InputVerifier - Validates encrypted inputs and ZKPoKs
 ```
+
+### Module Reference
+
+All FHE modules follow the same pattern: a role constant, a modifier, a virtual authorization hook overridden in `CMTATConfidentialBase`, and optional validation/hook functions. Every module has a corresponding interface in `contracts/interfaces/`.
+
+| Module | Role | Source | Availability | Purpose |
+|--------|------|--------|-------------|---------|
+| `ERC7984MintModule` | `MINTER_ROLE` | `contracts/modules/` | all variants | Encrypted mint via ZKPoK input or existing handle |
+| `ERC7984BurnModule` | `BURNER_ROLE` | `contracts/modules/` | all variants | Encrypted burn via ZKPoK input or existing handle |
+| `ERC7984EnforcementModule` | `FORCED_OPS_ROLE` | `contracts/modules/` | all variants | Forced transfer and forced burn from frozen addresses |
+| `ERC7984BalanceViewModule` | `OBSERVER_ROLE` | `contracts/modules/` | all variants | Per-account balance observers (holder slot + role slot); auto ACL re-grant on every `_update` |
+| `ERC7984PublishTotalSupplyModule` | `SUPPLY_PUBLISHER_ROLE` | `contracts/modules/` | all variants | Mark the current total supply handle as publicly decryptable (one-shot, irrevocable per handle) |
+| `ERC7984TotalSupplyViewModule` | `SUPPLY_OBSERVER_ROLE` | `contracts/modules/` | all except Lite | Registered observers automatically receive ACL access on the total supply handle after every mint/burn |
+| `ERC7984TokenAttributeModule` | `TOKEN_ATTRIBUTE_ROLE` | `contracts/modules/` | all variants | Post-deployment `setName` / `setSymbol` — ERC-3643 alignment |
+| `ERC7984RuleEngineModule` | `RULE_ENGINE_ROLE` | `contracts/modules/` | RuleEngine variant only | Plug in a CMTA `IRuleEngine` for transfer policy checks; passes `value = 0` because amounts are encrypted |
+| `CMTATConfidentialVersionModule` | — | `contracts/modules/` | all variants | Pins `version()` to `0.3.0`, overriding CMTAT's own version module |
+
+CMTAT modules (from `lib/CMTAT/`) are inherited through `CMTATBaseGeneric` and always present in all variants:
+
+| CMTAT Module | Role | Purpose |
+|---|---|---|
+| `PauseModule` | `PAUSER_ROLE` | Pause / unpause all transfers |
+| `EnforcementModule` | `ENFORCER_ROLE` | Freeze / unfreeze individual addresses |
+| `AccessControlModule` | `DEFAULT_ADMIN_ROLE` | Role management and contract deactivation |
+| `ValidationModule` | — | `canSend`, `canReceive`, `canTransfer` view checks; ERC-7943 errors |
+| `ExtraInformationModule` | `EXTRA_INFORMATION_ROLE` | `setTokenId`, `setTerms`, `setInformation` |
+| `DocumentERC1643Module` | `DOCUMENT_ROLE` | ERC-1643 document management (`setDocument`, `removeDocument`, `getDocument`) |
+| `AllowlistModule` | `ALLOWLIST_ROLE` | On/off allowlist — `CMTATConfidentialWhitelist` only |
+| `ValidationModuleRuleEngineInternal` | — | `ruleEngine()` storage + `RuleEngine` event — `CMTATConfidentialRuleEngine` only |
+
+---
 
 ### How It Works
 
@@ -103,10 +135,10 @@ This section maps the CMTAT framework features to the CMTAT Confidential impleme
 | Deactivate contract | `deactivateContract()` - inherited from CMTAT |
 | Freeze | `setAddressFrozen(address, true)` - inherited from CMTAT |
 | Unfreeze | `setAddressFrozen(address, false)` - inherited from CMTAT |
-| Name attribute | ERC20 `name()` - public |
-| Ticker symbol attribute | ERC20 `symbol()` - public |
-| Token ID attribute | `tokenId()` - inherited from CMTAT |
-| Reference to legally required documentation | `terms()` - inherited from CMTAT |
+| Name attribute | `name()` — mutable post-deployment via `setName()` (`TOKEN_ATTRIBUTE_ROLE`) |
+| Ticker symbol attribute | `symbol()` — mutable post-deployment via `setSymbol()` (`TOKEN_ATTRIBUTE_ROLE`) |
+| Token ID attribute | `tokenId()` — mutable via `setTokenId()` (`EXTRA_INFORMATION_ROLE`) |
+| Reference to legally required documentation | `terms()` — mutable via `setTerms()` (`EXTRA_INFORMATION_ROLE`) |
 
 ### Extended Features
 
@@ -320,6 +352,9 @@ audited receiver contracts.**
 | `SUPPLY_PUBLISHER_ROLE` | Can call `publishTotalSupply` |
 | `RULE_ENGINE_ROLE` | Can update the RuleEngine in `CMTATConfidentialRuleEngine` |
 | `ALLOWLIST_ROLE` | Can manage the allowlist in `CMTATConfidentialWhitelist` (`setAddressAllowlist`, `enableAllowlist`) |
+| `TOKEN_ATTRIBUTE_ROLE` | Can rename the token post-deployment (`setName`, `setSymbol`) |
+| `EXTRA_INFORMATION_ROLE` | Can update token metadata (`setTokenId`, `setTerms`, `setInformation`) |
+| `DOCUMENT_ROLE` | Can manage ERC-1643 documents (`setDocument`, `removeDocument`) |
 
 ## Events
 
@@ -366,6 +401,13 @@ All events emitted by the contract, organized by module. Events from FHE modules
 | `TotalSupplyObserverAdded` | `TotalSupplyObserverAdded(address indexed observer, address indexed addedBy)` | `addTotalSupplyObserver()` registers a new observer |
 | `TotalSupplyObserverRemoved` | `TotalSupplyObserverRemoved(address indexed observer, address indexed removedBy)` | `removeTotalSupplyObserver()` deregisters an observer |
 | `MaxSupplyObserversUpdated` | `MaxSupplyObserversUpdated(uint256 oldMax, uint256 newMax, address updatedBy)` | `setMaxSupplyObservers()` changes the observer cap |
+
+#### ERC7984TokenAttributeModule — all variants
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `Name` | `Name(string indexed newNameIndexed, string newName)` | `setName()` updates the token name |
+| `Symbol` | `Symbol(string indexed newSymbolIndexed, string newSymbol)` | `setSymbol()` updates the token symbol |
 
 #### ERC7984RuleEngineModule — `CMTATConfidentialRuleEngine` only
 
@@ -599,6 +641,40 @@ await token.connect(complianceManager).publishTotalSupply();
 
 > **Gas note:** In `CMTATConfidential`, every mint or burn triggers `_updateTotalSupplyObserversACL()`, which iterates over all registered total supply observers and calls `FHE.allow()` for each one. Additionally, `_update` runs a chain of balance observer ACL grants. Keep both observer lists small to control gas costs per operation.
 
+### Token Name and Symbol
+
+Update the token name or symbol post-deployment (requires `TOKEN_ATTRIBUTE_ROLE`):
+
+```solidity
+function setName(string calldata name_) public onlyRole(TOKEN_ATTRIBUTE_ROLE);
+function setSymbol(string calldata symbol_) public onlyRole(TOKEN_ATTRIBUTE_ROLE);
+```
+
+Emits `Name(string indexed, string)` and `Symbol(string indexed, string)` respectively — same event signatures as CMTAT's `ERC20BaseModule`.
+
+### Token Metadata
+
+Update token metadata inherited from CMTAT (requires `EXTRA_INFORMATION_ROLE`):
+
+```solidity
+function setTokenId(string calldata tokenId_) public onlyRole(EXTRA_INFORMATION_ROLE);
+function setTerms(IERC1643CMTAT.DocumentInfo calldata terms_) public onlyRole(EXTRA_INFORMATION_ROLE);
+function setInformation(string calldata information_) public onlyRole(EXTRA_INFORMATION_ROLE);
+```
+
+Read back via the corresponding getters: `tokenId()`, `terms()`, `information()`.
+
+### Document Management
+
+Manage ERC-1643 documents attached to the token (requires `DOCUMENT_ROLE`):
+
+```solidity
+function setDocument(bytes32 name, string calldata uri, bytes32 documentHash) public onlyRole(DOCUMENT_ROLE);
+function removeDocument(bytes32 name) public onlyRole(DOCUMENT_ROLE);
+function getDocument(bytes32 name) public view returns (Document memory);
+function getAllDocuments() public view returns (bytes32[] memory);
+```
+
 ### Pause / Unpause
 
 Pause all transfers (requires `PAUSER_ROLE`):
@@ -758,10 +834,11 @@ CMTAT-Confidential/
 │       ├── ERC7984BurnModule.sol                  # Burn with authorization hook
 │       ├── ERC7984EnforcementModule.sol           # Forced transfer and forced burn
 │       ├── ERC7984BalanceViewModule.sol           # Per-account balance observers
-│       ├── CMTATConfidentialVersionModule.sol     # CMTAT Confidential version override (0.3.0)
 │       ├── ERC7984PublishTotalSupplyModule.sol    # Public total supply disclosure
+│       ├── ERC7984TokenAttributeModule.sol        # Post-deployment name/symbol (ERC-3643)
+│       ├── ERC7984TotalSupplyViewModule.sol       # Total supply observer list (auto ACL)
 │       ├── ERC7984RuleEngineModule.sol            # RuleEngine storage, checks, and notifications
-│       └── ERC7984TotalSupplyViewModule.sol       # Total supply observer list (auto ACL)
+│       └── CMTATConfidentialVersionModule.sol     # CMTAT Confidential version override (0.3.0)
 ├── lib/
 │   ├── CMTAT/                                # CMTAT submodule (compliance modules)
 │   └── RuleEngine/                           # CMTA RuleEngine submodule
@@ -770,13 +847,14 @@ CMTAT-Confidential/
 │   ├── audit/                                # Aderyn static analysis reports
 │   ├── ERCSpecification/                     # Referenced ERC specs (ERC-7943, etc.)
 │   ├── specification/                        # Project specification
-│   └── technical/                            # Per-variant technical documentation
+│   └── technical/                            # Per-variant and per-module technical documentation
 ├── test/
 │   ├── CMTATConfidential.test.ts                           # Full variant core tests
 │   ├── CMTATConfidentialLite.test.ts                       # Lite variant core tests (shared suite)
 │   ├── CMTATConfidentialRuleEngine.test.ts                 # RuleEngine variant tests
 │   ├── CMTATConfidentialWhitelist.test.ts                  # Whitelist variant tests
 │   ├── ERC7984BalanceViewModule.test.ts           # Balance observer module tests
+│   ├── CMTATBaseFeatures.test.ts                  # CMTAT metadata: name/symbol, terms, documents
 │   ├── ERC7984EnforcementModule.test.ts           # Forced transfer/burn module tests
 │   ├── ERC7984PublishTotalSupplyModule.test.ts    # Public disclosure module tests
 │   ├── ERC7984TotalSupplyViewModule.test.ts       # Total supply observer module tests

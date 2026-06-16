@@ -3,20 +3,21 @@ pragma solidity ^0.8.27;
 
 import {ERC7984} from "../../lib/openzeppelin-confidential-contracts/contracts/token/ERC7984/ERC7984.sol";
 import {IERC7984TokenAttributeModule} from "../interfaces/IERC7984TokenAttributeModule.sol";
-import {IERC3643ERC20Base} from "../../lib/CMTAT/contracts/interfaces/tokenization/IERC3643Partial.sol";
 
 /**
  * @title ERC7984TokenAttributeModule
- * @notice Module for post-deployment update of the token name and symbol (ERC-3643 alignment).
+ * @notice Allows the token name and symbol to be updated post-deployment (ERC-3643 alignment).
  *
- * ERC7984 stores name and symbol as private fields set at construction.
+ * @dev ERC7984 stores name and symbol as private fields set at construction.
  * This module shadows them with its own storage and overrides the `name()` and
  * `symbol()` view functions, enabling permissioned post-deployment updates.
  *
  * Call `_initTokenAttributes(name_, symbol_)` in the inheriting constructor
- * immediately after the `ERC7984(name_, symbol_, ...)` super call.
+ * immediately after the `ERC7984(name_, symbol_, ...)` super call so that
+ * `name()` and `symbol()` return the correct values from deployment.
  *
- * Access control: override `_authorizeTokenAttributeManagement()`.
+ * Access control: override `_authorizeTokenAttributeManagement()` in the
+ * concrete contract to enforce the desired role or permission check.
  */
 abstract contract ERC7984TokenAttributeModule is ERC7984, IERC7984TokenAttributeModule {
     /* ============ State Variables ============ */
@@ -33,7 +34,7 @@ abstract contract ERC7984TokenAttributeModule is ERC7984, IERC7984TokenAttribute
         _;
     }
 
-    /* ============ Initializer ============ */
+    /* ============ Internal Helpers ============ */
 
     /**
      * @dev Seeds module storage with the constructor-supplied name and symbol.
@@ -59,13 +60,13 @@ abstract contract ERC7984TokenAttributeModule is ERC7984, IERC7984TokenAttribute
 
     /* ============ State-Changing Functions ============ */
 
-    /// @inheritdoc IERC3643ERC20Base
+    /// @inheritdoc IERC7984TokenAttributeModule
     function setName(string calldata name_) public virtual override onlyTokenAttributeManager {
         _name = name_;
         emit Name(name_, name_);
     }
 
-    /// @inheritdoc IERC3643ERC20Base
+    /// @inheritdoc IERC7984TokenAttributeModule
     function setSymbol(string calldata symbol_) public virtual override onlyTokenAttributeManager {
         _symbol = symbol_;
         emit Symbol(symbol_, symbol_);

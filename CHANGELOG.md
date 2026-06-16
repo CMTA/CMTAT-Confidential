@@ -81,10 +81,24 @@ npx prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'
 - **ERC-7943 partial compliance**: `doc/technical/CMTATConfidentialWhitelist.md` documents which parts of `IERC7943Fungible` are implemented and why full compliance is architecturally impossible with FHE encrypted amounts.
 - **Aderyn v0.3.0 static analysis**: 19 contracts (1 195 nSLOC), 0 high, 7 low findings. Full disposition table added to `README.md` and `doc/audit/v0.3.0/aderyn-report-feedback.md`. No production code changes required.
 
+### Added
+
+- **`ERC7984TokenAttributeModule`**: New abstract module enabling post-deployment updates to the token name and symbol via `setName(string)` / `setSymbol(string)`, aligned with the ERC-3643 T-REX standard. Emits `Name(string indexed, string)` and `Symbol(string indexed, string)` — same event signatures as CMTAT's `ERC20BaseModule`. Gated by `TOKEN_ATTRIBUTE_ROLE`. Inherited by all four deployment variants through `CMTATConfidentialBase`.
+- **`IERC7984TokenAttributeModule`** (`contracts/interfaces/`): Interface for the new module, extending `IERC3643ERC20Base` for ERC-3643 compatibility.
+- **`TOKEN_ATTRIBUTE_ROLE`**: New role (`keccak256("TOKEN_ATTRIBUTE_ROLE")`) controlling `setName` / `setSymbol`. Finer-grained than `DEFAULT_ADMIN_ROLE`, which CMTAT uses for the equivalent functions.
+
+### Documentation
+
+- **`doc/technical/ERC7984TokenAttributeModule.md`**: Technical reference for the new module — storage shadowing design, ERC-3643 alignment table, diamond resolution explanation, security notes.
+- **README `Module Reference` table**: New table listing all FHE and CMTAT modules with their role, source file, availability, and purpose — answers "which modules are used and what do they do?"
+- **README roles table**: Added `TOKEN_ATTRIBUTE_ROLE`, `EXTRA_INFORMATION_ROLE`, and `DOCUMENT_ROLE` entries.
+- **README Contract Functions**: Added `setName`/`setSymbol`, `setTokenId`/`setTerms`/`setInformation`, and document management (`setDocument`/`removeDocument`) subsections.
+
 ### Testing
 
 - Added `test/CMTATConfidentialRuleEngine.test.ts` (`0ab6137`): covers rule engine allow/block paths, `setRuleEngine`, `canTransfer` / `canTransferFrom` semantics, and full `runCoreTests()` suite.
 - Added `test/CMTATConfidentialWhitelist.test.ts` (`f40068f`): covers allowlist enable/disable, per-address allowlisting, operator path, partial ERC-7943 view functions, negative ERC-165 assertion for `0x3edbb4c4`, and full `runCoreTests()` suite.
+- Added `test/CMTATBaseFeatures.test.ts`: 30 tests covering `setName`/`setSymbol` (including `Name`/`Symbol` event assertions), `setTerms`, `setTokenId`, `setInformation`, and full ERC-1643 document management (`setDocument`, `getDocument`, `getAllDocuments`, `removeDocument`, `DocumentUpdated`/`DocumentRemoved` events, access control, role delegation).
 
 ## 0.2.0
 
