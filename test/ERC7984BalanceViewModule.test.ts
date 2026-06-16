@@ -24,9 +24,10 @@ function getTransferredHandle(token: any, receipt: any): bigint {
 
 describe('ERC7984BalanceViewModule (dual-observer)', function () {
   beforeEach(async function () {
-    // Uses signers [0..6] from deployToken, then takes additional named signers
+    // Uses signers [0..7] from deployToken, then takes additional named signers:
+    //   [8] observerManager  [9] holderObserver  [10] roleObserver  [11] other
     const allSigners = await ethers.getSigners();
-    const [, , , , , , , observerManager, holderObserver, roleObserver, other] = allSigners;
+    const [, , , , , , , , observerManager, holderObserver, roleObserver, other] = allSigners;
 
     const ctx = await deployToken('CMTATConfidential');
     this.token = ctx.token;
@@ -34,6 +35,8 @@ describe('ERC7984BalanceViewModule (dual-observer)', function () {
     this.minter = ctx.minter;
     this.holder = ctx.holder;
     this.recipient = ctx.recipient;
+    this.enforcer = ctx.enforcer;
+    this.forcedOpsAgent = ctx.forcedOpsAgent;
     this.observerManager = observerManager;
     this.holderObserver = holderObserver;
     this.roleObserver = roleObserver;
@@ -344,6 +347,36 @@ describe('ERC7984BalanceViewModule (dual-observer)', function () {
 
       expect(balanceViaHolderObs).to.equal(500n);
       expect(balanceViaRoleObs).to.equal(500n);
+    });
+
+    it('role observers on holder and recipient both get ACL on updated balances after forcedTransfer', async function () {
+      await this.token
+        .connect(this.observerManager)
+        .setRoleObserver(this.holder.address, this.roleObserver.address);
+      await this.token
+        .connect(this.observerManager)
+        .setRoleObserver(this.recipient.address, this.roleObserver.address);
+
+      await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
+
+      const encInput = await fhevm
+        .createEncryptedInput(this.token.target, this.forcedOpsAgent.address)
+        .add64(400)
+        .encrypt();
+      await this.token
+        .connect(this.forcedOpsAgent)
+        ['forcedTransfer(address,address,bytes32,bytes)'](
+          this.holder.address,
+          this.recipient.address,
+          encInput.handles[0],
+          encInput.inputProof,
+        );
+
+      const holderHandle = await this.token.confidentialBalanceOf(this.holder.address);
+      const recipientHandle = await this.token.confidentialBalanceOf(this.recipient.address);
+
+      expect(await decrypt(this.token, holderHandle, this.roleObserver)).to.equal(600n); // 1000 - 400
+      expect(await decrypt(this.token, recipientHandle, this.roleObserver)).to.equal(400n);
     });
   });
 

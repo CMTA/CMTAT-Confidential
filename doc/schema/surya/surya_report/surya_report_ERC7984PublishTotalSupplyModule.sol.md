@@ -5,7 +5,7 @@
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| ./modules/ERC7984PublishTotalSupplyModule.sol | 0ccae57a541b6a56aeb654d32ed75611fbfe6a4c |
+| ./modules/ERC7984PublishTotalSupplyModule.sol | 3625b250edfed4463e0aab586366c3c9f93b2432 |
 
 
 ### Contracts Description Table
@@ -15,7 +15,7 @@
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **ERC7984PublishTotalSupplyModule** | Implementation | ERC7984 |||
+| **ERC7984PublishTotalSupplyModule** | Implementation | ERC7984, IERC7984PublishTotalSupplyModule |||
 | └ | publishTotalSupply | Public ❗️ | 🛑  | onlySupplyPublisher |
 | └ | _authorizePublishTotalSupply | Internal 🔒 | 🛑  | |
 

@@ -1,0 +1,91 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.27;
+
+import {ICMTATConstructor} from "../lib/CMTAT/contracts/interfaces/technical/ICMTATConstructor.sol";
+import {IRuleEngine} from "../lib/CMTAT/contracts/interfaces/engine/IRuleEngine.sol";
+import {CMTATConfidential} from "./CMTATConfidential.sol";
+import {CMTATConfidentialBase} from "./CMTATConfidentialBase.sol";
+import {ERC7984RuleEngineModule} from "./modules/ERC7984RuleEngineModule.sol";
+
+/**
+ * @title CMTATConfidentialRuleEngine
+ * @dev Deployment variant that restricts confidential transfers through a CMTA
+ * RuleEngine. Because transferred amounts are encrypted, RuleEngine validation
+ * and transfer notifications always receive `value = 0`.
+ */
+contract CMTATConfidentialRuleEngine is
+    CMTATConfidential,
+    ERC7984RuleEngineModule
+{
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor(
+        string memory name_,
+        string memory symbol_,
+        string memory contractUri_,
+        uint8 decimals_,
+        address admin,
+        ICMTATConstructor.ExtraInformationAttributes
+            memory extraInformationAttributes_,
+        IRuleEngine ruleEngine_
+    )
+        CMTATConfidential(
+            name_,
+            symbol_,
+            contractUri_,
+            decimals_,
+            admin,
+            extraInformationAttributes_
+        )
+    {
+        if (address(ruleEngine_) != address(0)) {
+            _setRuleEngine(ruleEngine_);
+        }
+    }
+
+    /**
+     * @notice Returns whether a transfer from `from` to `to` is currently permitted.
+     * @dev `amount` is intentionally ignored. Transfer amounts are encrypted and
+     * unavailable to public view functions, so amount-based rules in the RuleEngine
+     * (e.g. minimum size, balance caps) are not evaluated here. Only sender/receiver
+     * permissioning rules are reflected by this view.
+     */
+    function canTransfer(
+        address from,
+        address to,
+        uint256 /*amount*/
+    ) public view virtual override(CMTATConfidentialBase) returns (bool allowed) {
+        return
+            _canTransferGenericByModule(address(0), from, to) &&
+            _canTransferByRuleEngine(from, to);
+    }
+
+    /**
+     * @notice Returns whether a delegated transfer by `spender` from `from` to `to` is permitted.
+     * @dev `amount` is intentionally ignored for the same reason as `canTransfer`.
+     */
+    function canTransferFrom(
+        address spender,
+        address from,
+        address to,
+        uint256 /*amount*/
+    ) public view virtual returns (bool allowed) {
+        return
+            _canTransferGenericByModule(spender, from, to) &&
+            _canTransferFromByRuleEngine(spender, from, to);
+    }
+
+    function _beforeTransfer(
+        address spender,
+        address from,
+        address to
+    ) internal virtual override(CMTATConfidentialBase) {
+        ERC7984RuleEngineModule._applyRuleEngine(spender, from, to);
+    }
+
+    function _authorizeRuleEngineManagement()
+        internal
+        virtual
+        override
+        onlyRole(RULE_ENGINE_ROLE)
+    {}
+}

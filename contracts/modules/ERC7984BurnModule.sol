@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {ERC7984} from "../../openzeppelin-confidential-contracts/contracts/token/ERC7984/ERC7984.sol";
+import {ERC7984} from "../../lib/openzeppelin-confidential-contracts/contracts/token/ERC7984/ERC7984.sol";
 import {FHE, externalEuint64, euint64} from "@fhevm/solidity/lib/FHE.sol";
+import {IERC7984BurnModule} from "../interfaces/IERC7984BurnModule.sol";
 
 /**
  * @title ERC7984BurnModule
@@ -15,19 +16,9 @@ import {FHE, externalEuint64, euint64} from "@fhevm/solidity/lib/FHE.sol";
  * The authorization function `_authorizeBurn()` must be overridden
  * in the inheriting contract to implement the desired access control.
  */
-abstract contract ERC7984BurnModule is ERC7984 {
+abstract contract ERC7984BurnModule is ERC7984, IERC7984BurnModule {
     /* ============ State Variables ============ */
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
-
-    /* ============ Events ============ */
-    event Burn(
-        address indexed burner,
-        address indexed from,
-        euint64 encryptedAmount
-    );
-
-    /* ============ Errors ============ */
-    error ERC7984BurnModule_UnauthorizedHandle();
 
     /* ============ Modifier ============ */
     /**
@@ -40,13 +31,7 @@ abstract contract ERC7984BurnModule is ERC7984 {
     }
 
     /* ============ Public Functions ============ */
-    /**
-     * @dev Burns tokens from an address using an encrypted amount with input proof.
-     * @param from Address to burn from
-     * @param encryptedAmount Encrypted amount to burn
-     * @param inputProof Zero-knowledge proof for the encrypted input
-     * @return transferred The encrypted amount actually burned
-     */
+    /// @inheritdoc IERC7984BurnModule
     function burn(
         address from,
         externalEuint64 encryptedAmount,
@@ -61,12 +46,7 @@ abstract contract ERC7984BurnModule is ERC7984 {
         emit Burn(msg.sender, from, transferred);
     }
 
-    /**
-     * @dev Burns tokens from an address using an already-encrypted amount.
-     * @param from Address to burn from
-     * @param amount Encrypted amount to burn (caller must have ACL access)
-     * @return transferred The encrypted amount actually burned
-     */
+    /// @inheritdoc IERC7984BurnModule
     function burn(
         address from,
         euint64 amount
