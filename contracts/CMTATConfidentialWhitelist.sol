@@ -2,7 +2,6 @@
 pragma solidity ^0.8.27;
 
 import {ICMTATConstructor} from "../lib/CMTAT/contracts/interfaces/technical/ICMTATConstructor.sol";
-import {externalEuint64, euint64} from "@fhevm/solidity/lib/FHE.sol";
 import {CMTATConfidential} from "./CMTATConfidential.sol";
 import {AllowlistModule} from "../lib/CMTAT/contracts/modules/wrapper/options/AllowlistModule.sol";
 import {ValidationModule} from "../lib/CMTAT/contracts/modules/wrapper/controllers/ValidationModule.sol";
@@ -13,9 +12,15 @@ import {ValidationModule} from "../lib/CMTAT/contracts/modules/wrapper/controlle
  *
  * Rules:
  * - If `isAllowlistEnabled() == false`, allowlist restrictions are bypassed.
- * - If `isAllowlistEnabled() == true`, both sender and recipient must be allowlisted.
+ * - If `isAllowlistEnabled() == true`, sender, recipient, and (for `transferFrom`
+ *   variants) spender must all be allowlisted.
  *
  * Forced operations (forced transfer / forced burn) are unchanged.
+ *
+ * Implementation note: allowlist enforcement is wired through CMTAT's standard
+ * validation hooks (`_canTransferStandardByModule`, `_canMintBurnByModule`,
+ * `_canSend`, `_canReceive`) so the check happens once, in the shared validation
+ * path, rather than being duplicated across every transfer variant.
  */
 contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
     bytes4 private constant _INTERFACE_ID_ERC7943_FUNGIBLE = 0x3edbb4c4;
@@ -39,166 +44,25 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
         )
     {}
 
-    function canSend(
-        address account
-    ) public view virtual override returns (bool allowed) {
-        if (!ValidationModule.canSend(account)) {
-            return false;
-        }
-        if (!isAllowlistEnabled()) {
-            return true;
-        }
-        return isAllowlisted(account);
-    }
-
-    function canReceive(
-        address account
-    ) public view virtual override returns (bool allowed) {
-        if (!ValidationModule.canReceive(account)) {
-            return false;
-        }
-        if (!isAllowlistEnabled()) {
-            return true;
-        }
-        return isAllowlisted(account);
-    }
-
     /**
-     * @notice Checks whether a confidential transfer is currently allowed by
-     * account-level and allowlist policy checks.
+     * @notice Returns whether a confidential transfer from `from` to `to` is
+     * currently permitted.
      * @dev ERC-7943 includes `amount` for fungible tokens. In this confidential
-     * variant the transfer amount is encrypted, so the public view cannot
-     * evaluate amount-specific balance or frozen-amount rules. The public
-     * `amount` parameter is therefore intentionally ignored and this function
-     * only reflects permissioned transfer rules that are public in this model.
+     * variant the transfer amount is encrypted, so the public view cannot evaluate
+     * amount-specific balance or frozen-amount rules. The public `amount` parameter
+     * is therefore intentionally ignored and this function only reflects permissioned
+     * transfer rules that are public in this model.
+     *
+     * Note: this view checks whether an unconditional (non-delegated) transfer is
+     * permitted. It uses `address(0)` as the spender, so a delegated transfer by a
+     * non-allowlisted spender could still be rejected at execution time.
      */
     function canTransfer(
         address from,
         address to,
         uint256 /*amount*/
     ) public view returns (bool allowed) {
-        return canSend(from) && canReceive(to);
-    }
-
-    function confidentialTransfer(
-        address to,
-        externalEuint64 encryptedAmount,
-        bytes calldata inputProof
-    ) public virtual override returns (euint64) {
-        _enforceWhitelistAndRevert(_msgSender(), to);
-        return CMTATConfidential.confidentialTransfer(
-            to,
-            encryptedAmount,
-            inputProof
-        );
-    }
-
-    function confidentialTransfer(
-        address to,
-        euint64 amount
-    ) public virtual override returns (euint64) {
-        _enforceWhitelistAndRevert(_msgSender(), to);
-        return CMTATConfidential.confidentialTransfer(to, amount);
-    }
-
-    function confidentialTransferFrom(
-        address from,
-        address to,
-        externalEuint64 encryptedAmount,
-        bytes calldata inputProof
-    ) public virtual override returns (euint64 transferred) {
-        _enforceWhitelistAndRevert(from, to);
-        return
-            CMTATConfidential.confidentialTransferFrom(
-                from,
-                to,
-                encryptedAmount,
-                inputProof
-            );
-    }
-
-    function confidentialTransferFrom(
-        address from,
-        address to,
-        euint64 amount
-    ) public virtual override returns (euint64 transferred) {
-        _enforceWhitelistAndRevert(from, to);
-        return CMTATConfidential.confidentialTransferFrom(from, to, amount);
-    }
-
-    function confidentialTransferAndCall(
-        address to,
-        externalEuint64 encryptedAmount,
-        bytes calldata inputProof,
-        bytes calldata data
-    ) public virtual override returns (euint64 transferred) {
-        _enforceWhitelistAndRevert(_msgSender(), to);
-        return
-            CMTATConfidential.confidentialTransferAndCall(
-                to,
-                encryptedAmount,
-                inputProof,
-                data
-            );
-    }
-
-    function confidentialTransferAndCall(
-        address to,
-        euint64 amount,
-        bytes calldata data
-    ) public virtual override returns (euint64 transferred) {
-        _enforceWhitelistAndRevert(_msgSender(), to);
-        return CMTATConfidential.confidentialTransferAndCall(to, amount, data);
-    }
-
-    function confidentialTransferFromAndCall(
-        address from,
-        address to,
-        externalEuint64 encryptedAmount,
-        bytes calldata inputProof,
-        bytes calldata data
-    ) public virtual override returns (euint64 transferred) {
-        _enforceWhitelistAndRevert(from, to);
-        return
-            CMTATConfidential.confidentialTransferFromAndCall(
-                from,
-                to,
-                encryptedAmount,
-                inputProof,
-                data
-            );
-    }
-
-    function confidentialTransferFromAndCall(
-        address from,
-        address to,
-        euint64 amount,
-        bytes calldata data
-    ) public virtual override returns (euint64 transferred) {
-        _enforceWhitelistAndRevert(from, to);
-        return
-            CMTATConfidential.confidentialTransferFromAndCall(
-                from,
-                to,
-                amount,
-                data
-            );
-    }
-
-    function _canTransferByWhitelistPolicy(
-        address from,
-        address to
-    ) internal view returns (bool) {
-        if (!isAllowlistEnabled()) {
-            return true;
-        }
-        return isAllowlisted(from) && isAllowlisted(to);
-    }
-
-    function _enforceWhitelistAndRevert(address from, address to) internal view {
-        if (!_canTransferByWhitelistPolicy(from, to)) {
-            revert ERC7943CannotTransfer(from, to, 0);
-        }
+        return _canTransferGenericByModule(address(0), from, to);
     }
 
     function supportsInterface(
@@ -207,6 +71,68 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
         return
             interfaceId == _INTERFACE_ID_ERC7943_FUNGIBLE ||
             CMTATConfidential.supportsInterface(interfaceId);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                       INTERNAL VALIDATION HOOKS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Adds allowlist check to the standard transfer validation path.
+     * Called by `_canTransferGenericByModule` for every non-mint, non-burn transfer,
+     * including `confidentialTransferFrom` variants where `spender != address(0)`.
+     */
+    function _canTransferStandardByModule(
+        address spender,
+        address from,
+        address to
+    ) internal view virtual override(ValidationModule) returns (bool) {
+        if (_isAllowlistEnabled()) {
+            bool spenderBlocked = spender != address(0) && !isAllowlisted(spender);
+            if (spenderBlocked || !isAllowlisted(from) || !isAllowlisted(to)) {
+                return false;
+            }
+        }
+        return ValidationModule._canTransferStandardByModule(spender, from, to);
+    }
+
+    /**
+     * @dev Adds allowlist check for mint and burn operations.
+     * Called by `_validateMint` and `_validateBurn` in `CMTATConfidentialBase`.
+     */
+    function _canMintBurnByModule(
+        address account
+    ) internal view virtual override(ValidationModule) returns (bool) {
+        if (_isAllowlistEnabled() && !isAllowlisted(account)) {
+            return false;
+        }
+        return ValidationModule._canMintBurnByModule(account);
+    }
+
+    /**
+     * @dev Adds allowlist check to the `canSend` public view path.
+     * Keeps the `canSend` / `canReceive` view functions consistent with
+     * the actual transfer enforcement in `_canTransferStandardByModule`.
+     */
+    function _canSend(
+        address account
+    ) internal view virtual override(ValidationModule) returns (bool) {
+        if (_isAllowlistEnabled() && !isAllowlisted(account)) {
+            return false;
+        }
+        return ValidationModule._canSend(account);
+    }
+
+    /**
+     * @dev Adds allowlist check to the `canReceive` public view path.
+     */
+    function _canReceive(
+        address account
+    ) internal view virtual override(ValidationModule) returns (bool) {
+        if (_isAllowlistEnabled() && !isAllowlisted(account)) {
+            return false;
+        }
+        return ValidationModule._canReceive(account);
     }
 
     function _authorizeAllowlistManagement()
