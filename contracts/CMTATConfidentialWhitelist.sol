@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 import {ICMTATConstructor} from "../lib/CMTAT/contracts/interfaces/technical/ICMTATConstructor.sol";
 import {CMTATConfidential} from "./CMTATConfidential.sol";
+import {CMTATConfidentialBase} from "./CMTATConfidentialBase.sol";
 import {AllowlistModule} from "../lib/CMTAT/contracts/modules/wrapper/options/AllowlistModule.sol";
 import {ValidationModule} from "../lib/CMTAT/contracts/modules/wrapper/controllers/ValidationModule.sol";
 
@@ -29,6 +30,7 @@ import {ValidationModule} from "../lib/CMTAT/contracts/modules/wrapper/controlle
  * path, rather than being duplicated across every transfer variant.
  */
 contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
+    // `type(IERC7943Fungible).interfaceId` as defined in the ERC-7943 specification.
     bytes4 private constant _INTERFACE_ID_ERC7943_FUNGIBLE = 0x3edbb4c4;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -67,7 +69,7 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
         address from,
         address to,
         uint256 /*amount*/
-    ) public view returns (bool allowed) {
+    ) public view virtual override(CMTATConfidentialBase) returns (bool allowed) {
         return _canTransferGenericByModule(address(0), from, to);
     }
 
@@ -117,8 +119,9 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
 
     /**
      * @dev Adds allowlist check to the `canSend` public view path.
-     * Keeps the `canSend` / `canReceive` view functions consistent with
-     * the actual transfer enforcement in `_canTransferStandardByModule`.
+     * Reflects freeze and allowlist status only — does NOT reflect pause state.
+     * When the contract is paused, `canSend` may return `true` while `canTransfer`
+     * returns `false`. Use `canTransfer` for the authoritative combined check.
      */
     function _canSend(
         address account
@@ -131,6 +134,9 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
 
     /**
      * @dev Adds allowlist check to the `canReceive` public view path.
+     * Reflects freeze and allowlist status only — does NOT reflect pause state.
+     * When the contract is paused, `canReceive` may return `true` while `canTransfer`
+     * returns `false`. Use `canTransfer` for the authoritative combined check.
      */
     function _canReceive(
         address account

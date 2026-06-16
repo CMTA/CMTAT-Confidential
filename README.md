@@ -12,6 +12,7 @@ A confidential security token implementation combining [CMTAT](https://github.co
 - [Compiler & EVM Version](#compiler--evm-version)
 - [Security](#security)
 - [Roles](#roles)
+- [Events](#events)
 - [Contract Functions](#contract-functions)
 - [Role-Based Access Control](#role-based-access-control)
 - [Troubleshooting](#troubleshooting)
@@ -287,6 +288,89 @@ At this stage, no Slither findings are available for this release due to this to
 | `SUPPLY_PUBLISHER_ROLE` | Can call `publishTotalSupply` |
 | `RULE_ENGINE_ROLE` | Can update the RuleEngine in `CMTATConfidentialRuleEngine` |
 | `ALLOWLIST_ROLE` | Can manage the allowlist in `CMTATConfidentialWhitelist` (`setAddressAllowlist`, `enableAllowlist`) |
+
+## Events
+
+All events emitted by the contract, organized by module. Events from FHE modules carry `euint64` handles for encrypted amounts — the plaintext values are not visible in logs.
+
+### FHE Modules
+
+#### ERC7984MintModule
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `Mint` | `Mint(address indexed minter, address indexed to, euint64 encryptedAmount)` | `mint()` completes successfully |
+
+#### ERC7984BurnModule
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `Burn` | `Burn(address indexed burner, address indexed from, euint64 encryptedAmount)` | `burn()` completes successfully |
+
+#### ERC7984EnforcementModule
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `ForcedTransfer` | `ForcedTransfer(address indexed enforcer, address indexed from, address indexed to, euint64 encryptedAmount)` | `forcedTransfer()` completes successfully |
+| `ForcedBurn` | `ForcedBurn(address indexed enforcer, address indexed from, euint64 encryptedAmount)` | `forcedBurn()` completes successfully |
+
+#### ERC7984BalanceViewModule
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `RoleObserverSet` | `RoleObserverSet(address indexed account, address indexed oldObserver, address indexed newObserver, address setBy)` | `setRoleObserver()` or `removeRoleObserver()` is called |
+| `ERC7984ObserverAccessObserverSet` | `ERC7984ObserverAccessObserverSet(address account, address oldObserver, address newObserver)` | `setObserver()` is called by a holder to assign their personal observer (inherited from `ERC7984ObserverAccess`) |
+
+#### ERC7984PublishTotalSupplyModule
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `TotalSupplyPublished` | `TotalSupplyPublished(address indexed publishedBy)` | `publishTotalSupply()` marks the current total supply handle as publicly decryptable |
+
+#### ERC7984TotalSupplyViewModule — `CMTATConfidential`, `CMTATConfidentialRuleEngine`, `CMTATConfidentialWhitelist` only
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `TotalSupplyObserverAdded` | `TotalSupplyObserverAdded(address indexed observer, address indexed addedBy)` | `addTotalSupplyObserver()` registers a new observer |
+| `TotalSupplyObserverRemoved` | `TotalSupplyObserverRemoved(address indexed observer, address indexed removedBy)` | `removeTotalSupplyObserver()` deregisters an observer |
+| `MaxSupplyObserversUpdated` | `MaxSupplyObserversUpdated(uint256 oldMax, uint256 newMax, address updatedBy)` | `setMaxSupplyObservers()` changes the observer cap |
+
+#### ERC7984RuleEngineModule — `CMTATConfidentialRuleEngine` only
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `RuleEngine` | `RuleEngine(IRuleEngine indexed newRuleEngine)` | `setRuleEngine()` updates the active rule engine (inherited from `ValidationModuleRuleEngineInternal`) |
+
+### CMTAT-Inherited Events
+
+#### PauseModule (via OpenZeppelin `Pausable`)
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `Paused` | `Paused(address account)` | `pause()` is called |
+| `Unpaused` | `Unpaused(address account)` | `unpause()` is called |
+| `Deactivated` | `Deactivated(address indexed account)` | `deactivateContract()` permanently deactivates the contract |
+
+#### EnforcementModule
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `AddressFrozen` | `AddressFrozen(address indexed account, bool indexed isFrozen, address indexed enforcer, bytes data)` | `setAddressFrozen()` changes the freeze state of an address |
+
+#### AccessControlModule (via OpenZeppelin `AccessControl`)
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `RoleGranted` | `RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)` | `grantRole()` assigns a role to an account |
+| `RoleRevoked` | `RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender)` | `revokeRole()` or `renounceRole()` removes a role |
+| `RoleAdminChanged` | `RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)` | `setRoleAdmin()` changes the admin role for a role |
+
+#### AllowlistModule — `CMTATConfidentialWhitelist` only
+
+| Event | Signature | Emitted when |
+|-------|-----------|--------------|
+| `AllowlistEnableStatus` | `AllowlistEnableStatus(address indexed operator, bool status)` | `enableAllowlist()` enables or disables allowlist enforcement |
+| `AddressAddedToAllowlist` | `AddressAddedToAllowlist(address indexed account, bool indexed status, address indexed enforcer, bytes data)` | `setAddressAllowlist()` adds or removes an address from the allowlist |
 
 ## Contract Functions
 

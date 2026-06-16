@@ -53,7 +53,7 @@ contract CMTATConfidentialRuleEngine is
         address from,
         address to,
         uint256 /*amount*/
-    ) public view returns (bool allowed) {
+    ) public view virtual override(CMTATConfidentialBase) returns (bool allowed) {
         return
             _canTransferGenericByModule(address(0), from, to) &&
             _canTransferByRuleEngine(from, to);
@@ -68,7 +68,7 @@ contract CMTATConfidentialRuleEngine is
         address from,
         address to,
         uint256 /*amount*/
-    ) public view returns (bool allowed) {
+    ) public view virtual returns (bool allowed) {
         return
             _canTransferGenericByModule(spender, from, to) &&
             _canTransferFromByRuleEngine(spender, from, to);

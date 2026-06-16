@@ -57,15 +57,19 @@ abstract contract CMTATConfidentialBase is
     uint8 private immutable _TOKEN_DECIMALS;
 
     /* ============ Errors ============ */
-    /// @dev CMTAT defines `CMTAT_BurnEnforcement_AddressIsNotFrozen()` (no args, burn-only) in
-    /// CMTATBaseCore, which is outside our inheritance chain. We define our own with the address
-    /// parameter so callers can identify which account failed the frozen precondition, and we reuse
-    /// it for both forcedTransfer and forcedBurn.
+    /**
+     * @dev CMTAT defines `CMTAT_BurnEnforcement_AddressIsNotFrozen()` (no args, burn-only) in
+     * CMTATBaseCore, which is outside our inheritance chain. We define our own with the address
+     * parameter so callers can identify which account failed the frozen precondition, and we reuse
+     * it for both forcedTransfer and forcedBurn.
+     */
     error CMTAT_AddressNotFrozen(address from);
     // CMTAT_Enforcement_ZeroAddressNotAllowed() (no-arg) is already in scope via EnforcementModuleInternal.
-    /// @dev Reverted when `decimals_` exceeds 18. ERC-7984 balances use `euint64`
-    /// (max 18_446_744_073_709_551_615 raw units); above 18 decimals the type cannot
-    /// represent even a single human-readable token.
+    /**
+     * @dev Reverted when `decimals_` exceeds 18. ERC-7984 balances use `euint64`
+     * (max 18_446_744_073_709_551_615 raw units); above 18 decimals the type cannot
+     * represent even a single human-readable token.
+     */
     error CMTAT_DecimalsTooHigh(uint8 decimals);
 
     /* ============ Constructor ============ */
@@ -225,6 +229,35 @@ abstract contract CMTATConfidentialBase is
         if (!isFrozen(from)) {
             revert CMTAT_AddressNotFrozen(from);
         }
+    }
+
+    /* ============ Transfer View ============ */
+
+    /**
+     * @notice Returns whether a transfer from `from` to `to` is currently permitted.
+     * @dev Delegates to `_canTransferGenericByModule(address(0), from, to)`, which is the
+     * central transfer gate shared by all 8 transfer overrides below. It checks, in order:
+     *   - for standard transfers: freeze status of sender, receiver and spender; pause state
+     *   - for mint: deactivation and freeze status of the recipient
+     *   - for burn: deactivation and freeze status of the sender
+     * Deployment variants override this function to add their own policy layer on top
+     * (allowlist check in CMTATConfidentialWhitelist; rule engine in CMTATConfidentialRuleEngine).
+     *
+     * The `amount` parameter is intentionally ignored. Transfer amounts are encrypted and
+     * cannot be evaluated in a public view function, so amount-based rules are never enforced here.
+     *
+     * **Asymmetry with `canSend`/`canReceive`:** `canSend(from) && canReceive(to)` is NOT
+     * equivalent to `canTransfer(from, to, 0)`. `canSend`/`canReceive` only check freeze
+     * (and allowlist in the whitelist variant) — they do not reflect pause state. When the
+     * contract is paused, those functions may return `true` while `canTransfer` returns `false`.
+     * Use `canTransfer` for the authoritative pre-flight check.
+     */
+    function canTransfer(
+        address from,
+        address to,
+        uint256 /*amount*/
+    ) public view virtual returns (bool) {
+        return _canTransferGenericByModule(address(0), from, to);
     }
 
     /* ============ Transfer Overrides ============ */

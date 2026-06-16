@@ -327,6 +327,33 @@ describe('CMTATConfidentialWhitelist', function () {
         expect(await decryptBalance(this.token.target, handle, this.holder)).to.equal(700n);
       });
     });
+
+    describe('freeze and allowlist interaction', function () {
+      it('frozen address cannot transfer even if allowlisted', async function () {
+        await this.token.connect(this.admin).enableAllowlist(true);
+        await this.token.connect(this.admin).setAddressAllowlist(this.holder.address, true);
+        await this.token.connect(this.admin).setAddressAllowlist(this.recipient.address, true);
+        await this.token.connect(this.enforcer).setAddressFrozen(this.holder.address, true);
+
+        const enc = await encryptAmount(this.token.target, this.holder.address, 100);
+        await expect(
+          this.token.connect(this.holder)['confidentialTransfer(address,bytes32,bytes)'](
+            this.recipient.address, enc.handles[0], enc.inputProof
+          )
+        ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
+      });
+
+      it('canTransfer returns false when paused but canSend and canReceive return true', async function () {
+        await this.token.connect(this.admin).enableAllowlist(true);
+        await this.token.connect(this.admin).setAddressAllowlist(this.holder.address, true);
+        await this.token.connect(this.admin).setAddressAllowlist(this.recipient.address, true);
+        await this.token.connect(this.pauser).pause();
+
+        expect(await this.token.canSend(this.holder.address)).to.equal(true);
+        expect(await this.token.canReceive(this.recipient.address)).to.equal(true);
+        expect(await this.token.canTransfer(this.holder.address, this.recipient.address, 0)).to.equal(false);
+      });
+    });
   });
 
   describe('decimals configuration', function () {
