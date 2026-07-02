@@ -22,9 +22,12 @@ describe('CMTATConfidentialRuleEngine', function () {
     const signers = await ethers.getSigners();
     this.authorizedOperator = signers[8];
     this.unauthorizedOperator = signers[9];
-    this.ruleEngine = await ethers.deployContract('RuleEngineMock', [
-      this.authorizedOperator.address,
-    ]);
+    // ScreeningRuleEngineMock follows the CMTAT v3.3.0 convention: the operator is
+    // forwarded as spender on mint/burn but exempt from screening on those legs (like
+    // production RuleWhitelist), so MINTER_ROLE/BURNER_ROLE can issue/redeem while a
+    // blocked from/to is still rejected. RuleSpenderAuthorized (the CMTA reference mock)
+    // does not exempt mint/burn and would block issuance once the operator is forwarded.
+    this.ruleEngine = await ethers.deployContract('ScreeningRuleEngineMock');
     const ctx = await deployToken('CMTATConfidentialRuleEngine', 6, [
       this.ruleEngine.target,
     ]);
@@ -46,9 +49,7 @@ describe('CMTATConfidentialRuleEngine', function () {
     });
 
     it('rule engine manager can update the rule engine', async function () {
-      const nextRuleEngine = await ethers.deployContract('RuleEngineMock', [
-        this.authorizedOperator.address,
-      ]);
+      const nextRuleEngine = await ethers.deployContract('ScreeningRuleEngineMock');
 
       await expect(
         this.token.connect(this.admin).setRuleEngine(nextRuleEngine.target)
@@ -60,9 +61,7 @@ describe('CMTATConfidentialRuleEngine', function () {
     });
 
     it('non-manager cannot update the rule engine', async function () {
-      const nextRuleEngine = await ethers.deployContract('RuleEngineMock', [
-        this.authorizedOperator.address,
-      ]);
+      const nextRuleEngine = await ethers.deployContract('ScreeningRuleEngineMock');
 
       await expect(
         this.token.connect(this.holder).setRuleEngine(nextRuleEngine.target)
@@ -130,6 +129,8 @@ describe('CMTATConfidentialRuleEngine', function () {
     });
 
     it('exposes canTransferFrom through the rule engine with value zero semantics', async function () {
+      // block the operator as spender in the rule engine (standard-transfer leg)
+      await this.ruleEngine.setBlocked(this.unauthorizedOperator.address, true);
       expect(
         await this.token.canTransferFrom(
           this.authorizedOperator.address,
@@ -148,7 +149,7 @@ describe('CMTATConfidentialRuleEngine', function () {
       ).to.equal(false);
     });
 
-    it('allows holder transfers when CMTAT RuleEngine amount rule would reject the encrypted amount but receives zero', async function () {
+    it('allows holder transfers (encrypted amount is passed to the rule engine as value zero)', async function () {
       const enc = await encryptAmount(this.token.target, this.holder.address, 100);
 
       await this.token
@@ -167,7 +168,10 @@ describe('CMTATConfidentialRuleEngine', function () {
       ).to.equal(100n);
     });
 
-    it('blocks operator transfers through CMTAT RuleEngineMock.transferred when spender is not authorized', async function () {
+    it('blocks operator transfers through the rule engine when the spender is blocked', async function () {
+      // block the operator as spender; the rule engine screens the spender on the
+      // standard-transfer leg (from/to != 0), unlike the mint/burn legs
+      await this.ruleEngine.setBlocked(this.unauthorizedOperator.address, true);
       const exp = BigInt(
         (await ethers.provider.getBlock('latest'))!.timestamp + 3600
       );
@@ -191,11 +195,11 @@ describe('CMTATConfidentialRuleEngine', function () {
             enc.inputProof
           )
       )
-        .to.be.revertedWithCustomError(this.ruleEngine, 'RuleEngine_InvalidTransfer')
-        .withArgs(this.holder.address, this.recipient.address, 0);
+        .to.be.revertedWithCustomError(this.ruleEngine, 'ScreeningRuleEngineMock_Blocked')
+        .withArgs(this.holder.address, this.recipient.address);
     });
 
-    it('allows authorized operator transfers when CMTAT RuleEngineMock receives value zero', async function () {
+    it('allows authorized operator transfers when the spender is not blocked', async function () {
       const exp = BigInt(
         (await ethers.provider.getBlock('latest'))!.timestamp + 3600
       );
@@ -245,8 +249,9 @@ describe('CMTATConfidentialRuleEngine', function () {
       ).to.be.revertedWithCustomError(this.token, 'ERC7943CannotTransfer');
     });
 
-    it('confidentialTransferAndCall is blocked by rule engine for unauthorized operator', async function () {
+    it('confidentialTransferFromAndCall is blocked by rule engine when the spender is blocked', async function () {
       const receiver = await ethers.deployContract('ConfidentialReceiverMock', [true]);
+      await this.ruleEngine.setBlocked(this.unauthorizedOperator.address, true);
       const exp = BigInt((await ethers.provider.getBlock('latest'))!.timestamp + 3600);
       await this.token.connect(this.holder).setOperator(this.unauthorizedOperator.address, exp);
       const enc = await encryptAmount(this.token.target, this.unauthorizedOperator.address, 100);
@@ -254,7 +259,7 @@ describe('CMTATConfidentialRuleEngine', function () {
         this.token.connect(this.unauthorizedOperator)['confidentialTransferFromAndCall(address,address,bytes32,bytes,bytes)'](
           this.holder.address, receiver.target, enc.handles[0], enc.inputProof, '0x'
         )
-      ).to.be.revertedWithCustomError(this.ruleEngine, 'RuleEngine_InvalidTransfer');
+      ).to.be.revertedWithCustomError(this.ruleEngine, 'ScreeningRuleEngineMock_Blocked');
     });
 
     it('confidentialTransferAndCall succeeds when rule engine allows it', async function () {
@@ -416,6 +421,22 @@ describe('CMTATConfidentialRuleEngine', function () {
       )
         .to.be.revertedWithCustomError(this.token, 'ERC7943CannotReceive')
         .withArgs(this.holder.address);
+    });
+
+    // The operator (minter/burner = _msgSender()) is forwarded to the rule engine as
+    // the `spender`, matching CMTAT's `_mintOverride`/`_burnOverride`
+    // (transferred(spender, from, to, value) — the 4-arg overload). Per the CMTAT v3.3.0
+    // convention the spender is exempt from screening on the mint/burn legs, so we assert
+    // the forwarding via the spender the engine recorded, not via a revert.
+    it('forwards the minter as spender to the rule engine on mint', async function () {
+      await mint(this.token, this.minter, this.holder, 1000);
+      expect(await this.screening.lastSpender()).to.equal(this.minter.address);
+    });
+
+    it('forwards the burner as spender to the rule engine on burn', async function () {
+      await mint(this.token, this.minter, this.holder, 1000);
+      await burn(this.token, this.burner, this.holder, 400);
+      expect(await this.screening.lastSpender()).to.equal(this.burner.address);
     });
   });
 

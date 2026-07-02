@@ -262,6 +262,44 @@ Nethermind AuditAgent automated scan (March 18, 2026, commit `51f9d7aa`) reporte
 | 7 | Info | Unbounded observer list can cause DoS on `mint` and `burn` | Duplicate of #4 — resolved together | `12249c1` |
 | 8 | Best Practice | Duplicate observer removal via `setRoleObserver(account, address(0))` | Fixed — `setRoleObserver` now rejects `address(0)` | `a74314e` |
 
+### Static Analysis — Aderyn (v1.0.0)
+
+Aderyn static analysis (v1.0.0, Aderyn 0.6.5) reported **0 high** and **7 low** severity findings across 21 contracts (1 292 nSLOC). All findings are accepted or not applicable — unchanged in count and disposition from v0.3.0. Full rationale in [`aderyn-report-feedback.md`](./doc/audit/v1.0.0/aderyn-report-feedback.md), source report in [`aderyn-report.md`](./doc/audit/v1.0.0/aderyn-report.md). See also [`doc/audit/AUDIT_OVERVIEW.md`](./doc/audit/AUDIT_OVERVIEW.md).
+
+Command used to generate the report (mocks excluded):
+
+```bash
+aderyn -x mocks --output doc/audit/v1.0.0/aderyn-report.md
+```
+
+| ID | Finding | Instances | Disposition |
+|----|---------|-----------|-------------|
+| L-1 | Centralization Risk | 14 | Accepted — role-based access control is mandatory for a regulated security token |
+| L-2 | Unspecific Solidity Pragma (`^0.8.27`) | 21 | Accepted — lower bound required by OZ Confidential submodule; kept floating for library consumers (OZ finding N-03); toolchain compiles with `0.8.34` |
+| L-3 | PUSH0 Opcode | 21 | Not applicable — target is Ethereum mainnet, EVM version set to `prague` |
+| L-4 | Modifier Invoked Only Once | 3 | Accepted — consistent with the module authorization pattern across all modules |
+| L-5 | Empty Block | 22 | Accepted — modifier-only authorization hooks and intentional virtual extension points |
+| L-6 | Internal Function Used Only Once | 1 | Accepted — required by the OpenZeppelin `initializer` modifier pattern |
+| L-7 | Unchecked Return | 8 | Not applicable — `FHE.allow()` / `FHE.makePubliclyDecryptable()` return the same handle (fluent interface), not an error code |
+
+### Static Analysis — Slither (v1.0.0)
+
+Slither static analysis (v1.0.0, Slither 0.11.5, compiled via Foundry / solc 0.8.34) reported **0 high**, **8 medium**, **3 low**, and **7 informational** findings. None is exploitable — the Medium/Low results are the same FHE fluent-interface pattern Aderyn reports as L-7. Full rationale in [`slither-report-feedback.md`](./doc/audit/v1.0.0/slither-report-feedback.md), source report in [`slither-report.md`](./doc/audit/v1.0.0/slither-report.md).
+
+Command used to generate the report (mocks excluded):
+
+```bash
+slither . --checklist --filter-paths "node_modules,lib,test,forge-std,mocks"
+```
+
+| Detector | Severity | Instances | Disposition |
+|----------|----------|-----------|-------------|
+| unused-return | Medium | 8 | Not applicable — `FHE.allow` / `FHE.makePubliclyDecryptable` fluent API (return is the same handle) |
+| reentrancy-events | Low | 3 | False positive — FHE coprocessor call followed only by an event; no exploitable state |
+| dead-code | Informational | 5 | False positive — virtual hooks (`_validateMint`/`_validateBurn`/`_afterBurn`/`_validateForced*`) dispatched via inheritance override |
+| naming-convention | Informational | 1 | Cosmetic — `_TOKEN_DECIMALS` immutable styled like a constant |
+| unindexed-event-address | Informational | 1 | Cosmetic — optional indexing on the rare `MaxSupplyObserversUpdated` admin event |
+
 ### Static Analysis — Aderyn (v0.3.0)
 
 Aderyn static analysis (v0.3.0) reported **0 high** and **7 low** severity findings across 21 contracts (1 276 nSLOC). All findings are accepted or not applicable. Full rationale in [`aderyn-report-feedback.md`](./doc/audit/v0.3.0/aderyn-report-feedback.md).
@@ -509,10 +547,10 @@ The public `amount` parameter is intentionally ignored. Confidential balances us
 - operator transfer validation: `ruleEngine.canTransferFrom(spender, from, to, 0)`
 - holder transfer notification: `ruleEngine.transferred(from, to, 0)`
 - operator transfer notification: `ruleEngine.transferred(spender, from, to, 0)`
-- mint validation + notification: `ruleEngine.canTransfer(address(0), to, 0)` / `ruleEngine.transferred(address(0), to, 0)`
-- burn validation + notification: `ruleEngine.canTransfer(from, address(0), 0)` / `ruleEngine.transferred(from, address(0), 0)`
+- mint validation + notification: `ruleEngine.canTransferFrom(operator, address(0), to, 0)` / `ruleEngine.transferred(operator, address(0), to, 0)`
+- burn validation + notification: `ruleEngine.canTransferFrom(operator, from, address(0), 0)` / `ruleEngine.transferred(operator, from, address(0), 0)`
 
-Mint and burn are screened at the same chokepoint as standard CMTAT, so issuance to — or redemption from — a non-permitted address is rejected by the configured engine. The `address(0)` leg is passed exactly as standard CMTAT does; the engine is responsible for treating it as issuance/redemption. **Forced operations (`forcedTransfer`, `forcedBurn`) intentionally bypass the RuleEngine** and remain governed only by the freeze precondition.
+Mint and burn are screened at the same chokepoint as standard CMTAT, so issuance to — or redemption from — a non-permitted address is rejected by the configured engine. Following CMTAT v3.3.0, the **operator** (`_msgSender()`, the `MINTER_ROLE`/`BURNER_ROLE` holder) is forwarded as the `spender` on mint/burn, exactly as CMTAT's `_mintOverride`/`_burnOverride` do; rules must exempt the spender on those legs (production `RuleWhitelist` does). **Forced operations (`forcedTransfer`, `forcedBurn`) intentionally bypass the RuleEngine** and remain governed only by the freeze precondition.
 
 Example transfer:
 

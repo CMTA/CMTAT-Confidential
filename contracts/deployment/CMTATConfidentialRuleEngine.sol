@@ -93,27 +93,32 @@ contract CMTATConfidentialRuleEngine is
      * @inheritdoc CMTATConfidentialBase
      * @dev Adds RuleEngine screening to the mint leg (`from = address(0)`) so issuance
      * is screened like standard CMTAT, not just confidential transfers (audit finding M-01).
-     * The `address(0)` leg is passed as standard CMTAT does; the engine handles it as
-     * issuance. Forced ops use `_validateForcedTransfer`/`_validateForcedBurn` and bypass this.
+     * The operator (`_msgSender()`) is forwarded as the spender and `address(0)` as the
+     * sender leg, exactly as CMTAT's `_mintOverride` does (`transferred(spender, address(0),
+     * to, 0)`). The engine decides how to treat those legs (RuleWhitelist exempts the spender
+     * for mint/burn). Forced ops use `_validateForcedTransfer`/`_validateForcedBurn` and bypass this.
      */
     function _validateMint(address to) internal virtual override {
         CMTATConfidentialBase._validateMint(to);
-        if (!_canTransferByRuleEngine(address(0), to)) {
+        address spender = _msgSender();
+        if (!_canTransferFromByRuleEngine(spender, address(0), to)) {
             revert ERC7943CannotReceive(to);
         }
-        _applyRuleEngine(address(0), address(0), to);
+        _applyRuleEngine(spender, address(0), to);
     }
 
     /**
      * @inheritdoc CMTATConfidentialBase
-     * @dev Adds RuleEngine screening to the burn leg (`to = address(0)`). See {_validateMint}.
+     * @dev Adds RuleEngine screening to the burn leg (`to = address(0)`), forwarding the
+     * operator (`_msgSender()`) as the spender as CMTAT's `_burnOverride` does. See {_validateMint}.
      */
     function _validateBurn(address from) internal virtual override {
         CMTATConfidentialBase._validateBurn(from);
-        if (!_canTransferByRuleEngine(from, address(0))) {
+        address spender = _msgSender();
+        if (!_canTransferFromByRuleEngine(spender, from, address(0))) {
             revert ERC7943CannotSend(from);
         }
-        _applyRuleEngine(address(0), from, address(0));
+        _applyRuleEngine(spender, from, address(0));
     }
 
     function _authorizeRuleEngineManagement()

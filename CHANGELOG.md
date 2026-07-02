@@ -49,7 +49,7 @@ First stable release, incorporating the remediation of the **OpenZeppelin securi
 
 ### Security
 
-- **M-01 — RuleEngine now screens mint and burn** (`4e559b1`): `CMTATConfidentialRuleEngine` applies RuleEngine validation and notification to issuance and redemption via `_validateMint` / `_validateBurn`, closing the gap where a mint to (or burn from) a non-whitelisted / sanctioned address succeeded while an equivalent `confidentialTransfer` reverted. The `address(0)` mint/burn leg is passed exactly as standard CMTAT does. Forced operations (`forcedTransfer` / `forcedBurn`) intentionally continue to bypass the engine.
+- **M-01 — RuleEngine now screens mint and burn** (`4e559b1`): `CMTATConfidentialRuleEngine` applies RuleEngine validation and notification to issuance and redemption via `_validateMint` / `_validateBurn`, closing the gap where a mint to (or burn from) a non-whitelisted / sanctioned address succeeded while an equivalent `confidentialTransfer` reverted. Following CMTAT v3.3.0, the operator (`_msgSender()`) is forwarded as the `spender` and `address(0)` as the mint/burn leg, exactly as CMTAT's `_mintOverride` / `_burnOverride` do (4-arg `ruleEngine.transferred`); rules must exempt the spender on those legs, as production `RuleWhitelist` does. Forced operations (`forcedTransfer` / `forcedBurn`) intentionally continue to bypass the engine.
 - **L-02 — TokenAttribute seeding hardened** (`8eb95f2`): `ERC7984TokenAttributeModule` seeds `name` / `symbol` through a constructor instead of a skippable internal initializer, and `CMTATConfidentialBase` invokes it via the constructor inheritance list — a variant that omits the seed now fails to compile instead of deploying with empty attributes. **Breaking change** for downstream contracts that inherit `ERC7984TokenAttributeModule` directly: they must now pass `(name_, symbol_)` to its constructor.
 
 ### Fixed
@@ -71,7 +71,7 @@ First stable release, incorporating the remediation of the **OpenZeppelin securi
 
 ### Testing
 
-- Added the M-01 regression suite in `test/CMTATConfidentialRuleEngine.test.ts` and the `ScreeningRuleEngineMock` test helper: blocked/allowed mint and burn, forced-ops bypass, engine-disabled behaviour, and the base freeze layer on top of engine screening.
+- Added the M-01 regression suite in `test/CMTATConfidentialRuleEngine.test.ts` and the `ScreeningRuleEngineMock` test helper (follows the CMTAT v3.3.0 convention: forwards the operator as spender, exempts the spender on the mint/burn legs like `RuleWhitelist`): blocked/allowed mint and burn, operator-as-spender forwarding, forced-ops bypass, engine-disabled behaviour, and the base freeze layer on top of engine screening. The RuleEngine-variant tests were migrated from the CMTA reference `RuleEngineMock` (whose `RuleSpenderAuthorized` rule does not exempt mint/burn) to this convention-compliant mock.
 
 ## 0.3.0
 
