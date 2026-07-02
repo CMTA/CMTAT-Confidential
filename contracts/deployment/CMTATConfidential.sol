@@ -25,8 +25,9 @@ import {ERC7984TotalSupplyViewModule} from "../modules/ERC7984TotalSupplyViewMod
  * requirement: CMTATConfidentialBase overrides every ERC7984 transfer function and
  * supportsInterface, while ERC7984TotalSupplyViewModule inherits the originals
  * from ERC7984, creating a conflict the compiler requires to be explicitly resolved.
- * Each body delegates to super, which follows the MRO and runs CMTATConfidentialBase's
- * CMTAT checks (pause/freeze) before the ERC7984 implementation.
+ * Each body calls `CMTATConfidentialBase.<fn>(...)` explicitly (per the project's
+ * inheritance guideline), running CMTATConfidentialBase's CMTAT checks (pause/freeze)
+ * before the ERC7984 implementation.
  *
  * For the lighter version without total supply observer registration, use CMTATConfidentialLite.
  */
@@ -107,7 +108,7 @@ contract CMTATConfidential is
         return CMTATConfidentialBase._update(from, to, amount);
     }
 
-    /* ============ Diamond-resolution overrides (delegate to super) ============ */
+    /* ============ Diamond-resolution overrides (delegate to CMTATConfidentialBase) ============ */
     // CMTATConfidentialBase overrides each function; ERC7984TotalSupplyViewModule inherits
     // the originals from ERC7984. The override spec lists both defining bases.
 

@@ -199,7 +199,8 @@ abstract contract CMTATConfidentialBase is
     /**
      * @dev Explicit override resolving the diamond between ERC7984BurnModule and
      * ERC7984EnforcementModule, both of which declare a virtual `_afterBurn` hook.
-     * Delegates to super so the full hook chain is preserved.
+     * Calls `ERC7984BurnModule._afterBurn` directly; both base hooks are empty, so no
+     * additional chain needs to be preserved.
      * CMTATConfidential further overrides this to call _updateTotalSupplyObserversAcl.
      */
     function _afterBurn(
@@ -410,7 +411,15 @@ abstract contract CMTATConfidentialBase is
         return ERC7984.confidentialTransferAndCall(to, amount, data);
     }
 
-    /// @inheritdoc ERC7984
+    /**
+     * @inheritdoc ERC7984
+     * @dev **Silent refund failure warning.** Shares the credited-before-callback /
+     * best-effort-refund semantics of `confidentialTransferAndCall` — see the
+     * `externalEuint64` overload above for the full description. A malicious or
+     * re-entrant receiver can cause the sender to permanently lose the tokens with no
+     * revert. This is not an atomic pay-and-call primitive.
+     * **Only call this function with trusted, audited receiver contracts.**
+     */
     function confidentialTransferFromAndCall(
         address from,
         address to,
@@ -426,7 +435,12 @@ abstract contract CMTATConfidentialBase is
         return ERC7984.confidentialTransferFromAndCall(from, to, encryptedAmount, inputProof, data);
     }
 
-    /// @inheritdoc ERC7984
+    /**
+     * @inheritdoc ERC7984
+     * @dev **Silent refund failure warning.** See the `externalEuint64` overload above for
+     * a full description of the silent refund failure risk. The same limitation applies here.
+     * **Only call this function with trusted, audited receiver contracts.**
+     */
     function confidentialTransferFromAndCall(
         address from,
         address to,
