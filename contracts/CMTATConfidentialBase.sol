@@ -90,10 +90,12 @@ abstract contract CMTATConfidentialBase is
         uint8 decimals_,
         address admin,
         ICMTATConstructor.ExtraInformationAttributes memory extraInformationAttributes_
-    ) ERC7984(name_, symbol_, contractUri_) {
+    )
+        ERC7984(name_, symbol_, contractUri_)
+        ERC7984TokenAttributeModule(name_, symbol_)
+    {
         require(decimals_ <= 18, CMTAT_DecimalsTooHigh(decimals_));
         _TOKEN_DECIMALS = decimals_;
-        _initTokenAttributes(name_, symbol_);
         initialize(admin, extraInformationAttributes_);
     }
 
@@ -197,7 +199,8 @@ abstract contract CMTATConfidentialBase is
     /**
      * @dev Explicit override resolving the diamond between ERC7984BurnModule and
      * ERC7984EnforcementModule, both of which declare a virtual `_afterBurn` hook.
-     * Delegates to super so the full hook chain is preserved.
+     * Calls `ERC7984BurnModule._afterBurn` directly; both base hooks are empty, so no
+     * additional chain needs to be preserved.
      * CMTATConfidential further overrides this to call _updateTotalSupplyObserversAcl.
      */
     function _afterBurn(
@@ -212,7 +215,7 @@ abstract contract CMTATConfidentialBase is
      * @dev Explicit override resolving the diamond between ERC7984 and ERC7984BalanceViewModule.
      * Delegates entirely to the module chain (holder + role observer ACL grants).
      *
-     * ⚠ **GAS WARNING — deep `_update` call chain**
+     * GAS WARNING — deep `_update` call chain
      * A single transfer triggers up to five `_update` overrides in series:
      *   CMTATConfidentialBase → ERC7984BalanceViewModule → ERC7984ObserverAccess → ERC7984
      * In CMTATConfidential (full variant) the total supply view module further extends this
@@ -284,6 +287,9 @@ abstract contract CMTATConfidentialBase is
      * (and allowlist in the whitelist variant) — they do not reflect pause state. When the
      * contract is paused, those functions may return `true` while `canTransfer` returns `false`.
      * Use `canTransfer` for the authoritative pre-flight check.
+     * @param from Token sender.
+     * @param to Token recipient.
+     * @return True if the transfer is currently permitted.
      */
     function canTransfer(
         address from,
@@ -405,7 +411,15 @@ abstract contract CMTATConfidentialBase is
         return ERC7984.confidentialTransferAndCall(to, amount, data);
     }
 
-    /// @inheritdoc ERC7984
+    /**
+     * @inheritdoc ERC7984
+     * @dev **Silent refund failure warning.** Shares the credited-before-callback /
+     * best-effort-refund semantics of `confidentialTransferAndCall` — see the
+     * `externalEuint64` overload above for the full description. A malicious or
+     * re-entrant receiver can cause the sender to permanently lose the tokens with no
+     * revert. This is not an atomic pay-and-call primitive.
+     * **Only call this function with trusted, audited receiver contracts.**
+     */
     function confidentialTransferFromAndCall(
         address from,
         address to,
@@ -421,7 +435,12 @@ abstract contract CMTATConfidentialBase is
         return ERC7984.confidentialTransferFromAndCall(from, to, encryptedAmount, inputProof, data);
     }
 
-    /// @inheritdoc ERC7984
+    /**
+     * @inheritdoc ERC7984
+     * @dev **Silent refund failure warning.** See the `externalEuint64` overload above for
+     * a full description of the silent refund failure risk. The same limitation applies here.
+     * **Only call this function with trusted, audited receiver contracts.**
+     */
     function confidentialTransferFromAndCall(
         address from,
         address to,
@@ -449,6 +468,12 @@ abstract contract CMTATConfidentialBase is
 
     /* ============ ERC165 Support ============ */
 
+    /**
+     * @notice Returns whether the contract implements the interface `interfaceId`.
+     * @dev Resolves the diamond between ERC7984 and AccessControl; true if either supports it.
+     * @param interfaceId The ERC-165 interface identifier to query.
+     * @return True if `interfaceId` is supported.
+     */
     function supportsInterface(
         bytes4 interfaceId
     )
@@ -465,6 +490,7 @@ abstract contract CMTATConfidentialBase is
 
     /* ============ Version Override ============ */
 
+    /// @inheritdoc CMTATConfidentialVersionModule
     function version()
         public
         view

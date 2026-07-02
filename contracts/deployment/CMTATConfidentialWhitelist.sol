@@ -58,6 +58,9 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
      * This view checks whether an unconditional (non-delegated) transfer is permitted.
      * It uses `address(0)` as the spender, so a delegated transfer by a non-allowlisted
      * spender could still be rejected at execution time.
+     * @param from Token sender.
+     * @param to Token recipient.
+     * @return allowed True if the transfer passes module and allowlist checks.
      */
     function canTransfer(
         address from,
@@ -67,6 +70,7 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
         return _canTransferGenericByModule(address(0), from, to);
     }
 
+    /// @inheritdoc CMTATConfidentialBase
     function supportsInterface(
         bytes4 interfaceId
     ) public view virtual override returns (bool) {

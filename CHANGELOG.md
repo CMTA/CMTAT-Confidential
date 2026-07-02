@@ -40,7 +40,42 @@ npx prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'
    - `doc/audit/vX.Y.Z/aderyn-report.md`
    - `doc/audit/vX.Y.Z/aderyn-report-feedback.md`
 
+## 1.0.0 - 2026/07/02
+
+Branch: `audit-fix`
+Commit: _pending — release not yet committed_
+
+First stable release, incorporating the remediation of the **OpenZeppelin security audit** (v0.3.0 report, June 24 2026): 0 Critical / 0 High, 1 Medium, 2 Low, 5 Notes. Per-finding PR/commit/comment table in `doc/audit/v0.3.0/OpenZeppelin.md`.
+
+### Security
+
+- **M-01 — RuleEngine now screens mint and burn** (`4e559b1`): `CMTATConfidentialRuleEngine` applies RuleEngine validation and notification to issuance and redemption via `_validateMint` / `_validateBurn`, closing the gap where a mint to (or burn from) a non-whitelisted / sanctioned address succeeded while an equivalent `confidentialTransfer` reverted. Following CMTAT v3.3.0, the operator (`_msgSender()`) is forwarded as the `spender` and `address(0)` as the mint/burn leg, exactly as CMTAT's `_mintOverride` / `_burnOverride` do (4-arg `ruleEngine.transferred`); rules must exempt the spender on those legs, as production `RuleWhitelist` does. Forced operations (`forcedTransfer` / `forcedBurn`) intentionally continue to bypass the engine.
+- **L-02 — TokenAttribute seeding hardened** (`8eb95f2`): `ERC7984TokenAttributeModule` seeds `name` / `symbol` through a constructor instead of a skippable internal initializer, and `CMTATConfidentialBase` invokes it via the constructor inheritance list — a variant that omits the seed now fails to compile instead of deploying with empty attributes. **Breaking change** for downstream contracts that inherit `ERC7984TokenAttributeModule` directly: they must now pass `(name_, symbol_)` to its constructor.
+
+### Fixed
+
+- **N-04 — Pre-increment in loop** (`28090a8`): `ERC7984TotalSupplyViewModule._updateTotalSupplyObserversAcl` uses `++i` instead of `i++` (marginal gas saving).
+
+### Changed
+
+- **`CMTATConfidentialVersionModule`**: `version()` string updated to `1.0.0`.
+
+### Documentation
+
+- **L-01 — Total-supply delta-inference disclosure** (`de3f439`): documented the cross-publication leak (`|V2 − V1|` recovers a single mint/burn amount) in the `publishTotalSupply` NatSpec, the module docstring, and README operator guidance; also captured in the threat model as FHE-5. Accepted as residual risk — it cannot be closed in code, so the mitigation is operational (aggregate many operations per disclosure; restrict `SUPPLY_PUBLISHER_ROLE` to a multisig/timelock).
+- **N-01 — Missing docstrings** (`8d283f6`): NatSpec added to the eight role constants, `version()` (referencing ERC-8303), `supportsInterface`, and the `CMTATConfidential` `confidentialTransfer*` / `decimals` / `name` / `symbol` overrides. Added the ERC-8303 draft specification under `doc/ERCSpecification/`.
+- **N-02 — Incomplete docstrings** (`20a87db`): completed `@param` / `@return` documentation on `canTransfer`, `canTransferFrom`, and `setRuleEngine`.
+- **N-05 — Misleading documentation** (`104218a`): added the silent-refund-failure warning to both `confidentialTransferFromAndCall` overloads; corrected the `_afterBurn` comment (direct call, empty base hooks) and the `CMTATConfidential` inheritance comments (explicit parent calls, not `super`).
+- **N-03 — Floating pragma** (won't fix, by design): retained `^0.8.27` so library consumers keep compiler-version choice; rationale recorded in the remediation response.
+- Added `doc/audit/v0.3.0/OpenZeppelin.md` — OpenZeppelin audit remediation response (per-finding PR / commit / comment table).
+
+### Testing
+
+- Added the M-01 regression suite in `test/CMTATConfidentialRuleEngine.test.ts` and the `ScreeningRuleEngineMock` test helper (follows the CMTAT v3.3.0 convention: forwards the operator as spender, exempts the spender on the mint/burn legs like `RuleWhitelist`): blocked/allowed mint and burn, operator-as-spender forwarding, forced-ops bypass, engine-disabled behaviour, and the base freeze layer on top of engine screening. The RuleEngine-variant tests were migrated from the CMTA reference `RuleEngineMock` (whose `RuleSpenderAuthorized` rule does not exempt mint/burn) to this convention-compliant mock.
+
 ## 0.3.0
+
+Commit: `463087cf99052235f56818617ac9548295be2f65`
 
 ### Added
 

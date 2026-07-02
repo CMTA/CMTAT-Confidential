@@ -15,6 +15,13 @@ import {IERC7984PublishTotalSupplyModule} from "../interfaces/IERC7984PublishTot
  * current ciphertext handle. After the next mint or burn a new handle is produced
  * and is not publicly decryptable — call `publishTotalSupply()` again if needed.
  *
+ * WARNING: Cross-publication delta-inference (audit finding L-01). A single disclosure
+ * only reveals the aggregate supply, but publishing it repeatedly lets an observer
+ * subtract consecutive values (`|V2 - V1|`) to recover the net minted/burned amount
+ * between publications — fully revealing a mint/burn amount when only one occurs in
+ * between. This cannot be prevented in code; treat publishing as a governed action
+ * that aggregates many operations per disclosure. See {IERC7984PublishTotalSupplyModule-publishTotalSupply}.
+ *
  * This module is intentionally minimal. For automatic ACL re-grant to a registered
  * list of authorized addresses, combine with ERC7984TotalSupplyViewModule.
  *
@@ -23,6 +30,7 @@ import {IERC7984PublishTotalSupplyModule} from "../interfaces/IERC7984PublishTot
  */
 abstract contract ERC7984PublishTotalSupplyModule is ERC7984, IERC7984PublishTotalSupplyModule {
     /* ============ Constants ============ */
+    /// @notice Role allowed to make the encrypted total supply publicly decryptable.
     bytes32 public constant SUPPLY_PUBLISHER_ROLE = keccak256(
         "SUPPLY_PUBLISHER_ROLE"
     );

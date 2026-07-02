@@ -48,6 +48,9 @@ contract CMTATConfidentialRuleEngine is
      * unavailable to public view functions, so amount-based rules in the RuleEngine
      * (e.g. minimum size, balance caps) are not evaluated here. Only sender/receiver
      * permissioning rules are reflected by this view.
+     * @param from Token sender.
+     * @param to Token recipient.
+     * @return allowed True if the transfer passes module and RuleEngine checks.
      */
     function canTransfer(
         address from,
@@ -62,6 +65,10 @@ contract CMTATConfidentialRuleEngine is
     /**
      * @notice Returns whether a delegated transfer by `spender` from `from` to `to` is permitted.
      * @dev `amount` is intentionally ignored for the same reason as `canTransfer`.
+     * @param spender Address initiating the delegated transfer.
+     * @param from Token sender.
+     * @param to Token recipient.
+     * @return allowed True if the delegated transfer passes module and RuleEngine checks.
      */
     function canTransferFrom(
         address spender,
@@ -80,6 +87,38 @@ contract CMTATConfidentialRuleEngine is
         address to
     ) internal virtual override(CMTATConfidentialBase) {
         ERC7984RuleEngineModule._applyRuleEngine(spender, from, to);
+    }
+
+    /**
+     * @inheritdoc CMTATConfidentialBase
+     * @dev Adds RuleEngine screening to the mint leg (`from = address(0)`) so issuance
+     * is screened like standard CMTAT, not just confidential transfers (audit finding M-01).
+     * The operator (`_msgSender()`) is forwarded as the spender and `address(0)` as the
+     * sender leg, exactly as CMTAT's `_mintOverride` does (`transferred(spender, address(0),
+     * to, 0)`). The engine decides how to treat those legs (RuleWhitelist exempts the spender
+     * for mint/burn). Forced ops use `_validateForcedTransfer`/`_validateForcedBurn` and bypass this.
+     */
+    function _validateMint(address to) internal virtual override {
+        CMTATConfidentialBase._validateMint(to);
+        address spender = _msgSender();
+        if (!_canTransferFromByRuleEngine(spender, address(0), to)) {
+            revert ERC7943CannotReceive(to);
+        }
+        _applyRuleEngine(spender, address(0), to);
+    }
+
+    /**
+     * @inheritdoc CMTATConfidentialBase
+     * @dev Adds RuleEngine screening to the burn leg (`to = address(0)`), forwarding the
+     * operator (`_msgSender()`) as the spender as CMTAT's `_burnOverride` does. See {_validateMint}.
+     */
+    function _validateBurn(address from) internal virtual override {
+        CMTATConfidentialBase._validateBurn(from);
+        address spender = _msgSender();
+        if (!_canTransferFromByRuleEngine(spender, from, address(0))) {
+            revert ERC7943CannotSend(from);
+        }
+        _applyRuleEngine(spender, from, address(0));
     }
 
     function _authorizeRuleEngineManagement()
