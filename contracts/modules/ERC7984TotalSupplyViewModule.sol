@@ -23,6 +23,7 @@ import {IERC7984TotalSupplyViewModule} from "../interfaces/IERC7984TotalSupplyVi
  */
 abstract contract ERC7984TotalSupplyViewModule is ERC7984, IERC7984TotalSupplyViewModule {
     /* ============ State Variables ============ */
+    /// @notice Role allowed to manage total supply observers.
     bytes32 public constant SUPPLY_OBSERVER_ROLE = keccak256(
         "SUPPLY_OBSERVER_ROLE"
     );

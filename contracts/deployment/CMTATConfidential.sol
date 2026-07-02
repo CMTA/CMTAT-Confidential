@@ -111,6 +111,7 @@ contract CMTATConfidential is
     // CMTATConfidentialBase overrides each function; ERC7984TotalSupplyViewModule inherits
     // the originals from ERC7984. The override spec lists both defining bases.
 
+    /// @inheritdoc CMTATConfidentialBase
     function confidentialTransfer(
         address to,
         externalEuint64 encryptedAmount,
@@ -124,6 +125,7 @@ contract CMTATConfidential is
         return CMTATConfidentialBase.confidentialTransfer(to, encryptedAmount, inputProof);
     }
 
+    /// @inheritdoc CMTATConfidentialBase
     function confidentialTransfer(
         address to,
         euint64 amount
@@ -136,6 +138,7 @@ contract CMTATConfidential is
         return CMTATConfidentialBase.confidentialTransfer(to, amount);
     }
 
+    /// @inheritdoc CMTATConfidentialBase
     function confidentialTransferFrom(
         address from,
         address to,
@@ -156,6 +159,7 @@ contract CMTATConfidential is
             );
     }
 
+    /// @inheritdoc CMTATConfidentialBase
     function confidentialTransferFrom(
         address from,
         address to,
@@ -169,6 +173,7 @@ contract CMTATConfidential is
         return CMTATConfidentialBase.confidentialTransferFrom(from, to, amount);
     }
 
+    /// @inheritdoc CMTATConfidentialBase
     function confidentialTransferAndCall(
         address to,
         externalEuint64 encryptedAmount,
@@ -189,6 +194,7 @@ contract CMTATConfidential is
             );
     }
 
+    /// @inheritdoc CMTATConfidentialBase
     function confidentialTransferAndCall(
         address to,
         euint64 amount,
@@ -202,6 +208,7 @@ contract CMTATConfidential is
         return CMTATConfidentialBase.confidentialTransferAndCall(to, amount, data);
     }
 
+    /// @inheritdoc CMTATConfidentialBase
     function confidentialTransferFromAndCall(
         address from,
         address to,
@@ -224,6 +231,7 @@ contract CMTATConfidential is
             );
     }
 
+    /// @inheritdoc CMTATConfidentialBase
     function confidentialTransferFromAndCall(
         address from,
         address to,
@@ -238,6 +246,7 @@ contract CMTATConfidential is
         return CMTATConfidentialBase.confidentialTransferFromAndCall(from, to, amount, data);
     }
 
+    /// @inheritdoc CMTATConfidentialBase
     function supportsInterface(
         bytes4 interfaceId
     )
@@ -250,6 +259,7 @@ contract CMTATConfidential is
         return CMTATConfidentialBase.supportsInterface(interfaceId);
     }
 
+    /// @inheritdoc CMTATConfidentialBase
     function decimals()
         public
         view
@@ -260,6 +270,7 @@ contract CMTATConfidential is
         return CMTATConfidentialBase.decimals();
     }
 
+    /// @inheritdoc CMTATConfidentialBase
     function name()
         public
         view
@@ -270,6 +281,7 @@ contract CMTATConfidential is
         return CMTATConfidentialBase.name();
     }
 
+    /// @inheritdoc CMTATConfidentialBase
     function symbol()
         public
         view

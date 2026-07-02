@@ -67,6 +67,7 @@ contract CMTATConfidentialWhitelist is CMTATConfidential, AllowlistModule {
         return _canTransferGenericByModule(address(0), from, to);
     }
 
+    /// @inheritdoc CMTATConfidentialBase
     function supportsInterface(
         bytes4 interfaceId
     ) public view virtual override returns (bool) {

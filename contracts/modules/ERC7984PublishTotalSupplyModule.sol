@@ -30,6 +30,7 @@ import {IERC7984PublishTotalSupplyModule} from "../interfaces/IERC7984PublishTot
  */
 abstract contract ERC7984PublishTotalSupplyModule is ERC7984, IERC7984PublishTotalSupplyModule {
     /* ============ Constants ============ */
+    /// @notice Role allowed to make the encrypted total supply publicly decryptable.
     bytes32 public constant SUPPLY_PUBLISHER_ROLE = keccak256(
         "SUPPLY_PUBLISHER_ROLE"
     );

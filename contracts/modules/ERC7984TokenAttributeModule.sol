@@ -22,6 +22,7 @@ import {IERC7984TokenAttributeModule} from "../interfaces/IERC7984TokenAttribute
 abstract contract ERC7984TokenAttributeModule is ERC7984, IERC7984TokenAttributeModule {
     /* ============ State Variables ============ */
 
+    /// @notice Role allowed to update the token name and symbol.
     bytes32 public constant TOKEN_ATTRIBUTE_ROLE = keccak256("TOKEN_ATTRIBUTE_ROLE");
 
     string private _name;

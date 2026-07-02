@@ -27,6 +27,7 @@ import {IERC7984BalanceViewModule} from "../interfaces/IERC7984BalanceViewModule
  */
 abstract contract ERC7984BalanceViewModule is ERC7984ObserverAccess, IERC7984BalanceViewModule {
     /* ============ State Variables ============ */
+    /// @notice Role allowed to manage balance observers (holder and role observers).
     bytes32 public constant OBSERVER_ROLE = keccak256("OBSERVER_ROLE");
 
     mapping(address account => address observer) private _roleObservers;

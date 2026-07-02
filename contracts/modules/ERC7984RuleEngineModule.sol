@@ -13,6 +13,7 @@ import {ValidationModuleRuleEngineInternal} from "../../lib/CMTAT/contracts/modu
  * sender, recipient, timestamps, bound token state, allowlists, blacklists, etc.
  */
 abstract contract ERC7984RuleEngineModule is ValidationModuleRuleEngineInternal {
+    /// @notice Role allowed to set or update the RuleEngine.
     bytes32 public constant RULE_ENGINE_ROLE = keccak256("RULE_ENGINE_ROLE");
 
     error ERC7984RuleEngineModule_SameRuleEngine();

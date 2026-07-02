@@ -451,6 +451,12 @@ abstract contract CMTATConfidentialBase is
 
     /* ============ ERC165 Support ============ */
 
+    /**
+     * @notice Returns whether the contract implements the interface `interfaceId`.
+     * @dev Resolves the diamond between ERC7984 and AccessControl; true if either supports it.
+     * @param interfaceId The ERC-165 interface identifier to query.
+     * @return True if `interfaceId` is supported.
+     */
     function supportsInterface(
         bytes4 interfaceId
     )
@@ -467,6 +473,7 @@ abstract contract CMTATConfidentialBase is
 
     /* ============ Version Override ============ */
 
+    /// @inheritdoc CMTATConfidentialVersionModule
     function version()
         public
         view
