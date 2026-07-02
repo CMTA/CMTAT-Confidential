@@ -286,6 +286,9 @@ abstract contract CMTATConfidentialBase is
      * (and allowlist in the whitelist variant) — they do not reflect pause state. When the
      * contract is paused, those functions may return `true` while `canTransfer` returns `false`.
      * Use `canTransfer` for the authoritative pre-flight check.
+     * @param from Token sender.
+     * @param to Token recipient.
+     * @return True if the transfer is currently permitted.
      */
     function canTransfer(
         address from,

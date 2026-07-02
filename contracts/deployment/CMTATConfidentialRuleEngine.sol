@@ -48,6 +48,9 @@ contract CMTATConfidentialRuleEngine is
      * unavailable to public view functions, so amount-based rules in the RuleEngine
      * (e.g. minimum size, balance caps) are not evaluated here. Only sender/receiver
      * permissioning rules are reflected by this view.
+     * @param from Token sender.
+     * @param to Token recipient.
+     * @return allowed True if the transfer passes module and RuleEngine checks.
      */
     function canTransfer(
         address from,
@@ -62,6 +65,10 @@ contract CMTATConfidentialRuleEngine is
     /**
      * @notice Returns whether a delegated transfer by `spender` from `from` to `to` is permitted.
      * @dev `amount` is intentionally ignored for the same reason as `canTransfer`.
+     * @param spender Address initiating the delegated transfer.
+     * @param from Token sender.
+     * @param to Token recipient.
+     * @return allowed True if the delegated transfer passes module and RuleEngine checks.
      */
     function canTransferFrom(
         address spender,
