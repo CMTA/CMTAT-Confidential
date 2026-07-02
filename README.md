@@ -94,7 +94,7 @@ All FHE modules follow the same pattern: a role constant, a modifier, a virtual 
 | `ERC7984TotalSupplyViewModule` | `SUPPLY_OBSERVER_ROLE` | `contracts/modules/` | all except Lite | Registered observers automatically receive ACL access on the total supply handle after every mint/burn |
 | `ERC7984TokenAttributeModule` | `TOKEN_ATTRIBUTE_ROLE` | `contracts/modules/` | all variants | Post-deployment `setName` / `setSymbol` — ERC-3643 alignment |
 | `ERC7984RuleEngineModule` | `RULE_ENGINE_ROLE` | `contracts/modules/` | RuleEngine variant only | Plug in a CMTA `IRuleEngine` for transfer policy checks; passes `value = 0` because amounts are encrypted |
-| `CMTATConfidentialVersionModule` | — | `contracts/modules/` | all variants | Pins `version()` to `0.3.0`, overriding CMTAT's own version module |
+| `CMTATConfidentialVersionModule` | — | `contracts/modules/` | all variants | Pins `version()` to `1.0.0`, overriding CMTAT's own version module |
 
 CMTAT modules (from `lib/CMTAT/`) are inherited through `CMTATBaseGeneric` and always present in all variants:
 
@@ -241,7 +241,7 @@ npm run test
 
 ## Versioning
 
-The contract-level `version()` string is pinned to `0.3.0` via `CMTATConfidentialVersionModule`.
+The contract-level `version()` string is pinned to `1.0.0` via `CMTATConfidentialVersionModule`.
 
 ## Security
 
@@ -849,7 +849,7 @@ CMTAT-Confidential/
 │       ├── ERC7984TokenAttributeModule.sol        # Post-deployment name/symbol (ERC-3643)
 │       ├── ERC7984TotalSupplyViewModule.sol       # Total supply observer list (auto ACL)
 │       ├── ERC7984RuleEngineModule.sol            # RuleEngine storage, checks, and notifications
-│       └── CMTATConfidentialVersionModule.sol     # CMTAT Confidential version override (0.3.0)
+│       └── CMTATConfidentialVersionModule.sol     # CMTAT Confidential version override (1.0.0)
 ├── lib/
 │   ├── CMTAT/                                # CMTAT submodule (compliance modules)
 │   └── RuleEngine/                           # CMTA RuleEngine submodule
