@@ -84,20 +84,10 @@ contract CMTATConfidentialRuleEngine is
 
     /**
      * @inheritdoc CMTATConfidentialBase
-     * @dev Extends the base freeze/pause validation with RuleEngine screening of the
-     * mint leg (`from = address(0)`). Standard CMTAT screens every balance change —
-     * including issuance — at the `ruleEngine.transferred` chokepoint; the base variant
-     * only wires the engine into confidential transfers, so without this override a mint
-     * to a non-whitelisted or sanctioned address would succeed even though a
-     * `confidentialTransfer` to the same address reverts (audit finding M-01).
-     *
-     * The recipient is checked with `_canTransferByRuleEngine(address(0), to)` and, on
-     * success, `ruleEngine.transferred(address(0), to, 0)` is fired *before* the FHE
-     * mint, matching CMTAT's pre-transfer enforcement order. The `address(0)` sender leg
-     * is passed to the engine exactly as standard CMTAT does for mint; the configured
-     * engine is responsible for treating that leg as issuance (e.g. exempting it from
-     * whitelist/spender checks). Forced operations are unaffected — they run through
-     * `_validateForcedTransfer` / `_validateForcedBurn` and intentionally bypass the engine.
+     * @dev Adds RuleEngine screening to the mint leg (`from = address(0)`) so issuance
+     * is screened like standard CMTAT, not just confidential transfers (audit finding M-01).
+     * The `address(0)` leg is passed as standard CMTAT does; the engine handles it as
+     * issuance. Forced ops use `_validateForcedTransfer`/`_validateForcedBurn` and bypass this.
      */
     function _validateMint(address to) internal virtual override {
         CMTATConfidentialBase._validateMint(to);
@@ -109,11 +99,7 @@ contract CMTATConfidentialRuleEngine is
 
     /**
      * @inheritdoc CMTATConfidentialBase
-     * @dev Extends the base freeze/pause validation with RuleEngine screening of the
-     * burn leg (`to = address(0)`). See {_validateMint} for the rationale (audit finding
-     * M-01). The sender is checked with `_canTransferByRuleEngine(from, address(0))` and,
-     * on success, `ruleEngine.transferred(from, address(0), 0)` is fired before the FHE
-     * burn. Forced burns run through `_validateForcedBurn` and intentionally bypass the engine.
+     * @dev Adds RuleEngine screening to the burn leg (`to = address(0)`). See {_validateMint}.
      */
     function _validateBurn(address from) internal virtual override {
         CMTATConfidentialBase._validateBurn(from);

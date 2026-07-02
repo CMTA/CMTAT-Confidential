@@ -142,7 +142,7 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984, IERC7984TotalSupplyVi
      * `CMTATConfidential`. This avoids the zero-address guard that would otherwise be
      * required inside a generic `_update` override.
      *
-     * ⚠ Gas: iterates over all registered observers. Keep the list small.
+     * Gas: iterates over all registered observers. Keep the list small.
      */
     function _updateTotalSupplyObserversAcl() internal {
         euint64 ts = confidentialTotalSupply();

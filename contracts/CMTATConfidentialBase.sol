@@ -90,10 +90,12 @@ abstract contract CMTATConfidentialBase is
         uint8 decimals_,
         address admin,
         ICMTATConstructor.ExtraInformationAttributes memory extraInformationAttributes_
-    ) ERC7984(name_, symbol_, contractUri_) {
+    )
+        ERC7984(name_, symbol_, contractUri_)
+        ERC7984TokenAttributeModule(name_, symbol_)
+    {
         require(decimals_ <= 18, CMTAT_DecimalsTooHigh(decimals_));
         _TOKEN_DECIMALS = decimals_;
-        _initTokenAttributes(name_, symbol_);
         initialize(admin, extraInformationAttributes_);
     }
 
@@ -212,7 +214,7 @@ abstract contract CMTATConfidentialBase is
      * @dev Explicit override resolving the diamond between ERC7984 and ERC7984BalanceViewModule.
      * Delegates entirely to the module chain (holder + role observer ACL grants).
      *
-     * ⚠ **GAS WARNING — deep `_update` call chain**
+     * GAS WARNING — deep `_update` call chain
      * A single transfer triggers up to five `_update` overrides in series:
      *   CMTATConfidentialBase → ERC7984BalanceViewModule → ERC7984ObserverAccess → ERC7984
      * In CMTATConfidential (full variant) the total supply view module further extends this
