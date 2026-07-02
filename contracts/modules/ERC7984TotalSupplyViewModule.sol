@@ -148,7 +148,7 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984, IERC7984TotalSupplyVi
     function _updateTotalSupplyObserversAcl() internal {
         euint64 ts = confidentialTotalSupply();
         uint256 len = _supplyObservers.length;
-        for (uint256 i = 0; i < len; i++) {
+        for (uint256 i = 0; i < len; ++i) {
             FHE.allow(ts, _supplyObservers[i]);
         }
     }
