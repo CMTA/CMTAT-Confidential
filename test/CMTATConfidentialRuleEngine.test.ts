@@ -7,6 +7,8 @@ import {
   decryptBalance,
   PAUSER_ROLE,
   ENFORCER_ROLE,
+  BURNER_ROLE,
+  FORCED_OPS_ROLE,
   TOKEN_NAME,
   TOKEN_SYMBOL,
   CONTRACT_URI,
@@ -263,6 +265,157 @@ describe('CMTATConfidentialRuleEngine', function () {
       );
       const holderHandle = await this.token.confidentialBalanceOf(this.holder.address);
       expect(await decryptBalance(this.token.target, holderHandle, this.holder)).to.equal(900n);
+    });
+  });
+
+  // ─── M-01: RuleEngine screening applied to mint and burn ──────────────────────
+  //
+  // Regression tests for audit finding M-01. Before the fix, mint/burn skipped the
+  // RuleEngine entirely, so issuance to — or redemption from — a non-whitelisted /
+  // sanctioned address succeeded even though a confidentialTransfer to the same
+  // address would revert. The fix wires RuleEngine screening into
+  // _validateMint / _validateBurn (RuleEngine variant only) while leaving forced
+  // operations to intentionally bypass the engine.
+  describe('rule engine screening on mint/burn (M-01)', function () {
+    beforeEach(async function () {
+      this.screening = await ethers.deployContract('ScreeningRuleEngineMock');
+      const ctx = await deployToken('CMTATConfidentialRuleEngine', 6, [
+        this.screening.target,
+      ]);
+      Object.assign(this, ctx);
+      await this.token
+        .connect(this.admin)
+        .grantRole(RULE_ENGINE_ROLE, this.admin.address);
+    });
+
+    async function burn(token: any, burner: any, from: any, amount: number) {
+      const enc = await encryptAmount(token.target, burner.address, amount);
+      await token
+        .connect(burner)
+        ['burn(address,bytes32,bytes)'](from.address, enc.handles[0], enc.inputProof);
+    }
+
+    it('mint to an allowed address succeeds and notifies the rule engine', async function () {
+      await mint(this.token, this.minter, this.holder, 1000);
+
+      const handle = await this.token.confidentialBalanceOf(this.holder.address);
+      expect(
+        await decryptBalance(this.token.target, handle, this.holder)
+      ).to.equal(1000n);
+      // transferred() fired once for the mint notification
+      expect(await this.screening.transferredCount()).to.equal(1n);
+    });
+
+    it('mint to a blocked address reverts (previously succeeded)', async function () {
+      await this.screening.setBlocked(this.holder.address, true);
+
+      const enc = await encryptAmount(this.token.target, this.minter.address, 1000);
+      await expect(
+        this.token
+          .connect(this.minter)
+          ['mint(address,bytes32,bytes)'](
+            this.holder.address,
+            enc.handles[0],
+            enc.inputProof
+          )
+      )
+        .to.be.revertedWithCustomError(this.token, 'ERC7943CannotReceive')
+        .withArgs(this.holder.address);
+    });
+
+    it('burn from an allowed address succeeds and notifies the rule engine', async function () {
+      await mint(this.token, this.minter, this.holder, 1000);
+      const countAfterMint = await this.screening.transferredCount();
+
+      await burn(this.token, this.burner, this.holder, 400);
+
+      const handle = await this.token.confidentialBalanceOf(this.holder.address);
+      expect(
+        await decryptBalance(this.token.target, handle, this.holder)
+      ).to.equal(600n);
+      expect(await this.screening.transferredCount()).to.equal(
+        countAfterMint + 1n
+      );
+    });
+
+    it('burn from a blocked address reverts (previously succeeded)', async function () {
+      await mint(this.token, this.minter, this.holder, 1000);
+      await this.screening.setBlocked(this.holder.address, true);
+
+      const enc = await encryptAmount(this.token.target, this.burner.address, 400);
+      await expect(
+        this.token
+          .connect(this.burner)
+          ['burn(address,bytes32,bytes)'](
+            this.holder.address,
+            enc.handles[0],
+            enc.inputProof
+          )
+      )
+        .to.be.revertedWithCustomError(this.token, 'ERC7943CannotSend')
+        .withArgs(this.holder.address);
+    });
+
+    it('forced burn from a blocked (and frozen) address still bypasses the rule engine', async function () {
+      await mint(this.token, this.minter, this.holder, 1000);
+      await this.screening.setBlocked(this.holder.address, true);
+      await this.token
+        .connect(this.enforcer)
+        .setAddressFrozen(this.holder.address, true);
+
+      const enc = await encryptAmount(
+        this.token.target,
+        this.forcedOpsAgent.address,
+        400
+      );
+      await this.token
+        .connect(this.forcedOpsAgent)
+        ['forcedBurn(address,bytes32,bytes)'](
+          this.holder.address,
+          enc.handles[0],
+          enc.inputProof
+        );
+
+      const handle = await this.token.confidentialBalanceOf(this.holder.address);
+      expect(
+        await decryptBalance(this.token.target, handle, this.holder)
+      ).to.equal(600n);
+    });
+
+    it('mint/burn succeed when the rule engine is disabled (address zero)', async function () {
+      await this.token.connect(this.admin).setRuleEngine(ethers.ZeroAddress);
+      await this.screening.setBlocked(this.holder.address, true);
+
+      // even though the holder is blocked in the (now-detached) screening engine,
+      // disabling the engine allows issuance again
+      await mint(this.token, this.minter, this.holder, 1000);
+      await burn(this.token, this.burner, this.holder, 250);
+
+      const handle = await this.token.confidentialBalanceOf(this.holder.address);
+      expect(
+        await decryptBalance(this.token.target, handle, this.holder)
+      ).to.equal(750n);
+    });
+
+    it('base CMTAT freeze check still applies on top of rule engine screening', async function () {
+      // recipient is allowed by the rule engine but frozen by CMTAT: the base
+      // _validateMint layer must still reject before the engine is consulted
+      await this.token
+        .connect(this.enforcer)
+        .setAddressFrozen(this.holder.address, true);
+
+      const enc = await encryptAmount(this.token.target, this.minter.address, 1000);
+      await expect(
+        this.token
+          .connect(this.minter)
+          ['mint(address,bytes32,bytes)'](
+            this.holder.address,
+            enc.handles[0],
+            enc.inputProof
+          )
+      )
+        .to.be.revertedWithCustomError(this.token, 'ERC7943CannotReceive')
+        .withArgs(this.holder.address);
     });
   });
 

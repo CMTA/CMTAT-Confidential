@@ -82,6 +82,47 @@ contract CMTATConfidentialRuleEngine is
         ERC7984RuleEngineModule._applyRuleEngine(spender, from, to);
     }
 
+    /**
+     * @inheritdoc CMTATConfidentialBase
+     * @dev Extends the base freeze/pause validation with RuleEngine screening of the
+     * mint leg (`from = address(0)`). Standard CMTAT screens every balance change —
+     * including issuance — at the `ruleEngine.transferred` chokepoint; the base variant
+     * only wires the engine into confidential transfers, so without this override a mint
+     * to a non-whitelisted or sanctioned address would succeed even though a
+     * `confidentialTransfer` to the same address reverts (audit finding M-01).
+     *
+     * The recipient is checked with `_canTransferByRuleEngine(address(0), to)` and, on
+     * success, `ruleEngine.transferred(address(0), to, 0)` is fired *before* the FHE
+     * mint, matching CMTAT's pre-transfer enforcement order. The `address(0)` sender leg
+     * is passed to the engine exactly as standard CMTAT does for mint; the configured
+     * engine is responsible for treating that leg as issuance (e.g. exempting it from
+     * whitelist/spender checks). Forced operations are unaffected — they run through
+     * `_validateForcedTransfer` / `_validateForcedBurn` and intentionally bypass the engine.
+     */
+    function _validateMint(address to) internal virtual override {
+        CMTATConfidentialBase._validateMint(to);
+        if (!_canTransferByRuleEngine(address(0), to)) {
+            revert ERC7943CannotReceive(to);
+        }
+        _applyRuleEngine(address(0), address(0), to);
+    }
+
+    /**
+     * @inheritdoc CMTATConfidentialBase
+     * @dev Extends the base freeze/pause validation with RuleEngine screening of the
+     * burn leg (`to = address(0)`). See {_validateMint} for the rationale (audit finding
+     * M-01). The sender is checked with `_canTransferByRuleEngine(from, address(0))` and,
+     * on success, `ruleEngine.transferred(from, address(0), 0)` is fired before the FHE
+     * burn. Forced burns run through `_validateForcedBurn` and intentionally bypass the engine.
+     */
+    function _validateBurn(address from) internal virtual override {
+        CMTATConfidentialBase._validateBurn(from);
+        if (!_canTransferByRuleEngine(from, address(0))) {
+            revert ERC7943CannotSend(from);
+        }
+        _applyRuleEngine(address(0), from, address(0));
+    }
+
     function _authorizeRuleEngineManagement()
         internal
         virtual
