@@ -60,6 +60,15 @@ First stable release, incorporating the remediation of the **OpenZeppelin securi
 
 - **`CMTATConfidentialVersionModule`**: `version()` string updated to `1.0.0`.
 
+### Dependencies
+
+- **`lib/openzeppelin-confidential-contracts` submodule bumped `v0.4.1` → `v0.5.1`** (commit `d237bd9` → `afa97a6`). This is a **backward-compatible** upgrade for this project: no proxy **storage** change and no external API break, so it does **not** trigger a MAJOR bump — the contract version stays **`1.0.0`**. Verified by a clean `hardhat compile` and the full test suite (**440 passing**). Precise impact on our code:
+  - **Behaviour change (inherited from `ERC7984._update`, upstream PR #357):** a transfer from an **uninitialized** sender balance (an account that never received tokens) no longer reverts — it now silently transfers `0`, matching the existing insufficient-balance semantics. Previously it reverted with `ERC7984ZeroBalance`.
+  - **Removed upstream errors:** `ERC7984ZeroBalance` and `ERC7984InvalidGatewayRequest`. Neither is referenced by this project (verified), so nothing to migrate.
+  - **Upstream refactor (no behavioural impact on us):** several `confidentialTransfer*` functions moved from named to explicit returns and relocated `FHE.allowTransient` into `_transferAndCall`. Our overrides delegate via explicit `ERC7984.confidential…` calls and are unaffected.
+  - **`ERC7984ObserverAccess`** (the only extension we inherit directly) is unchanged between the two versions.
+  - New upstream features shipped in `v0.5.0`/`v0.5.1` (hook-module system, holder/balance cap modules, RWA account recovery, `FHESafeMath.saturatingAdd/Sub`) are **not** integrated.
+
 ### Documentation
 
 - **L-01 — Total-supply delta-inference disclosure** (`de3f439`): documented the cross-publication leak (`|V2 − V1|` recovers a single mint/burn amount) in the `publishTotalSupply` NatSpec, the module docstring, and README operator guidance; also captured in the threat model as FHE-5. Accepted as residual risk — it cannot be closed in code, so the mitigation is operational (aggregate many operations per disclosure; restrict `SUPPLY_PUBLISHER_ROLE` to a multisig/timelock).
@@ -68,9 +77,11 @@ First stable release, incorporating the remediation of the **OpenZeppelin securi
 - **N-05 — Misleading documentation** (`104218a`): added the silent-refund-failure warning to both `confidentialTransferFromAndCall` overloads; corrected the `_afterBurn` comment (direct call, empty base hooks) and the `CMTATConfidential` inheritance comments (explicit parent calls, not `super`).
 - **N-03 — Floating pragma** (won't fix, by design): retained `^0.8.27` so library consumers keep compiler-version choice; rationale recorded in the remediation response.
 - Added `doc/audit/v0.3.0/OpenZeppelin.md` — OpenZeppelin audit remediation response (per-finding PR / commit / comment table).
+- **FHE Gotchas (`CLAUDE.md` / `AGENTS.md`)**: extended the "Insufficient / uninitialized balance" row to record that, as of OZ Confidential `v0.5.0` (PR #357), an uninitialized sender balance also transfers `0` silently (previously reverted with the now-removed `ERC7984ZeroBalance`).
 
 ### Testing
 
+- Added a regression test `transfer from an uninitialized balance transfers 0 without reverting` in `test/helpers/core-tests.ts` (runs across all four deployment variants) locking in the OZ Confidential `v0.5.0` behaviour so a future library bump cannot silently reintroduce the removed `ERC7984ZeroBalance` revert.
 - Added the M-01 regression suite in `test/CMTATConfidentialRuleEngine.test.ts` and the `ScreeningRuleEngineMock` test helper (follows the CMTAT v3.3.0 convention: forwards the operator as spender, exempts the spender on the mint/burn legs like `RuleWhitelist`): blocked/allowed mint and burn, operator-as-spender forwarding, forced-ops bypass, engine-disabled behaviour, and the base freeze layer on top of engine screening. The RuleEngine-variant tests were migrated from the CMTA reference `RuleEngineMock` (whose `RuleSpenderAuthorized` rule does not exempt mint/burn) to this convention-compliant mock.
 
 ## 0.3.0

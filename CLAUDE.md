@@ -279,7 +279,7 @@ describe('ERC7984XxxModule', function () {
 | Gotcha | Notes |
 |--------|-------|
 | `uint64` range | Max ~18.4 × 10¹⁸. Use 6 decimals (not 18) to avoid overflow for realistic supplies |
-| Insufficient balance | Transfers/burns with amount > balance execute but transfer/burn **0 silently** — no revert |
+| Insufficient / uninitialized balance | Transfers/burns with amount > balance execute but transfer/burn **0 silently** — no revert. As of OZ Confidential **v0.5.0** (PR #357) this also covers an **uninitialized** sender balance (never received tokens), which previously reverted with the now-removed `ERC7984ZeroBalance` error. Regression test: `transfer from an uninitialized balance transfers 0 without reverting` in `test/helpers/core-tests.ts` |
 | Handle staleness | Every arithmetic operation creates a new handle. ACL must be re-granted after each `_update` |
 | `super._update` chain | `ERC7984BalanceViewModule._update` → `ERC7984ObserverAccess._update` → `ERC7984._update` |
 | `FHE.allow` is permanent | ACL cannot be revoked. Removing an observer only prevents future grants |
