@@ -11,6 +11,7 @@ the static-analysis runs below (run with mocks excluded).
 
 | Version | Type | Report | Feedback / disposition |
 |---------|------|--------|------------------------|
+| v1.0.0 | Complementary audit — Claude (custom security-audit skills) | [`v1.0.0/claude-audit/CLAUDE_AUDIT.md`](./v1.0.0/claude-audit/CLAUDE_AUDIT.md) | see the findings summary below |
 | v1.0.0 | Static analysis — Aderyn 0.6.5 | [`v1.0.0/aderyn-report.md`](./v1.0.0/aderyn-report.md) | [`v1.0.0/aderyn-report-feedback.md`](./v1.0.0/aderyn-report-feedback.md) |
 | v1.0.0 | Static analysis — Slither 0.11.5 | [`v1.0.0/slither-report.md`](./v1.0.0/slither-report.md) | [`v1.0.0/slither-report-feedback.md`](./v1.0.0/slither-report-feedback.md) |
 | v0.3.0 | Manual audit — OpenZeppelin | [`v0.3.0/OpenZeppelin Audit Reportv0.3.0.pdf`](./v0.3.0/) | [`v0.3.0/OpenZeppelin.md`](./v0.3.0/OpenZeppelin.md), [`v0.3.0/feedback.md`](./v0.3.0/feedback.md) |
@@ -49,3 +50,26 @@ rationale.
 | N-05 | Note | Misleading documentation | **Fixed** |
 
 Full remediation response: [`v0.3.0/OpenZeppelin.md`](./v0.3.0/OpenZeppelin.md).
+
+## Complementary Claude audit (v1.0.0) — findings summary
+
+Independent review of the v1.0.0 contracts by Claude (Anthropic) driven by a set of custom smart-contract
+security-audit skills. Method: threat model → privileged-surface enumeration → targeted manual review → executable
+Hardhat PoCs (`test/ThreatModel.test.ts`, 25 passing) → adversarial severity self-review. Severity uses Code4rena.
+Full report: [`v1.0.0/claude-audit/CLAUDE_AUDIT.md`](./v1.0.0/claude-audit/CLAUDE_AUDIT.md).
+
+| ID | Severity | Finding | Status |
+|----|----------|---------|--------|
+| F-1 | Low | Observer can escalate scoped read into global public balance disclosure | Confirmed — inherent FHEVM ACL trust assumption (not code-fixable); govern `OBSERVER_ROLE` + documented |
+| F-7 | Low | Observer removal is not retroactive (ACL grants irrevocable) | Confirmed — FHE-platform limitation; documented |
+| F-3 | Info | Silent zero-transfer/burn on insufficient balance | Confirmed — documented FHE limitation; decrypt emitted handle to verify |
+| F-4 | Info | Public disclosure is irreversible per handle | By-design (role-gated) |
+| F-5 | Info | Mint/burn permitted while paused | By-design (CMTAT: pause halts transfers, deactivation halts supply) |
+| F-9 | Info | Standardized eligibility views can mislead integrators | Confirmed — NatSpec-documented caveats |
+| F-2 | — | Authorization-hook coverage complete | NOT-A-FINDING (verified safe) |
+| F-6 | — | RuleEngine selector/policy wiring complete | NOT-A-FINDING (+Info POL-1 note) |
+| F-8 | — | Transfer-gate completeness across all 8 overloads | NOT-A-FINDING (verified safe) |
+| F-10 | — | Observer-ACL re-grant invariants hold | NOT-A-FINDING (verified safe) |
+
+**Tally:** 0 Critical / 0 High / 0 Medium, **2 Low**, **5 Info**, 4 threat areas verified safe. No exploitable
+finding; the two Low items are inherent FHEVM/observer trust properties mitigated operationally.

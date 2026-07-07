@@ -77,6 +77,7 @@ First stable release, incorporating the remediation of the **OpenZeppelin securi
 - **N-05 — Misleading documentation** (`104218a`): added the silent-refund-failure warning to both `confidentialTransferFromAndCall` overloads; corrected the `_afterBurn` comment (direct call, empty base hooks) and the `CMTATConfidential` inheritance comments (explicit parent calls, not `super`).
 - **N-03 — Floating pragma** (won't fix, by design): retained `^0.8.27` so library consumers keep compiler-version choice; rationale recorded in the remediation response.
 - Added `doc/audit/v0.3.0/OpenZeppelin.md` — OpenZeppelin audit remediation response (per-finding PR / commit / comment table).
+- Added `doc/audit/v1.0.0/claude-audit/CLAUDE_AUDIT.md` — complementary security audit of the v1.0.0 contracts by Claude (Anthropic) with a set of custom smart-contract security-audit skills: 0 High / 0 Medium, 2 Low (F-1 observer disclosure is an inherent FHEVM ACL trust assumption; F-7 irrevocable ACL), 5 Info, 4 threat areas verified safe; new PoC suite `test/ThreatModel.test.ts` (25 passing).
 - **FHE Gotchas (`CLAUDE.md` / `AGENTS.md`)**: extended the "Insufficient / uninitialized balance" row to record that, as of OZ Confidential `v0.5.0` (PR #357), an uninitialized sender balance also transfers `0` silently (previously reverted with the now-removed `ERC7984ZeroBalance`).
 
 ### Testing

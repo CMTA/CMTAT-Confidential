@@ -375,6 +375,29 @@ ERC-7984 library (see audit finding #1 and #2 in the table above).
 **Only call `confidentialTransferAndCall` and `confidentialTransferFromAndCall` with trusted,
 audited receiver contracts.**
 
+#### Balance observers hold indivisible read + disclosure power
+
+Granting a balance observer (via `setObserver` by the holder, or `setRoleObserver` by `OBSERVER_ROLE`) gives that
+observer ACL access to the account's encrypted balance handle. In the FHEVM there is **no read-only ACL**: any
+address allowed on a handle can, by calling the ACL system contract (`ACL.sol`) directly — with no way for this
+contract to intercept it — not only read the value privately (`userDecrypt`) but also `allow()` it to any third
+party or `allowForDecryption()` it to make the balance **publicly and irreversibly decryptable by anyone**. Read
+access and disclosure access are the **same grant**; gating `requestDiscloseEncryptedAmount` at the token layer
+would not prevent this and is intentionally not attempted.
+
+**Consequences:**
+
+- **Treat assigning any observer as granting full disclosure power** over the observed account's balance. Only
+  make an observer of a party trusted with the plaintext *and* with the right to reveal or re-share it.
+- **Observers must only read the value privately** (`userDecrypt` for their own key). They must never invoke any
+  disclosure or re-grant primitive (`makePubliclyDecryptable` / `allowForDecryption` / `allow`) on a third
+  party's handle — doing so leaks that account's balance permanently and cannot be undone.
+- **Govern `OBSERVER_ROLE` tightly** (e.g. multisig/timelock): `setRoleObserver` can assign an observer to an
+  account **without the account's consent**, so it can unilaterally place a party in a position to disclose that
+  account's balance.
+
+See finding **F-1** (`F-1.md`) for the full analysis.
+
 ## Roles
 
 | Role | Description |
@@ -631,6 +654,16 @@ function forcedBurn(
 - Can be performed even when the contract is deactivated
 
 > **Note:** Same freeze requirement as `forcedTransfer` for consistency. The enforcer creates the encrypted input specifying how many tokens to burn.
+
+> **⚠️ Always decrypt the returned `transferred` / `burned` handle to confirm the amount actually moved.**
+> Because balances are encrypted, an amount greater than the target's balance does **not** revert — FHE
+> subtraction saturates to `0`, so the call **succeeds and emits `ForcedTransfer` / `ForcedBurn` while moving
+> `0`**. A successful transaction is therefore **not** proof that a seizure took effect. The event carries the
+> **actual encrypted amount moved** (`transferred` / `burned`), so enforcement tooling must decrypt that handle
+> off-chain (`fhevm.userDecryptEuint` / `publicDecryptEuint`) and verify it equals the intended amount before
+> treating a court-ordered seizure or redemption as complete. This is an inherent property of FHE arithmetic (it
+> applies to all transfers/burns; it is called out here because for forced operations a silent `0` can be
+> mistaken for a completed compliance action).
 
 ### Total Supply Visibility
 
