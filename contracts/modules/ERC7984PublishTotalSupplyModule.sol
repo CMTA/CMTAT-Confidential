@@ -19,7 +19,7 @@ import {IERC7984PublishTotalSupplyModule} from "../interfaces/IERC7984PublishTot
  * only reveals the aggregate supply, but publishing it repeatedly lets an observer
  * subtract consecutive values (`|V2 - V1|`) to recover the net minted/burned amount
  * between publications — fully revealing a mint/burn amount when only one occurs in
- * between. This cannot be prevented in code; treat publishing as a governed action
+ * between. Treat publishing as a governed action
  * that aggregates many operations per disclosure. See {IERC7984PublishTotalSupplyModule-publishTotalSupply}.
  *
  * This module is intentionally minimal. For automatic ACL re-grant to a registered
