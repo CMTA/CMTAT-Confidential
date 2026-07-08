@@ -28,7 +28,7 @@ interface IERC7984PublishTotalSupplyModule {
      * current handle — after the next mint or burn the new handle will not be
      * publicly decryptable and this function must be called again if needed.
      *
-     * @dev **Cross-publication disclosure warning (audit finding L-01).**
+     * @dev **Cross-publication disclosure warning.**
      * Each individual disclosure only reveals the *aggregate* total supply, never
      * per-account balances or per-transfer amounts. However, publishing the total
      * supply more than once opens a *delta-inference channel*: an observer who reads

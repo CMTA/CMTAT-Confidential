@@ -92,7 +92,7 @@ contract CMTATConfidentialRuleEngine is
     /**
      * @inheritdoc CMTATConfidentialBase
      * @dev Adds RuleEngine screening to the mint leg (`from = address(0)`) so issuance
-     * is screened like standard CMTAT, not just confidential transfers (audit finding M-01).
+     * is screened like standard CMTAT, not just confidential transfers.
      * The operator (`_msgSender()`) is forwarded as the spender and `address(0)` as the
      * sender leg, exactly as CMTAT's `_mintOverride` does (`transferred(spender, address(0),
      * to, 0)`). The engine decides how to treat those legs (RuleWhitelist exempts the spender

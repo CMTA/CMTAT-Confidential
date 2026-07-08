@@ -4,7 +4,7 @@ pragma solidity ^0.8.27;
 /**
  * @title ScreeningRuleEngineMock
  * @dev RuleEngine mock that screens transfers, mints and burns by address
- * (KYC/sanctions-style). Used to exercise audit finding M-01: mint/burn must be
+ * (KYC/sanctions-style). Used to exercise that mint/burn must be
  * screened by the RuleEngine in `CMTATConfidentialRuleEngine`.
  *
  * A blocked address is rejected on any leg it appears on. Following the CMTAT v3.3.0
@@ -19,7 +19,7 @@ contract ScreeningRuleEngineMock {
     mapping(address account => bool) public blocked;
 
     /// @dev Number of times `transferred` (either overload) has been invoked.
-    /// Lets tests assert that mint/burn fire the RuleEngine notification (M-01).
+    /// Lets tests assert that mint/burn fire the RuleEngine notification.
     uint256 public transferredCount;
 
     /// @dev Spender seen by the most recent 4-arg `transferred` call. Lets tests assert
