@@ -38,9 +38,10 @@ interface IERC7984PublishTotalSupplyModule {
      * defeating the confidentiality of that single mint or burn.
      *
      * This channel is inherent to disclosing an aggregate that changes by discrete
-     * confidential amounts; it cannot be closed in code (a holder of
-     * `SUPPLY_PUBLISHER_ROLE` can always disclose). Treat each publication as a
-     * deliberate, governed disclosure:
+     * confidential amounts; it cannot be *fully* closed in code (a holder of
+     * `SUPPLY_PUBLISHER_ROLE` can always disclose). A partial in-code mitigation was
+     * considered and deliberately not adopted; see the OZ-L-01 remediation analysis.
+     * Treat each publication as a deliberate, governed disclosure:
      * - aggregate many supply-changing operations between publications (never publish
      *   with a single mint/burn in between), or enforce a minimum time / operation
      *   window between calls;

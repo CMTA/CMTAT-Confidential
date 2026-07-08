@@ -709,8 +709,8 @@ Mark the current total supply handle as publicly decryptable. Any off-chain part
 await token.connect(complianceManager).publishTotalSupply();
 ```
 
-> **⚠ Disclosure warning — cross-publication delta inference (audit finding L-01).**
-> A single call only reveals the *aggregate* total supply — never individual balances or transfer amounts. But **repeated** publication is a leak channel: an observer who reads two published values `V1` (before) and `V2` (after) some mints/burns can compute the net change `|V2 − V1|`. If exactly one mint or burn happens between two publications, its amount is fully revealed, defeating the confidentiality of that operation. This is inherent to disclosing an aggregate that moves by discrete confidential amounts and **cannot be fixed in code** (a `SUPPLY_PUBLISHER_ROLE` holder can always disclose). Operational mitigations:
+> **⚠ Disclosure warning — cross-publication delta inference (audit finding OZ-L-01).**
+> A single call only reveals the *aggregate* total supply — never individual balances or transfer amounts. But **repeated** publication is a leak channel: an observer who reads two published values `V1` (before) and `V2` (after) some mints/burns can compute the net change `|V2 − V1|`. If exactly one mint or burn happens between two publications, its amount is fully revealed, defeating the confidentiality of that operation. This is inherent to disclosing an aggregate that moves by discrete confidential amounts and **cannot be fully fixed in code** (a `SUPPLY_PUBLISHER_ROLE` holder can always disclose). A `counter ≥ k` gate on `publishTotalSupply()` would give k-anonymity against outside observers, but it would trade away the transparent, on-demand total supply (the exact figure could not be published right after a single mint or burn), so it was deliberately not implemented in favour of the operational mitigations below:
 > - Treat publishing as a deliberate governance action, not a high-frequency automated one. Prefer a multisig/timelock over `SUPPLY_PUBLISHER_ROLE`.
 > - Aggregate many supply-changing operations between publications; never publish with a single mint/burn in between. Enforce a minimum operation-count or time window between disclosures.
 > - If per-operation confidentiality of issuance/redemption is required, prefer **Option 1** (authorized observers) over public disclosure, and disclose on a coarse cadence.
@@ -1167,7 +1167,7 @@ token.publishTotalSupply();
 ```
 > **Note:** `publishTotalSupply()` reverts until the total supply handle is initialized (i.e., at least one mint or burn has occurred).
 >
-> **⚠ Cross-publication delta inference (audit finding L-01):** publishing repeatedly lets observers subtract consecutive values (`|V2 − V1|`) to recover the net minted/burned amount between disclosures — fully revealing a mint/burn amount if only one occurs in between. See the disclosure warning under [Total Supply Visibility → Option 2](#total-supply-visibility) for operational mitigations.
+> **⚠ Cross-publication delta inference (audit finding OZ-L-01):** publishing repeatedly lets observers subtract consecutive values (`|V2 − V1|`) to recover the net minted/burned amount between disclosures — fully revealing a mint/burn amount if only one occurs in between. See the disclosure warning under [Total Supply Visibility → Option 2](#total-supply-visibility) for operational mitigations.
 
 Internally this calls `FHE.makePubliclyDecryptable()`, which triggers the following **asynchronous three-step process**:
 
