@@ -11,10 +11,10 @@ the static-analysis runs below (run with mocks excluded).
 
 | Version | Type | Report | Feedback / disposition |
 |---------|------|--------|------------------------|
-| v1.0.0 | Complementary audit — Claude (custom security-audit skills) | [`v1.0.0/claude-audit/CLAUDE_AUDIT.md`](./v1.0.0/claude-audit/CLAUDE_AUDIT.md) | see the findings summary below |
 | v1.0.0 | Static analysis — Aderyn 0.6.5 | [`v1.0.0/aderyn-report.md`](./v1.0.0/aderyn-report.md) | [`v1.0.0/aderyn-report-feedback.md`](./v1.0.0/aderyn-report-feedback.md) |
 | v1.0.0 | Static analysis — Slither 0.11.5 | [`v1.0.0/slither-report.md`](./v1.0.0/slither-report.md) | [`v1.0.0/slither-report-feedback.md`](./v1.0.0/slither-report-feedback.md) |
 | v0.3.0 | Manual audit — OpenZeppelin | [`v0.3.0/OpenZeppelin Audit Reportv0.3.0.pdf`](./v0.3.0/) | [`v0.3.0/OpenZeppelin.md`](./v0.3.0/OpenZeppelin.md), [`v0.3.0/feedback.md`](./v0.3.0/feedback.md) |
+| v0.3.0 | Complementary audit — Claude (custom security-audit skills) | [`v0.3.0/claude-audit/CLAUDE_AUDIT.md`](./v0.3.0/claude-audit/CLAUDE_AUDIT.md) | [`v0.3.0/claude-audit/CLAUDE_AUDIT-feedback.md`](./v0.3.0/claude-audit/CLAUDE_AUDIT-feedback.md); findings summary below |
 | v0.3.0 | Static analysis — Aderyn | [`v0.3.0/aderyn-report.md`](./v0.3.0/aderyn-report.md) | [`v0.3.0/aderyn-report-feedback.md`](./v0.3.0/aderyn-report-feedback.md) |
 | v0.2.0 | Static analysis — Aderyn | [`v0.2.0/aderyn-report.md`](./v0.2.0/aderyn-report.md) | [`v0.2.0/aderyn-report-feedback.md`](./v0.2.0/aderyn-report-feedback.md) |
 | v0.1.0 | Automated audit — Nethermind AuditAgent | [`v0.1.0/nethermind-audit-agent/`](./v0.1.0/nethermind-audit-agent/) | see report-feedback in that folder |
@@ -51,12 +51,13 @@ rationale.
 
 Full remediation response: [`v0.3.0/OpenZeppelin.md`](./v0.3.0/OpenZeppelin.md).
 
-## Complementary Claude audit (v1.0.0) — findings summary
+## Complementary Claude audit (v0.3.0) — findings summary
 
-Independent review of the v1.0.0 contracts by Claude (Anthropic) driven by a set of custom smart-contract
-security-audit skills. Method: threat model → privileged-surface enumeration → targeted manual review → executable
-Hardhat PoCs (`test/ThreatModel.test.ts`, 25 passing) → adversarial severity self-review. Severity uses Code4rena.
-Full report: [`v1.0.0/claude-audit/CLAUDE_AUDIT.md`](./v1.0.0/claude-audit/CLAUDE_AUDIT.md).
+Independent review of the v0.3.0 contracts (commit `463087c`, same scope as the OpenZeppelin engagement) by Claude
+(Anthropic) driven by a set of custom smart-contract security-audit skills. Method: threat model →
+privileged-surface enumeration → targeted manual review → executable Hardhat PoCs (`test/ThreatModel.test.ts`, 25
+passing) → adversarial severity self-review. Severity uses Code4rena.
+Full report: [`v0.3.0/claude-audit/CLAUDE_AUDIT.md`](./v0.3.0/claude-audit/CLAUDE_AUDIT.md).
 
 | ID | Severity | Finding | Status |
 |----|----------|---------|--------|
