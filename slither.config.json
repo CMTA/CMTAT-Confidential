@@ -1,0 +1,4 @@
+{
+  "filter_paths": "node_modules,lib,test,forge-std,mocks",
+  "compile_force_framework": "foundry"
+}

@@ -13,6 +13,7 @@ import {ValidationModuleRuleEngineInternal} from "../../lib/CMTAT/contracts/modu
  * sender, recipient, timestamps, bound token state, allowlists, blacklists, etc.
  */
 abstract contract ERC7984RuleEngineModule is ValidationModuleRuleEngineInternal {
+    /// @notice Role allowed to set or update the RuleEngine.
     bytes32 public constant RULE_ENGINE_ROLE = keccak256("RULE_ENGINE_ROLE");
 
     error ERC7984RuleEngineModule_SameRuleEngine();
@@ -29,6 +30,7 @@ abstract contract ERC7984RuleEngineModule is ValidationModuleRuleEngineInternal 
      * The constructor uses `_setRuleEngine` directly to bypass this check, so
      * this edge case only arises if the caller explicitly tries to set zero after
      * deployment without first setting a non-zero engine.
+     * @param newRuleEngine The RuleEngine to set (`address(0)` disables RuleEngine checks).
      */
     function setRuleEngine(
         IRuleEngine newRuleEngine

@@ -26,6 +26,8 @@ CMTAT is a security token framework by [Capital Markets and Technology Associati
 
 CMTAT Confidential is built on top of [OpenZeppelin Confidential Contracts](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts), including its ERC-7984 implementation, and on top of the Solidity [CMTAT](https://github.com/CMTA/CMTAT) implementation for compliance modules. 
 
+Version 1.0.0 of this project has undergone a security audit by [OpenZeppelin](https://www.openzeppelin.com/security-audits), sponsored by [Zama](https://www.zama.ai/). The audit was performed on version v0.3.0, and the fixes were made and reviewed for version v1.0.0. The audit did not cover the underlying CMTAT library — see [Security](#security) for the report and its scope.
+
 ### What is FHE?
 
 Fully Homomorphic Encryption (FHE) enables computing directly on encrypted data without ever decrypting it. The Zama Protocol uses FHE combined with Multi-Party Computation (MPC) for threshold decryption and Zero-Knowledge Proofs (ZKPoKs) for input validation, providing:
@@ -94,7 +96,7 @@ All FHE modules follow the same pattern: a role constant, a modifier, a virtual 
 | `ERC7984TotalSupplyViewModule` | `SUPPLY_OBSERVER_ROLE` | `contracts/modules/` | all except Lite | Registered observers automatically receive ACL access on the total supply handle after every mint/burn |
 | `ERC7984TokenAttributeModule` | `TOKEN_ATTRIBUTE_ROLE` | `contracts/modules/` | all variants | Post-deployment `setName` / `setSymbol` — ERC-3643 alignment |
 | `ERC7984RuleEngineModule` | `RULE_ENGINE_ROLE` | `contracts/modules/` | RuleEngine variant only | Plug in a CMTA `IRuleEngine` for transfer policy checks; passes `value = 0` because amounts are encrypted |
-| `CMTATConfidentialVersionModule` | — | `contracts/modules/` | all variants | Pins `version()` to `0.3.0`, overriding CMTAT's own version module |
+| `CMTATConfidentialVersionModule` | — | `contracts/modules/` | all variants | Pins `version()` to `1.0.0`, overriding CMTAT's own version module |
 
 CMTAT modules (from `lib/CMTAT/`) are inherited through `CMTATBaseGeneric` and always present in all variants:
 
@@ -241,9 +243,49 @@ npm run test
 
 ## Versioning
 
-The contract-level `version()` string is pinned to `0.3.0` via `CMTATConfidentialVersionModule`.
+The contract-level `version()` string is pinned to `1.0.0` via `CMTATConfidentialVersionModule`.
 
 ## Security
+
+### Security Audit — OpenZeppelin
+
+Version 1.0.0 of this project has undergone a security audit by [OpenZeppelin](https://www.openzeppelin.com/security-audits), sponsored by [Zama](https://www.zama.ai/).
+
+The audit was performed on version **v0.3.0** (commit [`463087c`](https://github.com/CMTA/CMTAT-Confidential/tree/463087c)) between 2026-06-12 and 2026-06-24. All fixes were made and reviewed for version **v1.0.0**.
+
+📄 **Final report:** [`OpenZeppelin_Audit_Reportv1.0.0.pdf`](./doc/audit/v1.0.0/OpenZeppelin_Audit_Reportv1.0.0.pdf) (July 9, 2026) — remediation details in [`OpenZeppelin-Remediation.md`](./doc/audit/v0.3.0/OpenZeppelin-Remediation.md).
+
+**8 findings** — 0 critical, 0 high, **1 medium**, **2 low**, **5 notes & additional information**. All findings are resolved or accepted with documented rationale.
+
+#### Audit scope
+
+The audit covered **only the contracts in this repository** (`contracts/deployment/*.sol`, `contracts/modules/*.sol`, and `contracts/CMTATConfidentialBase.sol`). It did **not** cover the underlying dependencies, which were assumed to behave as specified:
+
+- the [CMTAT](https://github.com/CMTA/CMTAT) library (compliance modules) — `lib/CMTAT`
+- the [CMTA RuleEngine](https://github.com/CMTA/RuleEngine) — `lib/RuleEngine`
+- [OpenZeppelin Confidential Contracts](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts) (ERC-7984) — `lib/openzeppelin-confidential-contracts`
+- the Zama FHEVM protocol and `@fhevm/solidity` library
+
+> **⚠ Warning — the underlying CMTAT library was not audited.**
+> At the time of the audit, this project pinned CMTAT `v3.3.0-rc1` (a release candidate), which had not itself undergone a security audit. The OpenZeppelin audit therefore provides **no assurance about the CMTAT compliance modules** (pause, freeze, allowlist, documents, access control) that CMTAT Confidential inherits.
+>
+> Before deploying this project in production, consider:
+> - performing a security audit of the CMTAT library version you depend on;
+> - upgrading `lib/CMTAT` to the latest released version, and re-running the test suite and static analysis afterwards;
+> - applying the same scrutiny to `lib/RuleEngine` if you deploy the `CMTATConfidentialRuleEngine` variant.
+
+| ID | Severity | Finding | Disposition |
+|----|----------|---------|-------------|
+| M-01 | Medium | Rule engine not applied to mint and burn, leaving issuance and redemption unscreened | Fixed — rule engine applied to mint/burn; forced operations intentionally still bypass it |
+| L-01 | Low | Sequential total-supply disclosures leak individual mint and burn amounts | Accepted as residual risk — mitigated by NatSpec and operator guidance (see [Total Supply Visibility](#total-supply-visibility)) |
+| L-02 | Low | `ERC7984TokenAttributeModule` seeds attributes via a skippable internal initializer | Fixed — replaced `_initTokenAttributes` with a constructor |
+| N-01 | Note | Missing docstrings | Fixed |
+| N-02 | Note | Incomplete docstrings | Fixed |
+| N-03 | Note | Floating pragma | Won't fix (by design) — `^0.8.27` is deliberate so library consumers can pick their own `0.8.x` compiler |
+| N-04 | Note | Prefix increment operator `++i` can save gas in loops | Fixed |
+| N-05 | Note | Misleading documentation | Fixed |
+
+> From the report's conclusion: *"the token's security depends as much on how confidentiality and compliance are wired together and operated as on the individual contracts."*
 
 ### Automated Audit — Nethermind AuditAgent
 
@@ -261,6 +303,44 @@ Nethermind AuditAgent automated scan (March 18, 2026, commit `51f9d7aa`) reporte
 | 6 | Info | `forcedBurn` does not refresh total-supply observer ACLs (full variant) | Duplicate of #5 — resolved together | `681ebde` |
 | 7 | Info | Unbounded observer list can cause DoS on `mint` and `burn` | Duplicate of #4 — resolved together | `12249c1` |
 | 8 | Best Practice | Duplicate observer removal via `setRoleObserver(account, address(0))` | Fixed — `setRoleObserver` now rejects `address(0)` | `a74314e` |
+
+### Static Analysis — Aderyn (v1.0.0)
+
+Aderyn static analysis (v1.0.0, Aderyn 0.6.5) reported **0 high** and **7 low** severity findings across 21 contracts (1 292 nSLOC). All findings are accepted or not applicable — unchanged in count and disposition from v0.3.0. Full rationale in [`aderyn-report-feedback.md`](./doc/audit/v1.0.0/aderyn-report-feedback.md), source report in [`aderyn-report.md`](./doc/audit/v1.0.0/aderyn-report.md). See also [`doc/audit/AUDIT_OVERVIEW.md`](./doc/audit/AUDIT_OVERVIEW.md).
+
+Command used to generate the report (mocks excluded):
+
+```bash
+aderyn -x mocks --output doc/audit/v1.0.0/aderyn-report.md
+```
+
+| ID | Finding | Instances | Disposition |
+|----|---------|-----------|-------------|
+| L-1 | Centralization Risk | 14 | Accepted — role-based access control is mandatory for a regulated security token |
+| L-2 | Unspecific Solidity Pragma (`^0.8.27`) | 21 | Accepted — lower bound required by OZ Confidential submodule; kept floating for library consumers (OZ finding N-03); toolchain compiles with `0.8.34` |
+| L-3 | PUSH0 Opcode | 21 | Not applicable — target is Ethereum mainnet, EVM version set to `prague` |
+| L-4 | Modifier Invoked Only Once | 3 | Accepted — consistent with the module authorization pattern across all modules |
+| L-5 | Empty Block | 22 | Accepted — modifier-only authorization hooks and intentional virtual extension points |
+| L-6 | Internal Function Used Only Once | 1 | Accepted — required by the OpenZeppelin `initializer` modifier pattern |
+| L-7 | Unchecked Return | 8 | Not applicable — `FHE.allow()` / `FHE.makePubliclyDecryptable()` return the same handle (fluent interface), not an error code |
+
+### Static Analysis — Slither (v1.0.0)
+
+Slither static analysis (v1.0.0, Slither 0.11.5, compiled via Foundry / solc 0.8.34) reported **0 high**, **8 medium**, **3 low**, and **7 informational** findings. None is exploitable — the Medium/Low results are the same FHE fluent-interface pattern Aderyn reports as L-7. Full rationale in [`slither-report-feedback.md`](./doc/audit/v1.0.0/slither-report-feedback.md), source report in [`slither-report.md`](./doc/audit/v1.0.0/slither-report.md).
+
+Command used to generate the report (mocks excluded):
+
+```bash
+slither . --checklist --filter-paths "node_modules,lib,test,forge-std,mocks"
+```
+
+| Detector | Severity | Instances | Disposition |
+|----------|----------|-----------|-------------|
+| unused-return | Medium | 8 | Not applicable — `FHE.allow` / `FHE.makePubliclyDecryptable` fluent API (return is the same handle) |
+| reentrancy-events | Low | 3 | False positive — FHE coprocessor call followed only by an event; no exploitable state |
+| dead-code | Informational | 5 | False positive — virtual hooks (`_validateMint`/`_validateBurn`/`_afterBurn`/`_validateForced*`) dispatched via inheritance override |
+| naming-convention | Informational | 1 | Cosmetic — `_TOKEN_DECIMALS` immutable styled like a constant |
+| unindexed-event-address | Informational | 1 | Cosmetic — optional indexing on the rare `MaxSupplyObserversUpdated` admin event |
 
 ### Static Analysis — Aderyn (v0.3.0)
 
@@ -336,6 +416,29 @@ ERC-7984 library (see audit finding #1 and #2 in the table above).
 
 **Only call `confidentialTransferAndCall` and `confidentialTransferFromAndCall` with trusted,
 audited receiver contracts.**
+
+#### Balance observers hold indivisible read + disclosure power
+
+Granting a balance observer (via `setObserver` by the holder, or `setRoleObserver` by `OBSERVER_ROLE`) gives that
+observer ACL access to the account's encrypted balance handle. In the FHEVM there is **no read-only ACL**: any
+address allowed on a handle can, by calling the ACL system contract (`ACL.sol`) directly — with no way for this
+contract to intercept it — not only read the value privately (`userDecrypt`) but also `allow()` it to any third
+party or `allowForDecryption()` it to make the balance **publicly and irreversibly decryptable by anyone**. Read
+access and disclosure access are the **same grant**; gating `requestDiscloseEncryptedAmount` at the token layer
+would not prevent this and is intentionally not attempted.
+
+**Consequences:**
+
+- **Treat assigning any observer as granting full disclosure power** over the observed account's balance. Only
+  make an observer of a party trusted with the plaintext *and* with the right to reveal or re-share it.
+- **Observers must only read the value privately** (`userDecrypt` for their own key). They must never invoke any
+  disclosure or re-grant primitive (`makePubliclyDecryptable` / `allowForDecryption` / `allow`) on a third
+  party's handle — doing so leaks that account's balance permanently and cannot be undone.
+- **Govern `OBSERVER_ROLE` tightly** (e.g. multisig/timelock): `setRoleObserver` can assign an observer to an
+  account **without the account's consent**, so it can unilaterally place a party in a position to disclose that
+  account's balance.
+
+See finding **F-1** (`F-1.md`) for the full analysis.
 
 ## Roles
 
@@ -494,7 +597,7 @@ ERC-7984 exposes eight transfer function variants:
 
 ### RuleEngine Variant
 
-`CMTATConfidentialRuleEngine` adds CMTA RuleEngine checks to holder and operator transfers. It exposes:
+`CMTATConfidentialRuleEngine` adds CMTA RuleEngine checks to holder and operator transfers **as well as mint and burn**. It exposes:
 
 ```solidity
 function ruleEngine() public view returns (IRuleEngine);
@@ -509,6 +612,10 @@ The public `amount` parameter is intentionally ignored. Confidential balances us
 - operator transfer validation: `ruleEngine.canTransferFrom(spender, from, to, 0)`
 - holder transfer notification: `ruleEngine.transferred(from, to, 0)`
 - operator transfer notification: `ruleEngine.transferred(spender, from, to, 0)`
+- mint validation + notification: `ruleEngine.canTransferFrom(operator, address(0), to, 0)` / `ruleEngine.transferred(operator, address(0), to, 0)`
+- burn validation + notification: `ruleEngine.canTransferFrom(operator, from, address(0), 0)` / `ruleEngine.transferred(operator, from, address(0), 0)`
+
+Mint and burn are screened at the same chokepoint as standard CMTAT, so issuance to — or redemption from — a non-permitted address is rejected by the configured engine. Following CMTAT v3.3.0, the **operator** (`_msgSender()`, the `MINTER_ROLE`/`BURNER_ROLE` holder) is forwarded as the `spender` on mint/burn, exactly as CMTAT's `_mintOverride`/`_burnOverride` do; rules must exempt the spender on those legs (production `RuleWhitelist` does). **Forced operations (`forcedTransfer`, `forcedBurn`) intentionally bypass the RuleEngine** and remain governed only by the freeze precondition.
 
 Example transfer:
 
@@ -590,6 +697,16 @@ function forcedBurn(
 
 > **Note:** Same freeze requirement as `forcedTransfer` for consistency. The enforcer creates the encrypted input specifying how many tokens to burn.
 
+> **⚠️ Always decrypt the returned `transferred` / `burned` handle to confirm the amount actually moved.**
+> Because balances are encrypted, an amount greater than the target's balance does **not** revert — FHE
+> subtraction saturates to `0`, so the call **succeeds and emits `ForcedTransfer` / `ForcedBurn` while moving
+> `0`**. A successful transaction is therefore **not** proof that a seizure took effect. The event carries the
+> **actual encrypted amount moved** (`transferred` / `burned`), so enforcement tooling must decrypt that handle
+> off-chain (`fhevm.userDecryptEuint` / `publicDecryptEuint`) and verify it equals the intended amount before
+> treating a court-ordered seizure or redemption as complete. This is an inherent property of FHE arithmetic (it
+> applies to all transfers/burns; it is called out here because for forced operations a silent `0` can be
+> mistaken for a completed compliance action).
+
 ### Total Supply Visibility
 
 By default the total supply is encrypted and inaccessible to third parties. Two mechanisms are available to open read access, gated by `SUPPLY_OBSERVER_ROLE` (observer list) or `SUPPLY_PUBLISHER_ROLE` (public disclosure).
@@ -633,6 +750,12 @@ Mark the current total supply handle as publicly decryptable. Any off-chain part
 ```solidity
 await token.connect(complianceManager).publishTotalSupply();
 ```
+
+> **⚠ Disclosure warning — cross-publication delta inference (audit finding OZ-L-01).**
+> A single call only reveals the *aggregate* total supply — never individual balances or transfer amounts. But **repeated** publication is a leak channel: an observer who reads two published values `V1` (before) and `V2` (after) some mints/burns can compute the net change `|V2 − V1|`. If exactly one mint or burn happens between two publications, its amount is fully revealed, defeating the confidentiality of that operation. This is inherent to disclosing an aggregate that moves by discrete confidential amounts and **cannot be fully fixed in code** (a `SUPPLY_PUBLISHER_ROLE` holder can always disclose). A `counter ≥ k` gate on `publishTotalSupply()` would give k-anonymity against outside observers, but it would trade away the transparent, on-demand total supply (the exact figure could not be published right after a single mint or burn), so it was deliberately not implemented in favour of the operational mitigations below:
+> - Treat publishing as a deliberate governance action, not a high-frequency automated one. Prefer a multisig/timelock over `SUPPLY_PUBLISHER_ROLE`.
+> - Aggregate many supply-changing operations between publications; never publish with a single mint/burn in between. Enforce a minimum operation-count or time window between disclosures.
+> - If per-operation confidentiality of issuance/redemption is required, prefer **Option 1** (authorized observers) over public disclosure, and disclose on a coarse cadence.
 
 | Mechanism | Availability | Access scope | Stays current after mint/burn |
 |-----------|-------------|-------------|-------------------------------|
@@ -815,7 +938,7 @@ Decimals are configurable at deployment for both `CMTATConfidential` and `CMTATC
 | `@openzeppelin/contracts` | 5.6.1 |
 | `@openzeppelin/contracts-upgradeable` | 5.6.1 |
 | **Submodule** |  |
-| [OpenZeppelin Confidential Contracts](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts) | [v0.4.1](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts/releases/tag/v0.4.1) |
+| [OpenZeppelin Confidential Contracts](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts) | [v0.5.1](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts/releases/tag/v0.5.1) |
 | [CMTAT](https://github.com/CMTA/CMTAT/) | [v3.3.0-rc1](https://github.com/CMTA/CMTAT/releases/tag/v3.3.0-rc1) |
 | [RuleEngine](https://github.com/CMTA/RuleEngine/) | v3.0.0-rc4 |
 
@@ -839,7 +962,7 @@ CMTAT-Confidential/
 │       ├── ERC7984TokenAttributeModule.sol        # Post-deployment name/symbol (ERC-3643)
 │       ├── ERC7984TotalSupplyViewModule.sol       # Total supply observer list (auto ACL)
 │       ├── ERC7984RuleEngineModule.sol            # RuleEngine storage, checks, and notifications
-│       └── CMTATConfidentialVersionModule.sol     # CMTAT Confidential version override (0.3.0)
+│       └── CMTATConfidentialVersionModule.sol     # CMTAT Confidential version override (1.0.0)
 ├── lib/
 │   ├── CMTAT/                                # CMTAT submodule (compliance modules)
 │   └── RuleEngine/                           # CMTA RuleEngine submodule
@@ -1085,6 +1208,8 @@ Call `publishTotalSupply()` (requires `SUPPLY_PUBLISHER_ROLE`) to mark the curre
 token.publishTotalSupply();
 ```
 > **Note:** `publishTotalSupply()` reverts until the total supply handle is initialized (i.e., at least one mint or burn has occurred).
+>
+> **⚠ Cross-publication delta inference (audit finding OZ-L-01):** publishing repeatedly lets observers subtract consecutive values (`|V2 − V1|`) to recover the net minted/burned amount between disclosures — fully revealing a mint/burn amount if only one occurs in between. See the disclosure warning under [Total Supply Visibility → Option 2](#total-supply-visibility) for operational mitigations.
 
 Internally this calls `FHE.makePubliclyDecryptable()`, which triggers the following **asynchronous three-step process**:
 

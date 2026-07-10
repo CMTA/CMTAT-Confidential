@@ -34,6 +34,7 @@ import {IERC7984EnforcementModule} from "../interfaces/IERC7984EnforcementModule
  */
 abstract contract ERC7984EnforcementModule is ERC7984, IERC7984EnforcementModule {
     /* ============ Roles ============ */
+    /// @notice Role allowed to perform forced transfers and forced burns.
     bytes32 public constant FORCED_OPS_ROLE = keccak256("FORCED_OPS_ROLE");
 
     /* ============ Modifier ============ */

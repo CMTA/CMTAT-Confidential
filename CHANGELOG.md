@@ -40,7 +40,53 @@ npx prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'
    - `doc/audit/vX.Y.Z/aderyn-report.md`
    - `doc/audit/vX.Y.Z/aderyn-report-feedback.md`
 
+## 1.0.0 - 2026/07/10
+
+First stable release, incorporating the remediation of the **OpenZeppelin security audit** (v0.3.0 report, June 24 2026): 0 Critical / 0 High, 1 Medium, 2 Low, 5 Notes. Per-finding PR/commit/comment table in `doc/audit/v0.3.0/OpenZeppelin.md`.
+
+**Final audit report:** [`doc/audit/v1.0.0/OpenZeppelin_Audit_Reportv1.0.0.pdf`](./doc/audit/v1.0.0/OpenZeppelin_Audit_Reportv1.0.0.pdf) (OpenZeppelin, July 9 2026) — audit performed on **v0.3.0** (commit `463087c`, 2026-06-12 → 2026-06-24), sponsored by [Zama](https://www.zama.ai/); fixes made and reviewed for **v1.0.0**. Scope was limited to this repository's contracts; the underlying CMTAT, RuleEngine, OpenZeppelin Confidential Contracts, and Zama FHEVM libraries were **not** audited (see the [Security section of the README](./README.md#security)).
+
+### Security
+
+- **M-01 — RuleEngine now screens mint and burn** (`4e559b1`): `CMTATConfidentialRuleEngine` applies RuleEngine validation and notification to issuance and redemption via `_validateMint` / `_validateBurn`, closing the gap where a mint to (or burn from) a non-whitelisted / sanctioned address succeeded while an equivalent `confidentialTransfer` reverted. Following CMTAT v3.3.0, the operator (`_msgSender()`) is forwarded as the `spender` and `address(0)` as the mint/burn leg, exactly as CMTAT's `_mintOverride` / `_burnOverride` do (4-arg `ruleEngine.transferred`); rules must exempt the spender on those legs, as production `RuleWhitelist` does. Forced operations (`forcedTransfer` / `forcedBurn`) intentionally continue to bypass the engine.
+- **L-02 — TokenAttribute seeding hardened** (`8eb95f2`): `ERC7984TokenAttributeModule` seeds `name` / `symbol` through a constructor instead of a skippable internal initializer, and `CMTATConfidentialBase` invokes it via the constructor inheritance list — a variant that omits the seed now fails to compile instead of deploying with empty attributes. **Breaking change** for downstream contracts that inherit `ERC7984TokenAttributeModule` directly: they must now pass `(name_, symbol_)` to its constructor.
+
+### Fixed
+
+- **N-04 — Pre-increment in loop** (`28090a8`): `ERC7984TotalSupplyViewModule._updateTotalSupplyObserversAcl` uses `++i` instead of `i++` (marginal gas saving).
+
+### Changed
+
+- **`CMTATConfidentialVersionModule`**: `version()` string updated to `1.0.0`.
+
+### Dependencies
+
+- **`lib/openzeppelin-confidential-contracts` submodule bumped `v0.4.1` → `v0.5.1`** (commit `d237bd9` → `afa97a6`). This is a **backward-compatible** upgrade for this project: no proxy **storage** change and no external API break, so it does **not** trigger a MAJOR bump — the contract version stays **`1.0.0`**. Verified by a clean `hardhat compile` and the full test suite (**440 passing**). Precise impact on our code:
+  - **Behaviour change (inherited from `ERC7984._update`, upstream PR #357):** a transfer from an **uninitialized** sender balance (an account that never received tokens) no longer reverts — it now silently transfers `0`, matching the existing insufficient-balance semantics. Previously it reverted with `ERC7984ZeroBalance`.
+  - **Removed upstream errors:** `ERC7984ZeroBalance` and `ERC7984InvalidGatewayRequest`. Neither is referenced by this project (verified), so nothing to migrate.
+  - **Upstream refactor (no behavioural impact on us):** several `confidentialTransfer*` functions moved from named to explicit returns and relocated `FHE.allowTransient` into `_transferAndCall`. Our overrides delegate via explicit `ERC7984.confidential…` calls and are unaffected.
+  - **`ERC7984ObserverAccess`** (the only extension we inherit directly) is unchanged between the two versions.
+  - New upstream features shipped in `v0.5.0`/`v0.5.1` (hook-module system, holder/balance cap modules, RWA account recovery, `FHESafeMath.saturatingAdd/Sub`) are **not** integrated.
+
+### Documentation
+
+- **OZ-L-01 — Total-supply delta-inference disclosure** (`de3f439`): documented the cross-publication leak (`|V2 − V1|` recovers a single mint/burn amount) in the `publishTotalSupply` NatSpec, the module docstring, and README operator guidance; also captured in the threat model as FHE-5. Accepted as residual risk — it cannot be *fully* closed in code (a `counter ≥ k` gate would give k-anonymity against outside observers but trade away the transparent, on-demand total supply, since the exact figure could not be published right after a single operation), so the mitigation is operational (aggregate many operations per disclosure; restrict `SUPPLY_PUBLISHER_ROLE` to a multisig/timelock).
+- **N-01 — Missing docstrings** (`8d283f6`): NatSpec added to the eight role constants, `version()` (referencing ERC-8303), `supportsInterface`, and the `CMTATConfidential` `confidentialTransfer*` / `decimals` / `name` / `symbol` overrides. Added the ERC-8303 draft specification under `doc/ERCSpecification/`.
+- **N-02 — Incomplete docstrings** (`20a87db`): completed `@param` / `@return` documentation on `canTransfer`, `canTransferFrom`, and `setRuleEngine`.
+- **N-05 — Misleading documentation** (`104218a`): added the silent-refund-failure warning to both `confidentialTransferFromAndCall` overloads; corrected the `_afterBurn` comment (direct call, empty base hooks) and the `CMTATConfidential` inheritance comments (explicit parent calls, not `super`).
+- **N-03 — Floating pragma** (won't fix, by design): retained `^0.8.27` so library consumers keep compiler-version choice; rationale recorded in the remediation response.
+- Added `doc/audit/v0.3.0/OpenZeppelin.md` — OpenZeppelin audit remediation response (per-finding PR / commit / comment table).
+- Added `doc/audit/v0.3.0/claude-audit/CLAUDE_AUDIT.md` (+ `CLAUDE_AUDIT-feedback.md`) — complementary security audit of the **v0.3.0** contracts (commit `463087c`, same scope as the OpenZeppelin engagement) by Claude (Anthropic) with a set of custom smart-contract security-audit skills: 0 High / 0 Medium, 2 Low (F-1 observer disclosure is an inherent FHEVM ACL trust assumption; F-7 irrevocable ACL), 5 Info, 4 threat areas verified safe; new PoC suite `test/ThreatModel.test.ts` (25 passing).
+- **FHE Gotchas (`CLAUDE.md` / `AGENTS.md`)**: extended the "Insufficient / uninitialized balance" row to record that, as of OZ Confidential `v0.5.0` (PR #357), an uninitialized sender balance also transfers `0` silently (previously reverted with the now-removed `ERC7984ZeroBalance`).
+
+### Testing
+
+- Added a regression test `transfer from an uninitialized balance transfers 0 without reverting` in `test/helpers/core-tests.ts` (runs across all four deployment variants) locking in the OZ Confidential `v0.5.0` behaviour so a future library bump cannot silently reintroduce the removed `ERC7984ZeroBalance` revert.
+- Added the M-01 regression suite in `test/CMTATConfidentialRuleEngine.test.ts` and the `ScreeningRuleEngineMock` test helper (follows the CMTAT v3.3.0 convention: forwards the operator as spender, exempts the spender on the mint/burn legs like `RuleWhitelist`): blocked/allowed mint and burn, operator-as-spender forwarding, forced-ops bypass, engine-disabled behaviour, and the base freeze layer on top of engine screening. The RuleEngine-variant tests were migrated from the CMTA reference `RuleEngineMock` (whose `RuleSpenderAuthorized` rule does not exempt mint/burn) to this convention-compliant mock.
+
 ## 0.3.0
+
+Commit: `463087cf99052235f56818617ac9548295be2f65`
 
 ### Added
 

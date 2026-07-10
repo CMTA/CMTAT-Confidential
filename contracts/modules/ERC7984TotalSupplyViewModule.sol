@@ -23,6 +23,7 @@ import {IERC7984TotalSupplyViewModule} from "../interfaces/IERC7984TotalSupplyVi
  */
 abstract contract ERC7984TotalSupplyViewModule is ERC7984, IERC7984TotalSupplyViewModule {
     /* ============ State Variables ============ */
+    /// @notice Role allowed to manage total supply observers.
     bytes32 public constant SUPPLY_OBSERVER_ROLE = keccak256(
         "SUPPLY_OBSERVER_ROLE"
     );
@@ -142,12 +143,12 @@ abstract contract ERC7984TotalSupplyViewModule is ERC7984, IERC7984TotalSupplyVi
      * `CMTATConfidential`. This avoids the zero-address guard that would otherwise be
      * required inside a generic `_update` override.
      *
-     * ⚠ Gas: iterates over all registered observers. Keep the list small.
+     * Gas: iterates over all registered observers. Keep the list small.
      */
     function _updateTotalSupplyObserversAcl() internal {
         euint64 ts = confidentialTotalSupply();
         uint256 len = _supplyObservers.length;
-        for (uint256 i = 0; i < len; i++) {
+        for (uint256 i = 0; i < len; ++i) {
             FHE.allow(ts, _supplyObservers[i]);
         }
     }

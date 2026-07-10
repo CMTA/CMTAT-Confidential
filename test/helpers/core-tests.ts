@@ -62,7 +62,7 @@ export function runCoreTests() {
     });
 
     it('exposes the CMTAT Confidential version', async function () {
-      expect(await this.token.version()).to.equal('0.3.0');
+      expect(await this.token.version()).to.equal('1.0.0');
     });
   });
 
@@ -543,6 +543,22 @@ export function runCoreTests() {
       );
       const recipientHandle = await this.token.confidentialBalanceOf(this.recipient.address);
       expect(await decryptBalance(this.token.target, recipientHandle, this.recipient)).to.equal(0n);
+      const holderHandle = await this.token.confidentialBalanceOf(this.holder.address);
+      expect(await decryptBalance(this.token.target, holderHandle, this.holder)).to.equal(1000n);
+    });
+
+    it('transfer from an uninitialized balance transfers 0 without reverting', async function () {
+      // A sender that never received tokens has an uninitialized balance handle.
+      // Since openzeppelin-confidential-contracts v0.5.0 (PR #357) the base ERC7984._update
+      // no longer reverts with the removed `ERC7984ZeroBalance` error in this case; it
+      // silently transfers 0, matching the insufficient-balance path above. This test locks
+      // in that behaviour so a future library bump cannot reintroduce the revert unnoticed.
+      const stranger = this.accounts[0];
+      const enc = await encryptAmount(this.token.target, stranger.address, 100);
+      await this.token.connect(stranger)['confidentialTransfer(address,bytes32,bytes)'](
+        this.holder.address, enc.handles[0], enc.inputProof
+      );
+      // Recipient balance is unchanged, proving exactly 0 was moved (no revert, no credit).
       const holderHandle = await this.token.confidentialBalanceOf(this.holder.address);
       expect(await decryptBalance(this.token.target, holderHandle, this.holder)).to.equal(1000n);
     });

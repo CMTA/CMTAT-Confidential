@@ -18,6 +18,7 @@ import {IERC7984BurnModule} from "../interfaces/IERC7984BurnModule.sol";
  */
 abstract contract ERC7984BurnModule is ERC7984, IERC7984BurnModule {
     /* ============ State Variables ============ */
+    /// @notice Role allowed to burn confidential tokens.
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
     /* ============ Modifier ============ */
