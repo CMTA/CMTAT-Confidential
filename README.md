@@ -26,6 +26,8 @@ CMTAT is a security token framework by [Capital Markets and Technology Associati
 
 CMTAT Confidential is built on top of [OpenZeppelin Confidential Contracts](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts), including its ERC-7984 implementation, and on top of the Solidity [CMTAT](https://github.com/CMTA/CMTAT) implementation for compliance modules. 
 
+Version 1.0.0 of this project has undergone a security audit by [OpenZeppelin](https://www.openzeppelin.com/security-audits), sponsored by [Zama](https://www.zama.ai/). The audit was performed on version v0.3.0, and the fixes were made and reviewed for version v1.0.0. The audit did not cover the underlying CMTAT library — see [Security](#security) for the report and its scope.
+
 ### What is FHE?
 
 Fully Homomorphic Encryption (FHE) enables computing directly on encrypted data without ever decrypting it. The Zama Protocol uses FHE combined with Multi-Party Computation (MPC) for threshold decryption and Zero-Knowledge Proofs (ZKPoKs) for input validation, providing:
@@ -244,6 +246,46 @@ npm run test
 The contract-level `version()` string is pinned to `1.0.0` via `CMTATConfidentialVersionModule`.
 
 ## Security
+
+### Security Audit — OpenZeppelin
+
+Version 1.0.0 of this project has undergone a security audit by [OpenZeppelin](https://www.openzeppelin.com/security-audits), sponsored by [Zama](https://www.zama.ai/).
+
+The audit was performed on version **v0.3.0** (commit [`463087c`](https://github.com/CMTA/CMTAT-Confidential/tree/463087c)) between 2026-06-12 and 2026-06-24. All fixes were made and reviewed for version **v1.0.0**.
+
+📄 **Final report:** [`OpenZeppelin_Audit_Reportv1.0.0.pdf`](./doc/audit/v1.0.0/OpenZeppelin_Audit_Reportv1.0.0.pdf) (July 9, 2026) — remediation details in [`OpenZeppelin-Remediation.md`](./doc/audit/v0.3.0/OpenZeppelin-Remediation.md).
+
+**8 findings** — 0 critical, 0 high, **1 medium**, **2 low**, **5 notes & additional information**. All findings are resolved or accepted with documented rationale.
+
+#### Audit scope
+
+The audit covered **only the contracts in this repository** (`contracts/deployment/*.sol`, `contracts/modules/*.sol`, and `contracts/CMTATConfidentialBase.sol`). It did **not** cover the underlying dependencies, which were assumed to behave as specified:
+
+- the [CMTAT](https://github.com/CMTA/CMTAT) library (compliance modules) — `lib/CMTAT`
+- the [CMTA RuleEngine](https://github.com/CMTA/RuleEngine) — `lib/RuleEngine`
+- [OpenZeppelin Confidential Contracts](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts) (ERC-7984) — `lib/openzeppelin-confidential-contracts`
+- the Zama FHEVM protocol and `@fhevm/solidity` library
+
+> **⚠ Warning — the underlying CMTAT library was not audited.**
+> At the time of the audit, this project pinned CMTAT `v3.3.0-rc1` (a release candidate), which had not itself undergone a security audit. The OpenZeppelin audit therefore provides **no assurance about the CMTAT compliance modules** (pause, freeze, allowlist, documents, access control) that CMTAT Confidential inherits.
+>
+> Before deploying this project in production, consider:
+> - performing a security audit of the CMTAT library version you depend on;
+> - upgrading `lib/CMTAT` to the latest released version, and re-running the test suite and static analysis afterwards;
+> - applying the same scrutiny to `lib/RuleEngine` if you deploy the `CMTATConfidentialRuleEngine` variant.
+
+| ID | Severity | Finding | Disposition |
+|----|----------|---------|-------------|
+| M-01 | Medium | Rule engine not applied to mint and burn, leaving issuance and redemption unscreened | Fixed — rule engine applied to mint/burn; forced operations intentionally still bypass it |
+| L-01 | Low | Sequential total-supply disclosures leak individual mint and burn amounts | Accepted as residual risk — mitigated by NatSpec and operator guidance (see [Total Supply Visibility](#total-supply-visibility)) |
+| L-02 | Low | `ERC7984TokenAttributeModule` seeds attributes via a skippable internal initializer | Fixed — replaced `_initTokenAttributes` with a constructor |
+| N-01 | Note | Missing docstrings | Fixed |
+| N-02 | Note | Incomplete docstrings | Fixed |
+| N-03 | Note | Floating pragma | Won't fix (by design) — `^0.8.27` is deliberate so library consumers can pick their own `0.8.x` compiler |
+| N-04 | Note | Prefix increment operator `++i` can save gas in loops | Fixed |
+| N-05 | Note | Misleading documentation | Fixed |
+
+> From the report's conclusion: *"the token's security depends as much on how confidentiality and compliance are wired together and operated as on the individual contracts."*
 
 ### Automated Audit — Nethermind AuditAgent
 

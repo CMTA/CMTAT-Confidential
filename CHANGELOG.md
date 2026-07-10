@@ -40,12 +40,11 @@ npx prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'
    - `doc/audit/vX.Y.Z/aderyn-report.md`
    - `doc/audit/vX.Y.Z/aderyn-report-feedback.md`
 
-## 1.0.0 - 2026/07/02
-
-Branch: `audit-fix`
-Commit: _pending — release not yet committed_
+## 1.0.0 - 2026/07/10
 
 First stable release, incorporating the remediation of the **OpenZeppelin security audit** (v0.3.0 report, June 24 2026): 0 Critical / 0 High, 1 Medium, 2 Low, 5 Notes. Per-finding PR/commit/comment table in `doc/audit/v0.3.0/OpenZeppelin.md`.
+
+**Final audit report:** [`doc/audit/v1.0.0/OpenZeppelin_Audit_Reportv1.0.0.pdf`](./doc/audit/v1.0.0/OpenZeppelin_Audit_Reportv1.0.0.pdf) (OpenZeppelin, July 9 2026) — audit performed on **v0.3.0** (commit `463087c`, 2026-06-12 → 2026-06-24), sponsored by [Zama](https://www.zama.ai/); fixes made and reviewed for **v1.0.0**. Scope was limited to this repository's contracts; the underlying CMTAT, RuleEngine, OpenZeppelin Confidential Contracts, and Zama FHEVM libraries were **not** audited (see the [Security section of the README](./README.md#security)).
 
 ### Security
 
