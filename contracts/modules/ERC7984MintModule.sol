@@ -18,6 +18,7 @@ import {IERC7984MintModule} from "../interfaces/IERC7984MintModule.sol";
  */
 abstract contract ERC7984MintModule is ERC7984, IERC7984MintModule {
     /* ============ State Variables ============ */
+    /// @notice Role allowed to mint confidential tokens.
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
     /* ============ Modifier ============ */
