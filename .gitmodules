@@ -7,3 +7,6 @@
 [submodule "lib/RuleEngine"]
 	path = lib/RuleEngine
 	url = https://github.com/CMTA/RuleEngine
+[submodule "lib/CMTAT-equivalency-assessment"]
+	path = lib/CMTAT-equivalency-assessment
+	url = https://github.com/CMTA/CMTAT-equivalency-assessment
