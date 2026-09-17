@@ -141,16 +141,6 @@ An implementation SHOULD be considered equivalent to CMTAT only if **no mandator
 >
 > > *Criterion 17 (Deactivate contract) — Partial: the implementation permanently blocks all transfers and mints, but the account itself cannot be deleted from the ledger, since the chain runtime does not allow it. The deactivated state is irreversible and publicly readable.*
 
-<details><summary>Example of a filled compliance table</summary>
-
-| Answer         | Mandatory (19) | Optional (42) |
-| -------------- | -------------: | ------------: |
-| Present (`y`)  |             16 |             7 |
-| Partial        |              3 |             4 |
-| Absent (`n`)   |              0 |            31 |
-
-</details>
-
 **Compliance result.** No mandatory criterion is answered `n`. Two mandatory criteria are `partial`, both for the same reason: the token state they read is encrypted.
 
 - *Criterion 7 (Know total supply) — Partial:* `confidentialTotalSupply()` exists and is public, but it returns an FHE ciphertext handle. The plaintext is readable only by an address holding an FHE ACL grant on the current handle. The issuer obtains it by registering observers (`SUPPLY_OBSERVER_ROLE`, every variant except Lite), and can make it public at any time with `publishTotalSupply()` (`SUPPLY_PUBLISHER_ROLE`, all variants). The requirement is therefore covered with a read restriction that is the purpose of the implementation, not a chain limitation.

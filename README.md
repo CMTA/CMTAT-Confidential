@@ -6,6 +6,7 @@ A confidential security token implementation combining [CMTAT](https://github.co
 
 - [Overview](#overview)
 - [Architecture](#architecture)
+  - [Operation Flows](#operation-flows) — mint, burn and transfer step by step (diagrams)
 - [Summary](#summary)
 - [Deployment Variants](#deployment-variants)
 - [Installation](#installation)
@@ -118,6 +119,123 @@ CMTAT modules (from `lib/CMTAT/`) are inherited through `CMTATBaseGeneric` and a
 1. **Symbolic Execution**: When a contract calls an FHE operation, the host chain produces a pointer to the result and emits an event to notify the coprocessor network
 2. **Coprocessor Computation**: The coprocessors perform the actual FHE computation off-chain
 3. **Threshold Decryption**: Decryption requests go through the Key Management Service (KMS), which uses MPC to ensure no single party can access the private key
+
+### Operation Flows
+
+Every state-changing operation follows the same three stages: the client encrypts the amount off-chain, the contract runs the CMTAT checks on **plaintext addresses** and then issues **symbolic FHE operations** on the encrypted amount, and the coprocessor network executes those operations off-chain. The contract never sees a plaintext amount; a check that would depend on the amount (insufficient balance, overflow) is resolved inside the ciphertext with `FHESafeMath` and results in a transfer of `0` instead of a revert.
+
+#### Common step: encrypting the amount
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Caller (wallet / SDK)
+    participant R as Zama Relayer / Gateway
+    participant T as CMTATConfidential
+    participant IV as InputVerifier
+
+    C->>R: createEncryptedInput(token, caller).add64(amount).encrypt()
+    R-->>C: externalEuint64 handle + inputProof (ZKPoK)
+    C->>T: mint / burn / confidentialTransfer(…, handle, inputProof)
+    T->>IV: FHE.fromExternal(handle, inputProof)
+    IV-->>T: euint64 amount (proof bound to token + caller)
+```
+
+The `inputProof` binds the ciphertext to the token address and to the caller, so a proof produced for one contract or one sender cannot be replayed by another. The `euint64` overloads skip this step and require the caller to already hold ACL access on the handle (`FHE.isAllowed`).
+
+#### Mint
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant M as Minter (MINTER_ROLE)
+    participant T as CMTATConfidential
+    participant CP as FHE Coprocessor
+    participant H as Holder / observers
+
+    M->>T: mint(to, handle, inputProof)
+    T->>T: _authorizeMint() — onlyRole(MINTER_ROLE)
+    T->>T: _validateMint(to) — deactivated? to frozen?<br/>(+ allowlist / RuleEngine in the variants)
+    T->>T: FHE.fromExternal(handle, inputProof)
+    T->>CP: _update(address(0), to, amount)<br/>tryIncrease(totalSupply, amount) → (success, newSupply)<br/>transferred = select(success, amount, 0)<br/>balance[to] = balance[to] + transferred
+    T->>T: FHE.allow(newBalance, to) + holder observer + role observer
+    T->>T: _afterMint → FHE.allow(newSupply, supply observers)
+    T-->>H: emit ConfidentialTransfer(0x0, to, transferred), Mint(minter, to, transferred)
+    CP-->>CP: executes the queued FHE ops asynchronously
+    H->>H: userDecrypt(new balance handle) via relayer SDK
+```
+
+Minting is allowed while the contract is paused but not once it is deactivated. If the mint would overflow the `uint64` total supply, `tryIncrease` fails and `transferred` is `0` — the transaction still succeeds.
+
+#### Burn
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant B as Burner (BURNER_ROLE)
+    participant T as CMTATConfidential
+    participant CP as FHE Coprocessor
+    participant H as Holder / observers
+
+    B->>T: burn(from, handle, inputProof)
+    T->>T: _authorizeBurn() — onlyRole(BURNER_ROLE)
+    T->>T: _validateBurn(from) — deactivated? from frozen?<br/>(+ allowlist / RuleEngine in the variants)
+    T->>T: FHE.fromExternal(handle, inputProof)
+    T->>CP: _update(from, address(0), amount)<br/>tryDecrease(balance[from], amount) → (success, newBalance)<br/>transferred = select(success, amount, 0)<br/>totalSupply = totalSupply - transferred
+    T->>T: FHE.allow(newBalance, from) + holder observer + role observer
+    T->>T: _afterBurn → FHE.allow(newSupply, supply observers)
+    T-->>H: emit ConfidentialTransfer(from, 0x0, transferred), Burn(burner, from, transferred)
+    CP-->>CP: executes the queued FHE ops asynchronously
+```
+
+A burn larger than the balance burns `0` silently. A frozen address cannot be burned from with `burn`; use `forcedBurn` (`FORCED_OPS_ROLE`), which skips `_validateBurn` and instead requires `from` to be frozen.
+
+#### Transfer
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant S as Sender (holder or operator)
+    participant T as CMTATConfidential
+    participant RE as RuleEngine (variant only)
+    participant CP as FHE Coprocessor
+    participant P as Sender, recipient, observers
+
+    S->>T: confidentialTransfer(to, handle, inputProof)<br/>or confidentialTransferFrom(from, to, handle, inputProof)
+    T->>T: _canTransferGenericByModule(spender, from, to)<br/>paused? spender / from / to frozen?<br/>(+ allowlisted? in Whitelist variant)
+    alt check fails
+        T-->>S: revert ERC7943CannotTransfer(from, to, 0)
+    end
+    T->>RE: _beforeTransfer → transferred(spender, from, to, 0)
+    RE-->>T: ok (or revert — no FHE gas spent)
+    T->>T: isOperator(from, spender) for transferFrom
+    T->>T: FHE.fromExternal(handle, inputProof)
+    T->>CP: _update(from, to, amount)<br/>tryDecrease(balance[from], amount) → (success, newFrom)<br/>transferred = select(success, amount, 0)<br/>balance[to] = balance[to] + transferred
+    T->>T: FHE.allow(newFrom, from), FHE.allow(newTo, to)<br/>FHE.allow(transferred, from & to) + observers of both
+    T-->>P: emit ConfidentialTransfer(from, to, transferred)
+    T-->>S: returns transferred (transient ACL for msg.sender)
+    CP-->>CP: executes the queued FHE ops asynchronously
+    P->>P: userDecrypt(new balance / transferred handle)
+```
+
+All eight transfer overloads (`confidentialTransfer`, `confidentialTransferFrom`, `…AndCall`, with proof or with handle) go through the same gate. The checks are ordered so that every plaintext rejection happens **before** any FHE operation is queued, which keeps a rejected transaction cheap and prevents the RuleEngine from being notified about a transfer that will not happen.
+
+#### Where each check lives
+
+```mermaid
+flowchart TD
+    A[Entry point] --> B{Role check<br/>_authorizeXxx}
+    B -- no role --> R1[revert AccessControlUnauthorizedAccount]
+    B --> C{Plaintext CMTAT checks}
+    C -- mint / burn --> C1[deactivated?<br/>account frozen?<br/>allowlist / RuleEngine]
+    C -- transfer --> C2[paused?<br/>spender / from / to frozen?<br/>allowlist / RuleEngine]
+    C -- forcedTransfer / forcedBurn --> C3[from frozen? — required<br/>to != 0x0 for forcedTransfer]
+    C1 & C2 & C3 -- fail --> R2[revert ERC7943CannotSend /<br/>CannotReceive / CannotTransfer]
+    C1 & C2 & C3 -- pass --> D[FHE.fromExternal — verify ZKPoK]
+    D --> E[_update — FHESafeMath<br/>insufficient balance ⇒ transferred = 0]
+    E --> F[FHE.allow — holders, observers, supply observers]
+    F --> G[emit events with encrypted handles]
+```
 
 ## Summary
 
