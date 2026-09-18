@@ -122,6 +122,8 @@ CMTAT modules (from `lib/CMTAT/`) are inherited through `CMTATBaseGeneric` and a
 
 ### Operation Flows
 
+> A dedicated guide, [`doc/technical/OperationFlows.md`](./doc/technical/OperationFlows.md), covers these flows in more depth and opens with a plain-language explanation (sealed-envelope analogy, actor table, what can stop an operation) intended for non-technical readers, and closes with horizontal, slide-ready versions of every diagram.
+
 Every state-changing operation follows the same three stages: the client encrypts the amount off-chain, the contract runs the CMTAT checks on **plaintext addresses** and then issues **symbolic FHE operations** on the encrypted amount, and the coprocessor network executes those operations off-chain. The contract never sees a plaintext amount; a check that would depend on the amount (insufficient balance, overflow) is resolved inside the ciphertext with `FHESafeMath` and results in a transfer of `0` instead of a revert.
 
 #### Common step: encrypting the amount
@@ -224,17 +226,21 @@ All eight transfer overloads (`confidentialTransfer`, `confidentialTransferFrom`
 
 ```mermaid
 flowchart TD
-    A[Entry point] --> B{Role check<br/>_authorizeXxx}
-    B -- no role --> R1[revert AccessControlUnauthorizedAccount]
-    B --> C{Plaintext CMTAT checks}
-    C -- mint / burn --> C1[deactivated?<br/>account frozen?<br/>allowlist / RuleEngine]
-    C -- transfer --> C2[paused?<br/>spender / from / to frozen?<br/>allowlist / RuleEngine]
-    C -- forcedTransfer / forcedBurn --> C3[from frozen? — required<br/>to != 0x0 for forcedTransfer]
-    C1 & C2 & C3 -- fail --> R2[revert ERC7943CannotSend /<br/>CannotReceive / CannotTransfer]
-    C1 & C2 & C3 -- pass --> D[FHE.fromExternal — verify ZKPoK]
-    D --> E[_update — FHESafeMath<br/>insufficient balance ⇒ transferred = 0]
-    E --> F[FHE.allow — holders, observers, supply observers]
-    F --> G[emit events with encrypted handles]
+    A["Entry point"] --> B{"Role check<br/>_authorizeXxx"}
+    B -->|"no role"| R1["revert AccessControlUnauthorizedAccount"]
+    B -->|"role ok"| C{"Plaintext CMTAT checks"}
+    C -->|"mint / burn"| C1["deactivated?<br/>account frozen?<br/>allowlist / RuleEngine"]
+    C -->|"transfer"| C2["paused?<br/>spender / from / to frozen?<br/>allowlist / RuleEngine"]
+    C -->|"forcedTransfer / forcedBurn"| C3["from frozen? (required)<br/>to != 0x0 for forcedTransfer"]
+    C1 -->|"fail"| R2["revert ERC7943CannotSend /<br/>CannotReceive / CannotTransfer"]
+    C2 -->|"fail"| R2
+    C3 -->|"fail"| R3["revert CMTAT_AddressNotFrozen /<br/>CMTAT_Enforcement_ZeroAddressNotAllowed"]
+    C1 -->|"pass"| D["FHE.fromExternal — verify ZKPoK"]
+    C2 -->|"pass"| D
+    C3 -->|"pass"| D
+    D --> E["_update — FHESafeMath<br/>insufficient balance ⇒ transferred = 0"]
+    E --> F["FHE.allow — holders, observers, supply observers"]
+    F --> G["emit events with encrypted handles"]
 ```
 
 ## Summary
@@ -1090,6 +1096,7 @@ CMTAT-Confidential/
 │   ├── ERCSpecification/                     # Referenced ERC specs (ERC-7943, etc.)
 │   ├── specification/                        # Project specification
 │   └── technical/                            # Per-variant and per-module technical documentation
+│       └── OperationFlows.md                 # Mint / burn / transfer step by step (plain-language + technical diagrams)
 ├── test/
 │   ├── CMTATConfidential.test.ts                           # Full variant core tests
 │   ├── CMTATConfidentialLite.test.ts                       # Lite variant core tests (shared suite)
@@ -1539,6 +1546,54 @@ await token.connect(enforcer)['forcedBurn(address,bytes32,bytes)'](
 | Can the issuer specify any amount? | Yes, but if the amount exceeds the holder's balance, FHE transfers/burns 0 silently |
 
 The `inputProof` is tied to the **caller's address** and the **contract address** (passed to `createEncryptedInput`), not to the token holder. This is what enables administrative operations like `forcedBurn` and `forcedTransfer` without the holder's participation.
+
+---
+
+### 8. After a mint or a burn, is the issuer granted access to the investor's new balance? Which events are emitted, and who can read them?
+
+**Answer:** No. A mint or a burn grants **no** ACL permission to the caller (minter, burner, or enforcer). Only the investor, the contract itself, and the investor's observers receive access to the new handles. The events are public, but they carry encrypted handles, not amounts.
+
+#### Who receives ACL access on a mint or burn
+
+The grants are made inside the `_update` chain (`ERC7984._update` → `ERC7984ObserverAccess._update` → `ERC7984BalanceViewModule._update`) and the `_afterMint` / `_afterBurn` hooks. `ERC7984MintModule`, `ERC7984BurnModule` and `ERC7984EnforcementModule` contain no `FHE.allow` of their own, and unlike the public transfer functions they do not give the caller a transient allowance on the result.
+
+| Handle | Granted to | Not granted to |
+|---|---|---|
+| Investor's new balance | the investor; the contract; the investor's holder observer (`setObserver`); the investor's role observer (`setRoleObserver`) | the minter / burner / enforcer |
+| `transferred` (amount actually minted or burned) | same as above | the minter / burner / enforcer |
+| New total supply | the contract; registered supply observers (`addTotalSupplyObserver`, not in Lite) | anyone else, unless `publishTotalSupply()` is called |
+
+Consequences for the issuer:
+
+- The minter already **knows the amount it minted** (it encrypted it client-side), but it cannot decrypt the investor's **resulting balance** (previous balance + amount).
+- The burner cannot tell from the chain whether a burn actually removed the amount or silently removed **0** (amount larger than the balance): the `transferred` handle is not readable by it.
+- To obtain that visibility, the issuer must use the observer mechanism *before* acting: `OBSERVER_ROLE` → `setRoleObserver(investor, issuerAddress)` grants the current balance handle immediately and every future one automatically (see FAQ 6). Grants are permanent and cannot be revoked.
+
+#### Events emitted by a mint
+
+A successful `mint(to, encryptedAmount, inputProof)` emits two events, in this order:
+
+| Event | Emitted by | Content |
+|---|---|---|
+| `ConfidentialTransfer(address indexed from, address indexed to, euint64 indexed amount)` | `ERC7984._update` | `from = address(0)`, `to = investor`, `amount = handle of transferred` |
+| `Mint(address indexed minter, address indexed to, euint64 encryptedAmount)` | `ERC7984MintModule.mint` | `minter = msg.sender`, `to = investor`, `encryptedAmount = handle of transferred` |
+
+A burn emits `ConfidentialTransfer(from, address(0), handle)` then `Burn(burner, from, handle)`; a forced burn emits `ConfidentialTransfer` then `ForcedBurn(enforcer, from, handle)`.
+
+In `CMTATConfidential`, `CMTATConfidentialRuleEngine` and `CMTATConfidentialWhitelist`, the mint also triggers the supply observers' ACL re-grant (no additional event). In `CMTATConfidentialRuleEngine`, the RuleEngine is notified (`transferred(minter, address(0), to, 0)`) and may emit its own events.
+
+#### Who can read these events
+
+| Part of the event | Who can read it |
+|---|---|
+| Addresses (`minter`, `to`, `from`, `burner`) and the fact that a mint / burn happened, when, and in which block | **Everyone** — the event is public on the ledger, and the `indexed` addresses can be filtered by any indexer or block explorer |
+| `encryptedAmount` / `amount` | Everyone sees the **32-byte handle**, which is meaningless on its own. The plaintext can only be obtained by decrypting the handle through the Zama KMS, which requires an ACL grant on it — i.e. the investor and its observers (see table above). The minter cannot decrypt it from the event, even though it chose the amount |
+
+So an off-chain observer learns *that* investor `X` was issued tokens by minter `Y` at block `N`, and can track the sequence of issuances and cancellations per account, but not the amounts. The same reasoning applies to `ConfidentialTransfer` on transfers: participants and timing are public, amounts are not — see [Privacy and Confidentiality](./doc/CMTAT-equivalency-assessment.md#privacy-and-confidentiality) in the equivalency assessment.
+
+**Note on the event handle.** `Mint.encryptedAmount` and `ConfidentialTransfer.amount` carry the `transferred` handle (the amount *actually* applied, which is `0` if the operation exceeded the balance or the `uint64` supply ceiling), not the handle the caller submitted. An investor who decrypts it therefore sees the effective amount.
+
+---
 
 ## Glossary
 
